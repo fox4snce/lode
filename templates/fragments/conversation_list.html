@@ -1,18 +1,31 @@
 {% if conversations %}
     {% for conv in conversations %}
     <li class="conversation-item" data-conversation-id="{{ conv.conversation_id }}">
-        <div class="conversation-title">{{ conv.title or 'Untitled' }}</div>
-        <div class="conversation-meta">
-            {{ conv.message_count }} messages • {{ conv.word_count }} words
-            {% if conv.ai_source %}{{ conv.ai_source }}{% endif %}
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <button class="star-btn" 
+                    data-conversation-id="{{ conv.conversation_id }}"
+                    data-starred="{{ 'true' if conv.is_starred else 'false' }}"
+                    hx-post="/api/conversations/{{ conv.conversation_id }}/star"
+                    hx-trigger="click"
+                    hx-swap="outerHTML"
+                    style="background: none; border: none; cursor: pointer; font-size: 18px; padding: 0; color: {% if conv.is_starred %}#ffd43b{% else %}#ddd{% endif %};">
+                {% if conv.is_starred %}★{% else %}☆{% endif %}
+            </button>
+            <div style="flex: 1;">
+                <div class="conversation-title">{{ conv.title or 'Untitled' }}</div>
+                <div class="conversation-meta">
+                    {{ conv.message_count }} messages • {{ conv.word_count }} words
+                    {% if conv.ai_source %}{{ conv.ai_source }}{% endif %}
+                </div>
+                {% if conv.tags %}
+                <div class="tags">
+                    {% for tag in conv.tags %}
+                    <span class="tag">{{ tag }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
         </div>
-        {% if conv.tags %}
-        <div class="tags">
-            {% for tag in conv.tags %}
-            <span class="tag">{{ tag }}</span>
-            {% endfor %}
-        </div>
-        {% endif %}
     </li>
     {% endfor %}
 {% else %}

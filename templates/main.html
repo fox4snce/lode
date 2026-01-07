@@ -106,8 +106,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Handle conversation click
+// Handle conversation click (but not star button clicks)
 document.body.addEventListener('click', function(event) {
+    // Don't trigger if clicking the star button
+    if (event.target.closest('.star-btn')) {
+        return;
+    }
+    
     const item = event.target.closest('.conversation-item');
     if (item) {
         const convId = item.dataset.conversationId;

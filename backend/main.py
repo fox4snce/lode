@@ -172,6 +172,46 @@ async def main_screen(request: Request):
         return HTMLResponse(render_template("welcome.html"))
     return HTMLResponse(render_template("main.html"))
 
+@app.get("/analytics", response_class=HTMLResponse)
+async def analytics_screen(request: Request):
+    """Analytics screen."""
+    if not check_database_initialized():
+        return HTMLResponse(render_template("welcome.html"))
+    return HTMLResponse(render_template("analytics.html"))
+
+@app.get("/import", response_class=HTMLResponse)
+async def import_screen(request: Request):
+    """Import screen."""
+    if not check_database_initialized():
+        return HTMLResponse(render_template("welcome.html"))
+    return HTMLResponse(render_template("import.html"))
+
+@app.get("/find-tools", response_class=HTMLResponse)
+async def find_tools_screen(request: Request):
+    """Find tools screen."""
+    if not check_database_initialized():
+        return HTMLResponse(render_template("welcome.html"))
+    return HTMLResponse(render_template("find_tools.html"))
+
+@app.get("/export", response_class=HTMLResponse)
+async def export_screen(request: Request):
+    """Export screen."""
+    if not check_database_initialized():
+        return HTMLResponse(render_template("welcome.html"))
+    return HTMLResponse(render_template("export.html"))
+
+@app.get("/settings", response_class=HTMLResponse)
+async def settings_screen(request: Request):
+    """Settings screen."""
+    if not check_database_initialized():
+        return HTMLResponse(render_template("welcome.html"))
+    return HTMLResponse(render_template("settings.html"))
+
+@app.get("/about", response_class=HTMLResponse)
+async def about_screen(request: Request):
+    """About screen."""
+    return HTMLResponse(render_template("about.html"))
+
 
 # Conversation endpoints
 @app.get("/api/conversations")
@@ -230,7 +270,7 @@ async def list_conversations(
     if starred == "true":
         query += " AND c.is_starred = 1"
     
-    if ai_source:
+    if ai_source and ai_source.strip():  # Only filter if not empty
         query += " AND c.ai_source = ?"
         params.append(ai_source)
     

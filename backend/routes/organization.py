@@ -121,17 +121,43 @@ async def create_bookmark(conversation_id: str = PathParam(...), request: Bookma
 
 
 @router.post("/conversations/{conversation_id}/star")
-async def star_conversation(conversation_id: str = PathParam(...)):
-    """Star a conversation."""
+async def star_conversation(request: Request, conversation_id: str = PathParam(...)):
+    """Star a conversation. Returns HTML fragment if HTMX request."""
     if not check_database_initialized():
         raise HTTPException(status_code=400, detail="Database not initialized")
     
     import organization_api
     from backend.db import get_db_path
     
-    if organization_api.star_conversation(str(get_db_path()), conversation_id):
-        return {"status": "starred"}
-    raise HTTPException(status_code=404, detail="Conversation not found")
+    # Check if already starred
+    conn = get_db_connection()
+    cursor = conn.execute("SELECT is_starred FROM conversations WHERE conversation_id = ?", (conversation_id,))
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    is_starred = bool(row[0])
+    
+    # Toggle star status
+    if is_starred:
+        organization_api.unstar_conversation(str(get_db_path()), conversation_id)
+        new_starred = False
+    else:
+        organization_api.star_conversation(str(get_db_path()), conversation_id)
+        new_starred = True
+    
+    conn.close()
+    
+    # Return HTML fragment if HTMX request
+    if request.headers.get("HX-Request"):
+        from jinja2 import Environment, FileSystemLoader
+        templates_dir = Path(__file__).parent.parent.parent / "templates"
+        jinja_env = Environment(loader=FileSystemLoader(str(templates_dir)))
+        template = jinja_env.get_template("fragments/star_button.html")
+        return HTMLResponse(template.render(conversation_id=conversation_id, is_starred=new_starred))
+    
+    return {"status": "starred" if new_starred else "unstarred"}
 
 
 @router.delete("/conversations/{conversation_id}/star")
