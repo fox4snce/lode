@@ -17,26 +17,38 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('main')
 
   useEffect(() => {
+    console.log('=== App.tsx useEffect running ===')
     console.log('App mounted, checking setup...')
     console.log('checkSetup function:', typeof checkSetup)
     
+    // Set a shorter timeout and default to false if it hangs
     const timeoutId = setTimeout(() => {
-      console.warn('Setup check timed out after 5 seconds')
+      console.warn('Setup check timed out after 3 seconds - defaulting to welcome screen')
       setInitialized(false)
-    }, 5000)
+    }, 3000)
     
-    checkSetup()
-      .then((result) => {
-        clearTimeout(timeoutId)
-        console.log('Setup check result:', result)
-        setInitialized(result)
-      })
-      .catch((error) => {
-        clearTimeout(timeoutId)
-        console.error('Failed to check setup:', error)
-        console.error('Error details:', error.message, error.stack)
-        setInitialized(false) // Default to showing welcome screen on error
-      })
+    try {
+      console.log('Calling checkSetup()...')
+      const setupPromise = checkSetup()
+      console.log('checkSetup() returned a promise:', !!setupPromise)
+      
+      setupPromise
+        .then((result) => {
+          clearTimeout(timeoutId)
+          console.log('Setup check result:', result)
+          setInitialized(result)
+        })
+        .catch((error) => {
+          clearTimeout(timeoutId)
+          console.error('Failed to check setup:', error)
+          console.error('Error details:', error.message, error.stack)
+          setInitialized(false) // Default to showing welcome screen on error
+        })
+    } catch (error) {
+      clearTimeout(timeoutId)
+      console.error('Exception calling checkSetup():', error)
+      setInitialized(false)
+    }
   }, [])
 
   if (initialized === null) {
