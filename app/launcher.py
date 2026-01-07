@@ -239,7 +239,7 @@ def wait_for_server(port, max_retries=30):
 
 def main():
     """Launch the desktop application."""
-    # Use fixed port 8000 for FastAPI (matches Vite proxy config)
+    # Use fixed port 8000 for FastAPI
     port = 8000
     
     # Check for existing instance
@@ -262,128 +262,9 @@ def main():
     # Create lock file to prevent multiple instances
     create_lock_file()
     
-    # No Vite - FastAPI serves HTML directly
+    # FastAPI serves HTML directly - no Vite/React needed
     frontend_url = f"http://127.0.0.1:{port}"
-    vite_process = None
     print(f"FastAPI will serve HTML directly at {frontend_url}")
-    
-    # OLD VITE CODE REMOVED - keeping structure for now
-    if False:
-        # Start Vite dev server (it proxies /api to FastAPI on port 8000)
-        frontend_dir = Path(__file__).parent.parent / "frontend"
-        print(f"Starting Vite dev server in {frontend_dir}...")
-        print(f"Dist folder exists: {frontend_dist.exists()}")
-        
-        # On Windows, npm might not be in PATH, so use shell=True
-        if platform.system() == "Windows":
-            # Use shell=True on Windows so it can find npm in PATH
-            vite_process = subprocess.Popen(
-                "npm run dev -- --port 5173 --host",
-                cwd=frontend_dir,
-                shell=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1
-            )
-        else:
-            vite_process = subprocess.Popen(
-                ["npm", "run", "dev", "--", "--port", "5173", "--host"],
-                cwd=frontend_dir,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1
-            )
-        
-        # Wait for Vite to start and check output
-        print("Waiting for Vite dev server to start...")
-        max_wait = 15
-        waited = 0
-        vite_ready = False
-        
-        while waited < max_wait:
-            time.sleep(1)
-            waited += 1
-            
-            # Check if process is still alive
-            if vite_process.poll() is not None:
-                print(f"ERROR: Vite process died! Exit code: {vite_process.returncode}")
-                # Try to read output
-                try:
-                    output = vite_process.stdout.read() if vite_process.stdout else "No output"
-                    print(f"Vite output: {output[:500]}")
-                except:
-                    pass
-                break
-            
-            # Try to connect
-            try:
-                response = requests.get("http://localhost:5173", timeout=1)
-                if response.status_code == 200:
-                    print(f"Vite is ready after {waited} seconds!")
-                    vite_ready = True
-                    break
-            except:
-                pass
-            
-            # Check for "Local:" in output (Vite's ready message)
-            if vite_process.stdout:
-                try:
-                    # Non-blocking read
-                    import select
-                    if platform.system() != "Windows":
-                        if select.select([vite_process.stdout], [], [], 0)[0]:
-                            line = vite_process.stdout.readline()
-                            if line:
-                                print(f"Vite: {line.strip()}")
-                                if "Local:" in line or "ready" in line.lower():
-                                    vite_ready = True
-                                    break
-                except:
-                    pass
-        if not vite_ready:
-            print("ERROR: Vite did not start properly!")
-            print("Try running manually: cd frontend && npm run dev")
-            if vite_process:
-                vite_process.terminate()
-            sys.exit(1)
-        
-        # Check if Vite is actually running - try both localhost and 127.0.0.1
-        vite_url_localhost = "http://localhost:5173"
-        vite_url_127 = "http://127.0.0.1:5173"
-        frontend_url = vite_url_localhost  # Default
-        
-        try:
-            response = requests.get(vite_url_localhost, timeout=5)
-            print(f"Vite dev server is running! Status: {response.status_code}")
-            print(f"Using frontend URL: {vite_url_localhost}")
-            # Check if we got actual HTML content
-            if len(response.text) > 100:
-                print(f"Vite returned content ({len(response.text)} bytes)")
-                if '<html' in response.text.lower() or '<!doctype' in response.text.lower():
-                    print("Content is HTML - good!")
-                else:
-                    print(f"WARNING: Content doesn't look like HTML!")
-                    print(f"First 200 chars: {response.text[:200]}")
-            else:
-                print(f"WARNING: Vite returned very little content ({len(response.text)} bytes)")
-        except Exception as e:
-            print(f"WARNING: localhost:5173 not accessible: {e}")
-            # Try 127.0.0.1 instead (pywebview on Windows sometimes prefers this)
-            try:
-                response = requests.get(vite_url_127, timeout=5)
-                print(f"Vite accessible via 127.0.0.1! Status: {response.status_code}")
-                frontend_url = vite_url_127
-            except Exception as e2:
-                print(f"ERROR: Both localhost and 127.0.0.1 failed: {e2}")
-                print("You may need to manually start: cd frontend && npm run dev")
-                if vite_process:
-                    vite_process.terminate()
-                sys.exit(1)
-        print(f"Webview will load: {frontend_url}")
-    else:
-        pass  # Already set above
     
     # Start FastAPI server
     server_thread = ServerThread(port)
@@ -437,19 +318,7 @@ def main():
         except Exception as e:
             print(f"Error shutting down server: {e}")
         
-        if vite_process:
-            try:
-                print("Terminating Vite process...")
-                vite_process.terminate()
-                # Give it a moment, then kill if needed
-                import time
-                time.sleep(1)
-                if vite_process.poll() is None:
-                    print("Vite process still running, killing...")
-                    vite_process.kill()
-                print("Vite process terminated")
-            except Exception as e:
-                print(f"Error terminating Vite: {e}")
+        # No Vite process to clean up
         print("=== CLEANUP COMPLETE ===")
     
     # Start webview (debug disabled - no devtools)

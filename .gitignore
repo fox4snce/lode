@@ -51,11 +51,8 @@ htmlcov/
 *.log
 *.bak
 
-# Frontend build artifacts
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
-frontend/*.local
+# Frontend directory (React/Vite - no longer used, but keep in gitignore in case)
+frontend/
 
 # Documentation (internal development docs)
 docs/
