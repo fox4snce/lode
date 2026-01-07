@@ -1,0 +1,79 @@
+# Virtual environment
+.venv/
+venv/
+ENV/
+env/
+
+# Data files (but allow example corpus)
+data/
+!data/example_corpus/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+*~
+
+# ONNX model files (large, should be downloaded separately)
+# vendor/embedder_minilm_l6_v2/ is included for convenience but can be regenerated
+
+# Frontend build artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/*.local
+
+# Documentation (internal development docs)
+docs/
+
+# ONNX model files (large, should be downloaded separately)
+vendor/
+
+# Test files (optional - uncomment if you don't want tests in repo)
+# test_*.py
+
+# Legacy/old files
+api/main.py
+app.py
+launcher.py
+templates/
+static/
+
