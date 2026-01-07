@@ -17,6 +17,8 @@ from backend.main import app
 import uvicorn
 import platform
 import socket
+import os
+import atexit
 
 
 class ServerThread(threading.Thread):
@@ -134,10 +136,77 @@ def kill_chatvault_server(port):
     return False
 
 
+def get_lock_file_path():
+    """Get path to lock file for preventing multiple instances."""
+    if platform.system() == "Windows":
+        # Use temp directory
+        import tempfile
+        return Path(tempfile.gettempdir()) / "chatvault.lock"
+    else:
+        # Linux/Mac: use /tmp
+        return Path("/tmp") / "chatvault.lock"
+
+
 def is_port_in_use(port):
     """Check if a port is in use."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         return s.connect_ex(('127.0.0.1', port)) == 0
+
+
+def check_existing_instance(port):
+    """Check if another ChatVault instance is running."""
+    # Check lock file
+    lock_file = get_lock_file_path()
+    if lock_file.exists():
+        try:
+            # Read PID from lock file
+            pid = int(lock_file.read_text().strip())
+            # Check if process is still running
+            if platform.system() == "Windows":
+                result = subprocess.run(
+                    ["tasklist", "/FI", f"PID eq {pid}"],
+                    capture_output=True,
+                    text=True,
+                    shell=True
+                )
+                if str(pid) in result.stdout:
+                    # Process exists, check if it's our server
+                    if is_our_server(port):
+                        return True, pid
+            else:
+                try:
+                    os.kill(pid, 0)  # Check if process exists
+                    if is_our_server(port):
+                        return True, pid
+                except OSError:
+                    # Process doesn't exist, remove stale lock file
+                    lock_file.unlink(missing_ok=True)
+        except (ValueError, FileNotFoundError):
+            # Invalid lock file, remove it
+            lock_file.unlink(missing_ok=True)
+    
+    # Check if port is in use and it's our server
+    if is_port_in_use(port) and is_our_server(port):
+        return True, None
+    
+    return False, None
+
+
+def create_lock_file():
+    """Create lock file with current process ID."""
+    lock_file = get_lock_file_path()
+    lock_file.write_text(str(os.getpid()))
+    
+    # Register cleanup on exit
+    def cleanup_lock():
+        if lock_file.exists():
+            try:
+                lock_file.unlink()
+            except:
+                pass
+    
+    atexit.register(cleanup_lock)
+    return lock_file
 
 
 def wait_for_server(port, max_retries=30):
@@ -159,16 +228,25 @@ def main():
     # Use fixed port 8000 for FastAPI (matches Vite proxy config)
     port = 8000
     
-    # Kill any existing ChatVault server processes on port 8000
-    if is_port_in_use(port):
-        print(f"Port {port} is in use. Checking if it's a ChatVault server...")
-        if kill_chatvault_server(port):
-            print("Cleaned up old ChatVault server process.")
-            time.sleep(2)  # Give process time to die
+    # Check for existing instance
+    has_instance, existing_pid = check_existing_instance(port)
+    if has_instance:
+        if existing_pid:
+            print(f"Another ChatVault instance is already running (PID: {existing_pid})")
+            print("Please close that instance first or wait for it to finish.")
         else:
-            print(f"ERROR: Port {port} is in use by another application.")
-            print("Please stop that application or use a different port.")
-            sys.exit(1)
+            print(f"Port {port} is in use by another ChatVault server.")
+            print("Attempting to clean up...")
+            if kill_chatvault_server(port):
+                print("Cleaned up old ChatVault server process.")
+                time.sleep(2)  # Give process time to die
+            else:
+                print(f"ERROR: Could not clean up. Port {port} is in use.")
+                print("Please stop that application or use a different port.")
+                sys.exit(1)
+    
+    # Create lock file to prevent multiple instances
+    create_lock_file()
     
     # Check if we should use Vite dev server or built files
     frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
