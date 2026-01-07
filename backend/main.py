@@ -152,6 +152,27 @@ async def setup_initialize():
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# HTML Routes
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request):
+    """Main entry point - redirects to appropriate screen."""
+    if not check_database_initialized():
+        return HTMLResponse(render_template("welcome.html"))
+    return HTMLResponse(render_template("main.html"))
+
+@app.get("/welcome", response_class=HTMLResponse)
+async def welcome(request: Request):
+    """Welcome screen for first-time setup."""
+    return HTMLResponse(render_template("welcome.html"))
+
+@app.get("/main", response_class=HTMLResponse)
+async def main_screen(request: Request):
+    """Main application screen."""
+    if not check_database_initialized():
+        return HTMLResponse(render_template("welcome.html"))
+    return HTMLResponse(render_template("main.html"))
+
+
 # Conversation endpoints
 @app.get("/api/conversations")
 async def list_conversations(
