@@ -274,8 +274,10 @@
 - ✅ State management working
 
 **Known Issues:**
-1. JSON export format returns 500 error
-2. CSV export format returns 500 error
+1. JSON export format returns 500 error - Fixed in code (requires server restart)
+2. CSV export format returns 500 error - Fixed in code (requires server restart)
+
+**Note:** Export bug was caused by incorrect function call signature. Fixed by using direct database queries instead of route functions.
 
 ---
 

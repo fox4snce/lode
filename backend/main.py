@@ -942,10 +942,18 @@ async def export_conversation(
             return {"format": "markdown", "content": content}
         else:
             # For CSV/JSON, return structured data
-            from api.routes.conversations import get_conversation
-            from api.routes.messages import get_messages
-            conv = await get_conversation(conversation_id)
-            msgs = await get_messages(conversation_id, None, "around", 10000)
+            from backend.db import get_db_connection
+            conn = get_db_connection()
+            cursor = conn.execute("SELECT * FROM conversations WHERE conversation_id = ?", (conversation_id,))
+            conv = dict(cursor.fetchone())
+            cursor = conn.execute("""
+                SELECT message_id, role, content, create_time, parent_id
+                FROM messages
+                WHERE conversation_id = ?
+                ORDER BY create_time ASC, id ASC
+            """, (conversation_id,))
+            msgs = [dict(row) for row in cursor.fetchall()]
+            conn.close()
             
             if format == "json":
                 return {"conversation": dict(conv), "messages": [dict(m) for m in msgs]}
