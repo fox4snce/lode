@@ -97,13 +97,36 @@
 </div>
 
 <script>
-// Load conversations on page load
-document.addEventListener('DOMContentLoaded', function() {
-    htmx.ajax('GET', '/api/conversations', {
+function loadConversations() {
+    // Get current filter values
+    const searchInput = document.getElementById('search-input');
+    const sortSelect = document.querySelector('[name="sort"]');
+    const aiSourceSelect = document.querySelector('[name="ai_source"]');
+    const starredSelect = document.querySelector('[name="starred"]');
+    
+    const params = new URLSearchParams();
+    if (searchInput && searchInput.value) params.append('q', searchInput.value);
+    if (sortSelect && sortSelect.value) params.append('sort', sortSelect.value);
+    if (aiSourceSelect && aiSourceSelect.value) params.append('ai_source', aiSourceSelect.value);
+    if (starredSelect && starredSelect.value) params.append('starred', starredSelect.value);
+    
+    htmx.ajax('GET', `/api/conversations?${params}`, {
         target: '#conversation-list',
         swap: 'innerHTML',
         headers: {'HX-Request': 'true'}
     });
+}
+
+// Load conversations on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadConversations();
+});
+
+// Listen for reload trigger
+document.body.addEventListener('htmx:afterRequest', function(event) {
+    if (event.detail.xhr.getResponseHeader('HX-Trigger') === 'reloadConversations') {
+        loadConversations();
+    }
 });
 
 // Handle conversation click (but not star button clicks)
