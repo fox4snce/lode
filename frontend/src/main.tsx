@@ -1,30 +1,15 @@
 console.log('=== main.tsx MODULE LOADING ===')
 console.log('Timestamp:', new Date().toISOString())
 
-let React, ReactDOM, App
-
-try {
-  console.log('Importing React...')
-  React = await import('react')
-  console.log('React imported:', !!React)
-  
-  console.log('Importing ReactDOM...')
-  ReactDOM = await import('react-dom/client')
-  console.log('ReactDOM imported:', !!ReactDOM)
-  
-  console.log('Importing App...')
-  App = (await import('./App')).default
-  console.log('App imported:', !!App)
-  
-  console.log('Importing CSS...')
-  await import('./index.css')
-  console.log('CSS imported')
-} catch (error) {
-  console.error('IMPORT ERROR:', error)
-  throw error
-}
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App'
+import './index.css'
 
 console.log('=== main.tsx: Imports successful ===')
+console.log('React:', typeof React, React?.version)
+console.log('ReactDOM:', typeof ReactDOM)
+console.log('App:', typeof App)
 console.log('main.tsx: Starting React app...')
 console.log('main.tsx: Root element exists:', !!document.getElementById('root'))
 

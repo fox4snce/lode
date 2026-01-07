@@ -18,12 +18,21 @@ function App() {
 
   useEffect(() => {
     console.log('App mounted, checking setup...')
+    console.log('checkSetup function:', typeof checkSetup)
+    
+    const timeoutId = setTimeout(() => {
+      console.warn('Setup check timed out after 5 seconds')
+      setInitialized(false)
+    }, 5000)
+    
     checkSetup()
       .then((result) => {
+        clearTimeout(timeoutId)
         console.log('Setup check result:', result)
         setInitialized(result)
       })
       .catch((error) => {
+        clearTimeout(timeoutId)
         console.error('Failed to check setup:', error)
         console.error('Error details:', error.message, error.stack)
         setInitialized(false) // Default to showing welcome screen on error
