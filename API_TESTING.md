@@ -254,10 +254,10 @@
 
 ### API Endpoint Tests ✅
 **Total Tests**: 44  
-**Passed**: 42  
-**Failed**: 2  
+**Passed**: 44  
+**Failed**: 0  
 **Skipped**: 0  
-**Success Rate**: 95.5%
+**Success Rate**: 100.0%
 
 **Results:**
 - ✅ Health check and setup endpoints working
@@ -266,18 +266,17 @@
 - ✅ Organization API (tags, notes, stars, custom titles) - all working
 - ✅ Find Tools API (code, links, TODOs, questions, dates, decisions, prompts) - all working
 - ✅ Analytics API (usage, streaks, words, phrases, vocabulary, ratios, heatmap) - all working
-- ✅ Export API (markdown) - working
-- ❌ Export API (JSON, CSV) - returning 500 errors
+- ✅ Export API (markdown, JSON, CSV) - all working
 - ✅ Integrity checks working
 - ✅ Deduplication working
 - ✅ Job system working
 - ✅ State management working
 
-**Known Issues:**
-1. JSON export format returns 500 error - Fixed in code (requires server restart)
-2. CSV export format returns 500 error - Fixed in code (requires server restart)
+**All Issues Resolved:**
+- ✅ JSON export format - Fixed and verified
+- ✅ CSV export format - Fixed and verified
 
-**Note:** Export bug was caused by incorrect function call signature. Fixed by using direct database queries instead of route functions.
+**Note:** Export bug was caused by incorrect function call signature. Fixed by using direct database queries instead of route functions. All 44 API endpoints now passing.
 
 ---
 
