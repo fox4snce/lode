@@ -624,7 +624,7 @@ async def get_top_phrases(limit: int = Query(30, ge=1, le=100)):
         return []
 
 @app.get("/api/analytics/vocabulary")
-async def get_vocabulary_trend(period: str = Query("month", regex="^(day|week|month)$")):
+async def get_vocabulary_trend(period: str = Query("month", pattern="^(day|week|month)$")):
     """Get vocabulary size trend."""
     if not check_database_initialized():
         return []

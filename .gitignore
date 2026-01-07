@@ -69,6 +69,5 @@ storyvectordb/
 # Legacy/old files
 api/main.py
 app.py
-launcher.py
 templates/
 static/
