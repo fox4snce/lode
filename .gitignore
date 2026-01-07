@@ -69,5 +69,4 @@ storyvectordb/
 # Legacy/old files
 api/main.py
 app.py
-templates/
-static/
+# templates/ and static/ are now used for Jinja2/HTMX - keep them in repo
