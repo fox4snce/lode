@@ -8,13 +8,13 @@ IMPORTANT:
 Why:
 - The repo previously had an older launcher that used `api/main.py` and served
   legacy `/static/...` assets. That caused 404s like `/static/js/app.js` and made
-  React/Vite UI changes appear to "not work".
+  UI changes appear to "not work".
 """
 
 from app.launcher import main
 
 
 if __name__ == "__main__":
-    print("Lode: using desktop launcher at `app/launcher.py` (React/Vite + FastAPI).")
+    print("Lode: using desktop launcher at `app/launcher.py` (Jinja2/HTMX + FastAPI).")
     main()
 
