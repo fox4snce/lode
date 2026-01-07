@@ -390,13 +390,20 @@ async def get_messages(
     if direction == "older":
         rows = list(reversed(rows))
     
-    messages = [{
-        "message_id": row['message_id'],
-        "role": row['role'],
-        "content": row['content'] or '',
-        "create_time": row['create_time'],
-        "parent_id": row.get('parent_id')
-    } for row in rows]
+    messages = []
+    for row in rows:
+        msg = {
+            "message_id": row['message_id'],
+            "role": row['role'],
+            "content": row['content'] or '',
+            "create_time": row['create_time'],
+        }
+        # parent_id might be None, handle it safely
+        try:
+            msg["parent_id"] = row['parent_id']
+        except (KeyError, IndexError):
+            msg["parent_id"] = None
+        messages.append(msg)
     
     conn.close()
     
