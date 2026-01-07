@@ -48,7 +48,7 @@ export default function AboutScreen({ onClose }: Props) {
           color: '#444'
         }}>
           <p style={{ marginBottom: '16px' }}>
-            ChatVault is a desktop application for managing, searching, and organizing your AI conversation history.
+            Lode is a desktop application for managing, searching, and organizing your AI conversation history.
           </p>
           <p style={{ marginBottom: '16px' }}>
             Import conversations from OpenAI (ChatGPT) and Claude, search through your entire history,
@@ -72,14 +72,14 @@ export default function AboutScreen({ onClose }: Props) {
             marginBottom: '16px',
             color: '#333'
           }}>
-            Support ChatVault
+            Support Lode
           </h2>
           <p style={{
             marginBottom: '20px',
             color: '#666',
             fontSize: '14px'
           }}>
-            If you find ChatVault useful, consider supporting development:
+            If you find Lode useful, consider supporting development:
           </p>
           <a
             href="https://ko-fi.com/recursiverealms"
@@ -113,7 +113,7 @@ export default function AboutScreen({ onClose }: Props) {
           fontSize: '12px',
           marginBottom: '24px'
         }}>
-          <p>© 2024 ChatVault</p>
+          <p>© 2024 Lode</p>
           <p style={{ marginTop: '8px' }}>
             Made with ❤️ for managing AI conversations
           </p>

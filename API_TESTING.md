@@ -1,4 +1,4 @@
-# ChatVault MVP - API & Backend Testing
+# Lode MVP - API & Backend Testing
 
 **Tester**: AI Assistant  
 **Date**: Current Session  

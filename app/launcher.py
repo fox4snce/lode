@@ -1,5 +1,5 @@
 """
-Desktop launcher for ChatVault using pywebview.
+Desktop launcher for Lode using pywebview.
 """
 import sys
 from pathlib import Path
@@ -39,7 +39,7 @@ class ServerThread(threading.Thread):
 
 
 def is_our_server(port):
-    """Check if the process on the port is our ChatVault server."""
+    """Check if the process on the port is our Lode server."""
     try:
         response = requests.get(f"http://127.0.0.1:{port}/api/health", timeout=1)
         if response.status_code == 200:
@@ -52,11 +52,11 @@ def is_our_server(port):
     return False
 
 
-def kill_chatvault_server(port):
-    """Kill only ChatVault server processes on the specified port."""
+def kill_lode_server(port):
+    """Kill only Lode server processes on the specified port."""
     # First check if it's actually our server
     if not is_our_server(port):
-        print(f"Port {port} is in use, but it's not a ChatVault server. Skipping cleanup.")
+        print(f"Port {port} is in use, but it's not a Lode server. Skipping cleanup.")
         return False
     
     if platform.system() == "Windows":
@@ -94,7 +94,7 @@ def kill_chatvault_server(port):
                         ("backend.main" in cmdline or 
                          "uvicorn" in cmdline and "backend.main:app" in cmdline or
                          "app/launcher.py" in cmdline)):
-                        print(f"Killing ChatVault server process {pid} on port {port}...")
+                        print(f"Killing Lode server process {pid} on port {port}...")
                         subprocess.run(["taskkill", "/F", "/PID", pid], 
                                      capture_output=True, shell=True)
                         time.sleep(0.5)
@@ -126,7 +126,7 @@ def kill_chatvault_server(port):
                             ("backend.main" in cmdline or 
                              "uvicorn" in cmdline and "backend.main:app" in cmdline or
                              "app/launcher.py" in cmdline)):
-                            print(f"Killing ChatVault server process {pid} on port {port}...")
+                            print(f"Killing Lode server process {pid} on port {port}...")
                             subprocess.run(["kill", "-9", pid], capture_output=True)
                             return True
                     except:
@@ -141,10 +141,10 @@ def get_lock_file_path():
     if platform.system() == "Windows":
         # Use temp directory
         import tempfile
-        return Path(tempfile.gettempdir()) / "chatvault.lock"
+        return Path(tempfile.gettempdir()) / "lode.lock"
     else:
         # Linux/Mac: use /tmp
-        return Path("/tmp") / "chatvault.lock"
+        return Path("/tmp") / "lode.lock"
 
 
 def is_port_in_use(port):
@@ -154,7 +154,7 @@ def is_port_in_use(port):
 
 
 def check_existing_instance(port):
-    """Check if another ChatVault instance is running."""
+    """Check if another Lode instance is running."""
     # Check lock file
     lock_file = get_lock_file_path()
     if lock_file.exists():
@@ -232,13 +232,13 @@ def main():
     has_instance, existing_pid = check_existing_instance(port)
     if has_instance:
         if existing_pid:
-            print(f"Another ChatVault instance is already running (PID: {existing_pid})")
+            print(f"Another Lode instance is already running (PID: {existing_pid})")
             print("Please close that instance first or wait for it to finish.")
         else:
-            print(f"Port {port} is in use by another ChatVault server.")
+            print(f"Port {port} is in use by another Lode server.")
             print("Attempting to clean up...")
-            if kill_chatvault_server(port):
-                print("Cleaned up old ChatVault server process.")
+            if kill_lode_server(port):
+                print("Cleaned up old Lode server process.")
                 time.sleep(2)  # Give process time to die
             else:
                 print(f"ERROR: Could not clean up. Port {port} is in use.")
@@ -312,7 +312,7 @@ def main():
     print(f"=== CREATING WEBVIEW WITH URL: {frontend_url} ===")
     print(f"=== Vite process exists: {vite_process is not None} ===")
     window = webview.create_window(
-        title="ChatVault",
+        title="Lode",
         url=frontend_url,
         width=1400,
         height=900,

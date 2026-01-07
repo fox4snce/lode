@@ -1,4 +1,4 @@
-# ChatVault Development Setup
+# Lode Development Setup
 
 ## Prerequisites
 
@@ -112,7 +112,7 @@ cd frontend
 npm run build
 
 # Package with PyInstaller (see docs/packaging_notes.md)
-pyinstaller ChatVault.spec
+pyinstaller Lode.spec
 ```
 
 ## Notes

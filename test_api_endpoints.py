@@ -1,5 +1,5 @@
 """
-Comprehensive API endpoint testing for ChatVault MVP.
+Comprehensive API endpoint testing for Lode MVP.
 Tests all API endpoints programmatically.
 """
 import requests
@@ -693,7 +693,7 @@ def test_save_state(conversation_id: str):
 def run_all_tests():
     """Run all API tests."""
     print("=" * 70)
-    print("ChatVault MVP - API Endpoint Testing")
+    print("Lode MVP - API Endpoint Testing")
     print("=" * 70)
     print()
     

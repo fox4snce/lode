@@ -1,5 +1,5 @@
 """
-FastAPI backend for ChatVault.
+FastAPI backend for Lode.
 """
 from fastapi import FastAPI, HTTPException, Query, Path as PathParam
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,7 +26,7 @@ from backend.routes import organization
 # Import route modules (they define routers)
 from api.routes import conversations, messages, jobs
 
-app = FastAPI(title="ChatVault API", version="1.0.0")
+app = FastAPI(title="Lode API", version="1.0.0")
 
 # CORS for dev (pywebview)
 app.add_middleware(

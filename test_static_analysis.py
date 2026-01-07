@@ -1,5 +1,5 @@
 """
-Static analysis and code validation tests for ChatVault MVP.
+Static analysis and code validation tests for Lode MVP.
 Tests that don't require the server to be running.
 """
 import os
@@ -305,7 +305,7 @@ def test_documentation():
 def run_all_tests():
     """Run all static analysis tests."""
     print("=" * 70)
-    print("ChatVault MVP - Static Analysis & Code Validation")
+    print("Lode MVP - Static Analysis & Code Validation")
     print("=" * 70)
     print()
     

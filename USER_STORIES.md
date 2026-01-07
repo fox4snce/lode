@@ -1,4 +1,4 @@
-# ChatVault MVP - User Stories for Manual Testing
+# Lode MVP - User Stories for Manual Testing
 
 **Version**: 1.0.0-MVP  
 **Purpose**: Comprehensive user stories covering all MVP features for manual testing  
@@ -26,7 +26,7 @@
 
 ### Story 1.1: First Launch Experience
 - [ ] **As a** new user  
-- [ ] **I want to** launch ChatVault for the first time  
+- [ ] **I want to** launch Lode for the first time  
 - [ ] **So that** I can see a welcome screen and initialize the database
 
 **Test Steps:**

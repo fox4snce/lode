@@ -12,9 +12,9 @@ def get_db_path() -> Path:
     if getattr(sys, 'frozen', False):
         # Running as executable
         if os.name == 'nt':  # Windows
-            data_dir = Path(os.getenv('APPDATA', Path.home())) / 'ChatVault'
+            data_dir = Path(os.getenv('APPDATA', Path.home())) / 'Lode'
         else:
-            data_dir = Path.home() / '.local' / 'share' / 'ChatVault'
+            data_dir = Path.home() / '.local' / 'share' / 'Lode'
     else:
         # Running as script
         data_dir = Path(__file__).parent.parent

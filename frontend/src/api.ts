@@ -1,5 +1,5 @@
 /**
- * API client for ChatVault backend.
+ * API client for Lode backend.
  */
 
 const API_BASE = '/api'

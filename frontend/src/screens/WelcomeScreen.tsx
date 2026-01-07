@@ -31,7 +31,7 @@ export default function WelcomeScreen({ onInitialized }: Props) {
       height: '100vh',
       padding: '40px'
     }}>
-      <h1 style={{ marginBottom: '20px', fontSize: '32px' }}>ChatVault</h1>
+      <h1 style={{ marginBottom: '20px', fontSize: '32px' }}>Lode</h1>
       <p style={{ marginBottom: '40px', color: '#666', textAlign: 'center', maxWidth: '400px' }}>
         Welcome! Let's get started by initializing the database.
       </p>

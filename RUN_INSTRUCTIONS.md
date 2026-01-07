@@ -1,4 +1,4 @@
-# Run Instructions for ChatVault
+# Run Instructions for Lode
 
 ## Quick Start (Development)
 
