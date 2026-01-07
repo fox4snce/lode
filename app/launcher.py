@@ -284,43 +284,105 @@ def main():
                 cwd=frontend_dir,
                 shell=True,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
             )
         else:
             vite_process = subprocess.Popen(
                 ["npm", "run", "dev", "--", "--port", "5173", "--host"],
                 cwd=frontend_dir,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1
             )
-        # Wait for Vite to start
+        
+        # Wait for Vite to start and check output
         print("Waiting for Vite dev server to start...")
-        time.sleep(5)  # Increased wait time
+        max_wait = 15
+        waited = 0
+        vite_ready = False
+        
+        while waited < max_wait:
+            time.sleep(1)
+            waited += 1
+            
+            # Check if process is still alive
+            if vite_process.poll() is not None:
+                print(f"ERROR: Vite process died! Exit code: {vite_process.returncode}")
+                # Try to read output
+                try:
+                    output = vite_process.stdout.read() if vite_process.stdout else "No output"
+                    print(f"Vite output: {output[:500]}")
+                except:
+                    pass
+                break
+            
+            # Try to connect
+            try:
+                response = requests.get("http://localhost:5173", timeout=1)
+                if response.status_code == 200:
+                    print(f"Vite is ready after {waited} seconds!")
+                    vite_ready = True
+                    break
+            except:
+                pass
+            
+            # Check for "Local:" in output (Vite's ready message)
+            if vite_process.stdout:
+                try:
+                    # Non-blocking read
+                    import select
+                    if platform.system() != "Windows":
+                        if select.select([vite_process.stdout], [], [], 0)[0]:
+                            line = vite_process.stdout.readline()
+                            if line:
+                                print(f"Vite: {line.strip()}")
+                                if "Local:" in line or "ready" in line.lower():
+                                    vite_ready = True
+                                    break
+                except:
+                    pass
+        if not vite_ready:
+            print("ERROR: Vite did not start properly!")
+            print("Try running manually: cd frontend && npm run dev")
+            if vite_process:
+                vite_process.terminate()
+            sys.exit(1)
+        
         # Check if Vite is actually running - try both localhost and 127.0.0.1
         vite_url_localhost = "http://localhost:5173"
         vite_url_127 = "http://127.0.0.1:5173"
         frontend_url = vite_url_localhost  # Default
         
         try:
-            response = requests.get(vite_url_localhost, timeout=2)
+            response = requests.get(vite_url_localhost, timeout=5)
             print(f"Vite dev server is running! Status: {response.status_code}")
             print(f"Using frontend URL: {vite_url_localhost}")
             # Check if we got actual HTML content
             if len(response.text) > 100:
                 print(f"Vite returned content ({len(response.text)} bytes)")
+                if '<html' in response.text.lower() or '<!doctype' in response.text.lower():
+                    print("Content is HTML - good!")
+                else:
+                    print(f"WARNING: Content doesn't look like HTML!")
+                    print(f"First 200 chars: {response.text[:200]}")
             else:
                 print(f"WARNING: Vite returned very little content ({len(response.text)} bytes)")
         except Exception as e:
             print(f"WARNING: localhost:5173 not accessible: {e}")
             # Try 127.0.0.1 instead (pywebview on Windows sometimes prefers this)
             try:
-                response = requests.get(vite_url_127, timeout=2)
+                response = requests.get(vite_url_127, timeout=5)
                 print(f"Vite accessible via 127.0.0.1! Status: {response.status_code}")
                 frontend_url = vite_url_127
             except Exception as e2:
                 print(f"ERROR: Both localhost and 127.0.0.1 failed: {e2}")
                 print("You may need to manually start: cd frontend && npm run dev")
-                print("Falling back to FastAPI static serving (which won't work)")
+                if vite_process:
+                    vite_process.terminate()
+                sys.exit(1)
         print(f"Webview will load: {frontend_url}")
     else:
         vite_process = None
