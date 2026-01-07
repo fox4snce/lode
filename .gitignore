@@ -53,7 +53,7 @@ htmlcov/
 *~
 
 # ONNX model files (large, should be downloaded separately)
-# vendor/embedder_minilm_l6_v2/ is included for convenience but can be regenerated
+vendor/
 
 # Frontend build artifacts
 frontend/node_modules/
