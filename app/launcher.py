@@ -416,13 +416,7 @@ def main():
         import traceback
         traceback.print_exc()
     
-    # Try opening in browser first to verify it works
-    print(f"=== TEST: Opening {frontend_url} in default browser to verify it works ===")
-    import webbrowser
-    webbrowser.open(frontend_url)
-    print("=== If the browser shows the app correctly, the issue is with pywebview ===")
-    print("=== Waiting 3 seconds, then opening webview... ===")
-    time.sleep(3)
+    # No browser test - just open webview directly
     
     window = webview.create_window(
         title="Lode",
@@ -458,12 +452,12 @@ def main():
                 print(f"Error terminating Vite: {e}")
         print("=== CLEANUP COMPLETE ===")
     
-    # Start webview with debug enabled to see console errors
+    # Start webview (debug disabled - no devtools)
     # webview.start() blocks until the window is closed
     try:
         print("=== STARTING WEBVIEW ===")
         print("=== webview.start() will block until window is closed ===")
-        webview.start(debug=True)
+        webview.start(debug=False)
         print("=== webview.start() returned - window was closed ===")
     except KeyboardInterrupt:
         print("Keyboard interrupt received")
