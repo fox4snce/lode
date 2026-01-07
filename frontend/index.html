@@ -4,9 +4,51 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lode</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        background: #f0f0f0;
+        font-family: Arial, sans-serif;
+      }
+      #root {
+        min-height: 100vh;
+        background: white;
+      }
+      #test-message {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: #ff6b6b;
+        color: white;
+        padding: 10px;
+        border-radius: 4px;
+        z-index: 9999;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="test-message">HTML Loaded - Waiting for React...</div>
+    <div id="root">
+      <div style="padding: 40px; text-align: center;">
+        <h1>Loading Lode...</h1>
+        <p>If you see this, HTML loaded but React hasn't mounted yet.</p>
+      </div>
+    </div>
+    <script>
+      console.log('=== INLINE SCRIPT RUNNING ===');
+      console.log('Root element exists:', !!document.getElementById('root'));
+      console.log('Document ready state:', document.readyState);
+      
+      // Test if we can modify DOM
+      setTimeout(() => {
+        const testMsg = document.getElementById('test-message');
+        if (testMsg) {
+          testMsg.textContent = 'HTML Loaded - JS Working - Loading React...';
+          testMsg.style.background = '#51cf66';
+        }
+      }, 1000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
