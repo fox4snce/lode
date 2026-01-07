@@ -50,7 +50,6 @@ htmlcov/
 *.tmp
 *.log
 *.bak
-*~
 
 # Frontend build artifacts
 frontend/node_modules/
@@ -67,13 +66,9 @@ vendor/
 # External git repositories (submodules or separate repos)
 storyvectordb/
 
-# Test files (optional - uncomment if you don't want tests in repo)
-# test_*.py
-
 # Legacy/old files
 api/main.py
 app.py
 launcher.py
 templates/
 static/
-
