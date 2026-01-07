@@ -1,7 +1,8 @@
 """
 Organization API routes (tags, notes, bookmarks, etc.)
 """
-from fastapi import APIRouter, Path as PathParam, HTTPException, Body
+from fastapi import APIRouter, Path as PathParam, HTTPException, Body, Request
+from fastapi.responses import HTMLResponse, Response
 from typing import List, Optional
 from pydantic import BaseModel
 from backend.db import get_db_connection, check_database_initialized
