@@ -7,8 +7,8 @@
                     data-starred="{{ 'true' if conv.is_starred else 'false' }}"
                     hx-post="/api/conversations/{{ conv.conversation_id }}/star"
                     hx-trigger="click"
-                    hx-swap="outerHTML"
-                    style="background: none; border: none; cursor: pointer; font-size: 18px; padding: 0; color: {% if conv.is_starred %}#ffd43b{% else %}#ddd{% endif %};">
+                    style="background: none; border: none; cursor: pointer; font-size: 18px; padding: 0; color: {% if conv.is_starred %}#ffd43b{% else %}#ddd{% endif %};"
+                    onclick="event.stopPropagation();">
                 {% if conv.is_starred %}★{% else %}☆{% endif %}
             </button>
             <div style="flex: 1;">
@@ -33,4 +33,3 @@
         <p>No conversations found</p>
     </li>
 {% endif %}
-
