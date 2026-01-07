@@ -149,13 +149,13 @@ async def star_conversation(request: Request, conversation_id: str = PathParam(.
     
     conn.close()
     
-    # Return HTML fragment if HTMX request
+    # Return HTML fragment if HTMX request - trigger conversation list reload
     if request.headers.get("HX-Request"):
-        from jinja2 import Environment, FileSystemLoader
-        templates_dir = Path(__file__).parent.parent.parent / "templates"
-        jinja_env = Environment(loader=FileSystemLoader(str(templates_dir)))
-        template = jinja_env.get_template("fragments/star_button.html")
-        return HTMLResponse(template.render(conversation_id=conversation_id, is_starred=new_starred))
+        # Use HTMX trigger to reload the conversation list
+        from fastapi.responses import Response
+        response = Response(status_code=200)
+        response.headers["HX-Trigger"] = "reloadConversations"
+        return response
     
     return {"status": "starred" if new_starred else "unstarred"}
 

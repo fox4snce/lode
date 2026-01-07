@@ -122,9 +122,10 @@ document.addEventListener('DOMContentLoaded', function() {
     loadConversations();
 });
 
-// Listen for reload trigger
+// Listen for reload trigger from star button
 document.body.addEventListener('htmx:afterRequest', function(event) {
-    if (event.detail.xhr.getResponseHeader('HX-Trigger') === 'reloadConversations') {
+    const trigger = event.detail.xhr.getResponseHeader('HX-Trigger');
+    if (trigger && trigger.includes('reloadConversations')) {
         loadConversations();
     }
 });
