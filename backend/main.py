@@ -1016,16 +1016,7 @@ app.include_router(conversations.router)
 app.include_router(messages.router)
 app.include_router(jobs.router)
 
-# Serve React app in production
-static_path = Path(__file__).parent.parent / "frontend" / "dist"
-if static_path.exists():
-    app.mount("/assets", StaticFiles(directory=static_path / "assets"), name="assets")
-    
-    @app.get("/")
-    async def index():
-        return FileResponse(static_path / "index.html")
-else:
-    # HTML routes are defined above
+# HTML routes are defined above - no longer using React/Vite
 
 
 if __name__ == "__main__":
