@@ -19,8 +19,200 @@
 <div class="container">
     <div class="card">
         <h2>Settings</h2>
-        <p>Settings features coming soon...</p>
+        
+        <div class="tabs" style="border-bottom: 1px solid #ddd; margin-bottom: 20px;">
+            <button class="tab-btn active" onclick="showTab('integrity')">Integrity Checks</button>
+            <button class="tab-btn" onclick="showTab('deduplication')">Deduplication</button>
+            <button class="tab-btn" onclick="showTab('cleanup')">Cleanup</button>
+            <button class="tab-btn" onclick="showTab('encryption')">Encryption</button>
+        </div>
+        
+        <div id="tab-content">
+            <div id="integrity-tab" class="tab-panel active">
+                <h3>Integrity Checks</h3>
+                <p>Run integrity checks to verify database consistency.</p>
+                <button onclick="runIntegrityChecks()" class="btn btn-primary">Run Integrity Checks</button>
+                <div id="integrity-result" style="margin-top: 20px;"></div>
+            </div>
+            
+            <div id="deduplication-tab" class="tab-panel">
+                <h3>Deduplication</h3>
+                <p>Find and remove duplicate messages or conversations.</p>
+                <div style="margin-bottom: 15px;">
+                    <button onclick="findDuplicateMessages()" class="btn btn-primary">Find Duplicate Messages</button>
+                    <button onclick="findDuplicateConversations()" class="btn btn-primary" style="margin-left: 10px;">Find Duplicate Conversations</button>
+                </div>
+                <div id="deduplication-result" style="margin-top: 20px;"></div>
+            </div>
+            
+            <div id="cleanup-tab" class="tab-panel">
+                <h3>Cleanup</h3>
+                <p>Clean up imported files and temporary data.</p>
+                <button onclick="wipeImportedFiles()" class="btn btn-danger">Wipe Imported Files</button>
+                <div id="cleanup-result" style="margin-top: 20px;"></div>
+            </div>
+            
+            <div id="encryption-tab" class="tab-panel">
+                <h3>Encryption</h3>
+                <p>Encryption features coming soon...</p>
+            </div>
+        </div>
     </div>
 </div>
-{% endblock %}
 
+<style>
+.tabs {
+    display: flex;
+    gap: 10px;
+}
+
+.tab-btn {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    background: #f5f5f5;
+}
+
+.tab-btn.active {
+    border-bottom-color: #3498db;
+    color: #3498db;
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+table th, table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+table th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+</style>
+
+<script>
+function showTab(tabName) {
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    document.getElementById(`${tabName}-tab`).classList.add('active');
+    event.target.classList.add('active');
+}
+
+async function runIntegrityChecks() {
+    const resultDiv = document.getElementById('integrity-result');
+    resultDiv.innerHTML = '<div class="loading">Running integrity checks...</div>';
+    
+    try {
+        const response = await fetch('/api/integrity/check', { method: 'POST' });
+        const data = await response.json();
+        
+        if (!data || Object.keys(data).length === 0) {
+            resultDiv.innerHTML = '<div class="success">All integrity checks passed!</div>';
+            return;
+        }
+        
+        let html = '<div class="error">Integrity check found issues:</div><table><tr><th>Check</th><th>Status</th><th>Details</th></tr>';
+        Object.entries(data).forEach(([key, value]) => {
+            const status = value === true || value === 'ok' ? '✓ Pass' : '✗ Fail';
+            html += `<tr><td>${key.replace(/_/g, ' ')}</td><td>${status}</td><td>${JSON.stringify(value)}</td></tr>`;
+        });
+        html += '</table>';
+        resultDiv.innerHTML = html;
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+    }
+}
+
+async function findDuplicateMessages() {
+    const resultDiv = document.getElementById('deduplication-result');
+    resultDiv.innerHTML = '<div class="loading">Finding duplicate messages...</div>';
+    
+    try {
+        const response = await fetch('/api/deduplication/find-messages');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+            resultDiv.innerHTML = '<div class="success">No duplicate messages found!</div>';
+            return;
+        }
+        
+        let html = `<div class="error">Found ${data.length} duplicate message groups:</div><table><tr><th>Message ID</th><th>Conversation ID</th><th>Content Preview</th></tr>`;
+        data.forEach(item => {
+            const content = (item.content || '').substring(0, 100);
+            html += `<tr><td>${item.message_id || ''}</td><td>${item.conversation_id || ''}</td><td>${content}...</td></tr>`;
+        });
+        html += '</table>';
+        resultDiv.innerHTML = html;
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+    }
+}
+
+async function findDuplicateConversations() {
+    const resultDiv = document.getElementById('deduplication-result');
+    resultDiv.innerHTML = '<div class="loading">Finding duplicate conversations...</div>';
+    
+    try {
+        const response = await fetch('/api/deduplication/find-conversations');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+            resultDiv.innerHTML = '<div class="success">No duplicate conversations found!</div>';
+            return;
+        }
+        
+        let html = `<div class="error">Found ${data.length} duplicate conversation groups:</div><table><tr><th>Conversation IDs</th><th>Title</th></tr>`;
+        data.forEach(item => {
+            html += `<tr><td>${JSON.stringify(item.conversation_ids || [])}</td><td>${item.title || ''}</td></tr>`;
+        });
+        html += '</table>';
+        resultDiv.innerHTML = html;
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+    }
+}
+
+async function wipeImportedFiles() {
+    if (!confirm('Are you sure you want to wipe all imported files? This cannot be undone.')) {
+        return;
+    }
+    
+    const resultDiv = document.getElementById('cleanup-result');
+    resultDiv.innerHTML = '<div class="loading">Wiping imported files...</div>';
+    
+    try {
+        const response = await fetch('/api/cleanup/wipe-imported-files', { method: 'POST' });
+        const data = await response.json();
+        
+        resultDiv.innerHTML = `<div class="success">Imported files wiped successfully. ${data.deleted || 0} files deleted.</div>`;
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+    }
+}
+</script>
+{% endblock %}

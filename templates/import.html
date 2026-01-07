@@ -19,8 +19,156 @@
 <div class="container">
     <div class="card">
         <h2>Import Conversations</h2>
-        <p>Import features coming soon...</p>
+        
+        <form id="import-form" onsubmit="handleImport(event)">
+            <div class="form-group">
+                <label for="source-type">Source Type</label>
+                <select id="source-type" name="source_type" required>
+                    <option value="">Select source...</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="claude">Claude</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="file-path">File Path</label>
+                <input type="text" id="file-path" name="file_path" required 
+                       placeholder="Enter full path to conversation file">
+                <button type="button" onclick="document.getElementById('file-input').click()" class="btn btn-secondary" style="margin-top: 8px;">
+                    Browse Files
+                </button>
+                <input type="file" id="file-input" style="display: none;" onchange="handleFileSelect(event)">
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="calculate_stats" checked> Calculate Statistics
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="build_index" checked> Build Search Index
+                </label>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">Start Import</button>
+        </form>
+        
+        <div id="import-status" style="margin-top: 20px;"></div>
+        <div id="jobs-list" style="margin-top: 20px;"></div>
     </div>
 </div>
-{% endblock %}
 
+<script>
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        document.getElementById('file-path').value = file.path || file.name;
+    }
+}
+
+async function handleImport(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    const data = {
+        source_type: formData.get('source_type'),
+        file_path: formData.get('file_path'),
+        calculate_stats: formData.get('calculate_stats') === 'on',
+        build_index: formData.get('build_index') === 'on'
+    };
+    
+    const statusDiv = document.getElementById('import-status');
+    statusDiv.innerHTML = '<div class="loading">Starting import...</div>';
+    
+    try {
+        const response = await fetch('/api/jobs/import', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) {
+            throw new Error('Import failed');
+        }
+        
+        const result = await response.json();
+        statusDiv.innerHTML = `<div class="success">Import job created! Job ID: ${result.job_id}</div>`;
+        
+        // Load jobs list
+        loadJobs();
+        
+        // Poll for job status
+        pollJobStatus(result.job_id);
+    } catch (error) {
+        statusDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+    }
+}
+
+async function loadJobs() {
+    try {
+        const response = await fetch('/api/jobs');
+        const jobs = await response.json();
+        
+        const jobsDiv = document.getElementById('jobs-list');
+        if (jobs.length === 0) {
+            jobsDiv.innerHTML = '';
+            return;
+        }
+        
+        let html = '<h3>Recent Jobs</h3><table style="width: 100%; border-collapse: collapse;"><tr><th>Job ID</th><th>Type</th><th>Status</th><th>Progress</th><th>Message</th></tr>';
+        jobs.slice(0, 10).forEach(job => {
+            html += `<tr>
+                <td>${job.job_id.substring(0, 8)}...</td>
+                <td>${job.job_type}</td>
+                <td>${job.status}</td>
+                <td>${job.progress || 0}%</td>
+                <td>${job.message || ''}</td>
+            </tr>`;
+        });
+        html += '</table>';
+        jobsDiv.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading jobs:', error);
+    }
+}
+
+async function pollJobStatus(jobId) {
+    const maxAttempts = 60;
+    let attempts = 0;
+    
+    const interval = setInterval(async () => {
+        attempts++;
+        if (attempts > maxAttempts) {
+            clearInterval(interval);
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/jobs/${jobId}`);
+            const job = await response.json();
+            
+            const statusDiv = document.getElementById('import-status');
+            if (job.status === 'completed') {
+                statusDiv.innerHTML = `<div class="success">Import completed successfully!</div>`;
+                clearInterval(interval);
+                loadJobs();
+            } else if (job.status === 'failed') {
+                statusDiv.innerHTML = `<div class="error">Import failed: ${job.error || 'Unknown error'}</div>`;
+                clearInterval(interval);
+                loadJobs();
+            } else {
+                statusDiv.innerHTML = `<div class="loading">${job.message || 'Processing...'} (${job.progress || 0}%)</div>`;
+            }
+        } catch (error) {
+            console.error('Error polling job status:', error);
+        }
+    }, 1000);
+}
+
+// Load jobs on page load
+loadJobs();
+</script>
+{% endblock %}

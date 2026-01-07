@@ -18,9 +18,126 @@
 
 <div class="container">
     <div class="card">
-        <h2>Export Conversations</h2>
-        <p>Export features coming soon...</p>
+        <h2>Export Conversation</h2>
+        
+        <div class="form-group">
+            <label for="conversation-select">Select Conversation</label>
+            <select id="conversation-select" onchange="loadConversation()">
+                <option value="">Select a conversation...</option>
+            </select>
+        </div>
+        
+        <div id="export-options" style="display: none;">
+            <div class="form-group">
+                <label for="export-format">Format</label>
+                <select id="export-format">
+                    <option value="markdown">Markdown</option>
+                    <option value="csv">CSV</option>
+                    <option value="json">JSON</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="include-timestamps" checked> Include Timestamps
+                </label>
+            </div>
+            
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="include-metadata" checked> Include Metadata
+                </label>
+            </div>
+            
+            <button onclick="exportConversation()" class="btn btn-primary">Export</button>
+        </div>
+        
+        <div id="export-result" style="margin-top: 20px;"></div>
     </div>
 </div>
-{% endblock %}
 
+<script>
+async function loadConversations() {
+    try {
+        const response = await fetch('/api/conversations?sort=update_time');
+        const conversations = await response.json();
+        
+        const select = document.getElementById('conversation-select');
+        conversations.forEach(conv => {
+            const option = document.createElement('option');
+            option.value = conv.conversation_id;
+            option.textContent = conv.title || conv.conversation_id;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading conversations:', error);
+    }
+}
+
+function loadConversation() {
+    const select = document.getElementById('conversation-select');
+    if (select.value) {
+        document.getElementById('export-options').style.display = 'block';
+    } else {
+        document.getElementById('export-options').style.display = 'none';
+    }
+}
+
+async function exportConversation() {
+    const conversationId = document.getElementById('conversation-select').value;
+    if (!conversationId) {
+        alert('Please select a conversation');
+        return;
+    }
+    
+    const format = document.getElementById('export-format').value;
+    const includeTimestamps = document.getElementById('include-timestamps').checked;
+    const includeMetadata = document.getElementById('include-metadata').checked;
+    
+    const resultDiv = document.getElementById('export-result');
+    resultDiv.innerHTML = '<div class="loading">Exporting...</div>';
+    
+    try {
+        const response = await fetch(
+            `/api/export/conversation/${conversationId}?format=${format}&include_timestamps=${includeTimestamps}&include_metadata=${includeMetadata}`,
+            { method: 'POST' }
+        );
+        
+        if (!response.ok) {
+            throw new Error('Export failed');
+        }
+        
+        const data = await response.json();
+        
+        if (format === 'markdown') {
+            resultDiv.innerHTML = `
+                <div class="success">Export completed!</div>
+                <div style="margin-top: 15px;">
+                    <h3>Exported Content:</h3>
+                    <pre style="background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; max-height: 500px; overflow-y: auto;">${escapeHtml(data.content)}</pre>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = `
+                <div class="success">Export completed!</div>
+                <div style="margin-top: 15px;">
+                    <h3>Exported Data:</h3>
+                    <pre style="background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; max-height: 500px; overflow-y: auto;">${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Load conversations on page load
+loadConversations();
+</script>
+{% endblock %}

@@ -19,8 +19,348 @@
 <div class="container">
     <div class="card">
         <h2>Find Tools</h2>
-        <p>Find tools features coming soon...</p>
+        
+        <div class="tabs" style="border-bottom: 1px solid #ddd; margin-bottom: 20px;">
+            <button class="tab-btn active" onclick="showTab('code')">Code Blocks</button>
+            <button class="tab-btn" onclick="showTab('links')">Links</button>
+            <button class="tab-btn" onclick="showTab('todos')">TODOs</button>
+            <button class="tab-btn" onclick="showTab('questions')">Questions</button>
+            <button class="tab-btn" onclick="showTab('dates')">Dates</button>
+            <button class="tab-btn" onclick="showTab('decisions')">Decisions</button>
+            <button class="tab-btn" onclick="showTab('prompts')">Prompts</button>
+        </div>
+        
+        <div id="tab-content">
+            <div id="code-tab" class="tab-panel active">
+                <h3>Code Blocks</h3>
+                <div id="code-data" class="loading">Loading...</div>
+            </div>
+            
+            <div id="links-tab" class="tab-panel">
+                <h3>Links</h3>
+                <div id="links-data" class="loading">Loading...</div>
+            </div>
+            
+            <div id="todos-tab" class="tab-panel">
+                <h3>TODOs</h3>
+                <div id="todos-data" class="loading">Loading...</div>
+            </div>
+            
+            <div id="questions-tab" class="tab-panel">
+                <h3>Questions</h3>
+                <div id="questions-data" class="loading">Loading...</div>
+            </div>
+            
+            <div id="dates-tab" class="tab-panel">
+                <h3>Dates</h3>
+                <div id="dates-data" class="loading">Loading...</div>
+            </div>
+            
+            <div id="decisions-tab" class="tab-panel">
+                <h3>Decisions</h3>
+                <div id="decisions-data" class="loading">Loading...</div>
+            </div>
+            
+            <div id="prompts-tab" class="tab-panel">
+                <h3>Prompts</h3>
+                <div id="prompts-data" class="loading">Loading...</div>
+            </div>
+        </div>
     </div>
 </div>
-{% endblock %}
 
+<style>
+.tabs {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.tab-btn {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    background: #f5f5f5;
+}
+
+.tab-btn.active {
+    border-bottom-color: #3498db;
+    color: #3498db;
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+.result-item {
+    padding: 15px;
+    margin-bottom: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border-left: 3px solid #3498db;
+}
+
+.result-item h4 {
+    margin: 0 0 8px 0;
+    color: #2c3e50;
+}
+
+.result-item .meta {
+    font-size: 12px;
+    color: #7f8c8d;
+    margin-bottom: 8px;
+}
+
+.result-item .content {
+    background: white;
+    padding: 10px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.result-item a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+.result-item a:hover {
+    text-decoration: underline;
+}
+</style>
+
+<script>
+function showTab(tabName) {
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    document.getElementById(`${tabName}-tab`).classList.add('active');
+    event.target.classList.add('active');
+    
+    if (tabName === 'code') {
+        loadCode();
+    } else if (tabName === 'links') {
+        loadLinks();
+    } else if (tabName === 'todos') {
+        loadTodos();
+    } else if (tabName === 'questions') {
+        loadQuestions();
+    } else if (tabName === 'dates') {
+        loadDates();
+    } else if (tabName === 'decisions') {
+        loadDecisions();
+    } else if (tabName === 'prompts') {
+        loadPrompts();
+    }
+}
+
+function formatResult(item, type) {
+    const convId = item.conversation_id || '';
+    const msgId = item.message_id || '';
+    const content = item.content || item.text || item.code || item.link || item.todo || item.question || item.date || item.decision || item.prompt || '';
+    
+    let html = `<div class="result-item">`;
+    html += `<h4>${item.title || 'Result'}</h4>`;
+    html += `<div class="meta">Conversation: ${convId.substring(0, 20)}... | Message: ${msgId.substring(0, 20)}...</div>`;
+    html += `<div class="content">${escapeHtml(content)}</div>`;
+    if (convId && msgId) {
+        html += `<div style="margin-top: 8px;"><a href="/main?conversation=${convId}&message=${msgId}">View in context</a></div>`;
+    }
+    html += `</div>`;
+    return html;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+async function loadCode() {
+    const div = document.getElementById('code-data');
+    div.innerHTML = '<div class="loading">Loading...</div>';
+    
+    try {
+        const response = await fetch('/api/find/code?limit=100');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+            div.innerHTML = '<div class="empty-state">No code blocks found</div>';
+            return;
+        }
+        
+        let html = '';
+        data.forEach(item => {
+            html += formatResult(item, 'code');
+        });
+        div.innerHTML = html;
+    } catch (error) {
+        div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+    }
+}
+
+async function loadLinks() {
+    const div = document.getElementById('links-data');
+    div.innerHTML = '<div class="loading">Loading...</div>';
+    
+    try {
+        const response = await fetch('/api/find/links?limit=100');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+            div.innerHTML = '<div class="empty-state">No links found</div>';
+            return;
+        }
+        
+        let html = '';
+        data.forEach(item => {
+            const link = item.link || item.url || '';
+            html += `<div class="result-item">
+                <h4><a href="${link}" target="_blank">${link}</a></h4>
+                <div class="meta">Conversation: ${(item.conversation_id || '').substring(0, 20)}...</div>
+                ${item.context ? `<div class="content">${escapeHtml(item.context)}</div>` : ''}
+            </div>`;
+        });
+        div.innerHTML = html;
+    } catch (error) {
+        div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+    }
+}
+
+async function loadTodos() {
+    const div = document.getElementById('todos-data');
+    div.innerHTML = '<div class="loading">Loading...</div>';
+    
+    try {
+        const response = await fetch('/api/find/todos?limit=100');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+            div.innerHTML = '<div class="empty-state">No TODOs found</div>';
+            return;
+        }
+        
+        let html = '';
+        data.forEach(item => {
+            html += formatResult(item, 'todo');
+        });
+        div.innerHTML = html;
+    } catch (error) {
+        div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+    }
+}
+
+async function loadQuestions() {
+    const div = document.getElementById('questions-data');
+    div.innerHTML = '<div class="loading">Loading...</div>';
+    
+    try {
+        const response = await fetch('/api/find/questions?limit=100');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+            div.innerHTML = '<div class="empty-state">No questions found</div>';
+            return;
+        }
+        
+        let html = '';
+        data.forEach(item => {
+            html += formatResult(item, 'question');
+        });
+        div.innerHTML = html;
+    } catch (error) {
+        div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+    }
+}
+
+async function loadDates() {
+    const div = document.getElementById('dates-data');
+    div.innerHTML = '<div class="loading">Loading...</div>';
+    
+    try {
+        const response = await fetch('/api/find/dates?limit=100');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+            div.innerHTML = '<div class="empty-state">No dates found</div>';
+            return;
+        }
+        
+        let html = '';
+        data.forEach(item => {
+            html += formatResult(item, 'date');
+        });
+        div.innerHTML = html;
+    } catch (error) {
+        div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+    }
+}
+
+async function loadDecisions() {
+    const div = document.getElementById('decisions-data');
+    div.innerHTML = '<div class="loading">Loading...</div>';
+    
+    try {
+        const response = await fetch('/api/find/decisions?limit=100');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+            div.innerHTML = '<div class="empty-state">No decisions found</div>';
+            return;
+        }
+        
+        let html = '';
+        data.forEach(item => {
+            html += formatResult(item, 'decision');
+        });
+        div.innerHTML = html;
+    } catch (error) {
+        div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+    }
+}
+
+async function loadPrompts() {
+    const div = document.getElementById('prompts-data');
+    div.innerHTML = '<div class="loading">Loading...</div>';
+    
+    try {
+        const response = await fetch('/api/find/prompts?limit=100');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+            div.innerHTML = '<div class="empty-state">No prompts found</div>';
+            return;
+        }
+        
+        let html = '';
+        data.forEach(item => {
+            html += formatResult(item, 'prompt');
+        });
+        div.innerHTML = html;
+    } catch (error) {
+        div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+    }
+}
+
+// Load initial tab
+loadCode();
+</script>
+{% endblock %}

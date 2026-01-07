@@ -19,8 +19,321 @@
 <div class="container">
     <div class="card">
         <h2>Analytics</h2>
-        <p>Analytics features coming soon...</p>
+        
+        <div class="tabs" style="border-bottom: 1px solid #ddd; margin-bottom: 20px;">
+            <button class="tab-btn active" onclick="showTab('usage')">Usage</button>
+            <button class="tab-btn" onclick="showTab('streaks')">Streaks</button>
+            <button class="tab-btn" onclick="showTab('words')">Top Words</button>
+            <button class="tab-btn" onclick="showTab('phrases')">Top Phrases</button>
+            <button class="tab-btn" onclick="showTab('vocabulary')">Vocabulary</button>
+            <button class="tab-btn" onclick="showTab('response')">Response Ratio</button>
+            <button class="tab-btn" onclick="showTab('heatmap')">Time of Day</button>
+        </div>
+        
+        <div id="tab-content">
+            <div id="usage-tab" class="tab-panel active">
+                <h3>Usage Over Time</h3>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label>Period</label>
+                    <select id="usage-period" onchange="loadUsage()">
+                        <option value="day">Day</option>
+                        <option value="week">Week</option>
+                        <option value="month">Month</option>
+                    </select>
+                </div>
+                <div id="usage-data" class="loading">Loading...</div>
+            </div>
+            
+            <div id="streaks-tab" class="tab-panel">
+                <h3>Longest Streak</h3>
+                <div id="streaks-data" class="loading">Loading...</div>
+            </div>
+            
+            <div id="words-tab" class="tab-panel">
+                <h3>Top Words</h3>
+                <div id="words-data" class="loading">Loading...</div>
+            </div>
+            
+            <div id="phrases-tab" class="tab-panel">
+                <h3>Top Phrases</h3>
+                <div id="phrases-data" class="loading">Loading...</div>
+            </div>
+            
+            <div id="vocabulary-tab" class="tab-panel">
+                <h3>Vocabulary Trend</h3>
+                <div id="vocabulary-data" class="loading">Loading...</div>
+            </div>
+            
+            <div id="response-tab" class="tab-panel">
+                <h3>Response Ratio</h3>
+                <div id="response-data" class="loading">Loading...</div>
+            </div>
+            
+            <div id="heatmap-tab" class="tab-panel">
+                <h3>Time of Day Heatmap</h3>
+                <div id="heatmap-data" class="loading">Loading...</div>
+            </div>
+        </div>
     </div>
 </div>
-{% endblock %}
 
+<style>
+.tabs {
+    display: flex;
+    gap: 10px;
+}
+
+.tab-btn {
+    padding: 8px 16px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.tab-btn:hover {
+    background: #f5f5f5;
+}
+
+.tab-btn.active {
+    border-bottom-color: #3498db;
+    color: #3498db;
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+table th, table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+table th {
+    background: #f8f9fa;
+    font-weight: 600;
+}
+</style>
+
+<script>
+function showTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById(`${tabName}-tab`).classList.add('active');
+    event.target.classList.add('active');
+    
+    // Load data for the tab
+    if (tabName === 'usage') {
+        loadUsage();
+    } else if (tabName === 'streaks') {
+        loadStreaks();
+    } else if (tabName === 'words') {
+        loadWords();
+    } else if (tabName === 'phrases') {
+        loadPhrases();
+    } else if (tabName === 'vocabulary') {
+        loadVocabulary();
+    } else if (tabName === 'response') {
+        loadResponseRatio();
+    } else if (tabName === 'heatmap') {
+        loadHeatmap();
+    }
+}
+
+async function loadUsage() {
+    const period = document.getElementById('usage-period').value;
+    const div = document.getElementById('usage-data');
+    div.innerHTML = '<div class="loading">Loading...</div>';
+    
+    try {
+        const response = await fetch(`/api/analytics/usage?period=${period}`);
+        const data = await response.json();
+        
+        if (data.length === 0) {
+            div.innerHTML = '<div class="empty-state">No data available</div>';
+            return;
+        }
+        
+        let html = '<table><tr><th>Date</th><th>Conversations</th><th>Messages</th><th>Words</th></tr>';
+        data.forEach(row => {
+            html += `<tr>
+                <td>${row.period || row.date || ''}</td>
+                <td>${row.conversation_count || 0}</td>
+                <td>${row.message_count || 0}</td>
+                <td>${row.word_count || 0}</td>
+            </tr>`;
+        });
+        html += '</table>';
+        div.innerHTML = html;
+    } catch (error) {
+        div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+    }
+}
+
+async function loadStreaks() {
+    const div = document.getElementById('streaks-data');
+    div.innerHTML = '<div class="loading">Loading...</div>';
+    
+    try {
+        const response = await fetch('/api/analytics/streaks');
+        const data = await response.json();
+        
+        if (!data || Object.keys(data).length === 0) {
+            div.innerHTML = '<div class="empty-state">No streak data available</div>';
+            return;
+        }
+        
+        let html = '<table><tr><th>Metric</th><th>Value</th></tr>';
+        Object.entries(data).forEach(([key, value]) => {
+            html += `<tr><td>${key.replace(/_/g, ' ')}</td><td>${value}</td></tr>`;
+        });
+        html += '</table>';
+        div.innerHTML = html;
+    } catch (error) {
+        div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+    }
+}
+
+async function loadWords() {
+    const div = document.getElementById('words-data');
+    div.innerHTML = '<div class="loading">Loading...</div>';
+    
+    try {
+        const response = await fetch('/api/analytics/top-words?limit=50');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+            div.innerHTML = '<div class="empty-state">No word data available</div>';
+            return;
+        }
+        
+        let html = '<table><tr><th>Word</th><th>Count</th></tr>';
+        data.forEach(row => {
+            html += `<tr><td>${row.word || row.text || ''}</td><td>${row.count || 0}</td></tr>`;
+        });
+        html += '</table>';
+        div.innerHTML = html;
+    } catch (error) {
+        div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+    }
+}
+
+async function loadPhrases() {
+    const div = document.getElementById('phrases-data');
+    div.innerHTML = '<div class="loading">Loading...</div>';
+    
+    try {
+        const response = await fetch('/api/analytics/top-phrases?limit=30');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+            div.innerHTML = '<div class="empty-state">No phrase data available</div>';
+            return;
+        }
+        
+        let html = '<table><tr><th>Phrase</th><th>Count</th></tr>';
+        data.forEach(row => {
+            html += `<tr><td>${row.phrase || row.text || ''}</td><td>${row.count || 0}</td></tr>`;
+        });
+        html += '</table>';
+        div.innerHTML = html;
+    } catch (error) {
+        div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+    }
+}
+
+async function loadVocabulary() {
+    const div = document.getElementById('vocabulary-data');
+    div.innerHTML = '<div class="loading">Loading...</div>';
+    
+    try {
+        const response = await fetch('/api/analytics/vocabulary');
+        const data = await response.json();
+        
+        if (!data || Object.keys(data).length === 0) {
+            div.innerHTML = '<div class="empty-state">No vocabulary data available</div>';
+            return;
+        }
+        
+        let html = '<table><tr><th>Metric</th><th>Value</th></tr>';
+        Object.entries(data).forEach(([key, value]) => {
+            html += `<tr><td>${key.replace(/_/g, ' ')}</td><td>${value}</td></tr>`;
+        });
+        html += '</table>';
+        div.innerHTML = html;
+    } catch (error) {
+        div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+    }
+}
+
+async function loadResponseRatio() {
+    const div = document.getElementById('response-data');
+    div.innerHTML = '<div class="loading">Loading...</div>';
+    
+    try {
+        const response = await fetch('/api/analytics/response-ratio');
+        const data = await response.json();
+        
+        if (!data || Object.keys(data).length === 0) {
+            div.innerHTML = '<div class="empty-state">No response ratio data available</div>';
+            return;
+        }
+        
+        let html = '<table><tr><th>Metric</th><th>Value</th></tr>';
+        Object.entries(data).forEach(([key, value]) => {
+            html += `<tr><td>${key.replace(/_/g, ' ')}</td><td>${value}</td></tr>`;
+        });
+        html += '</table>';
+        div.innerHTML = html;
+    } catch (error) {
+        div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+    }
+}
+
+async function loadHeatmap() {
+    const div = document.getElementById('heatmap-data');
+    div.innerHTML = '<div class="loading">Loading...</div>';
+    
+    try {
+        const response = await fetch('/api/analytics/heatmap');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+            div.innerHTML = '<div class="empty-state">No heatmap data available</div>';
+            return;
+        }
+        
+        let html = '<table><tr><th>Hour</th><th>Count</th></tr>';
+        data.forEach(row => {
+            html += `<tr><td>${row.hour || row.time || ''}</td><td>${row.count || 0}</td></tr>`;
+        });
+        html += '</table>';
+        div.innerHTML = html;
+    } catch (error) {
+        div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
+    }
+}
+
+// Load initial tab
+loadUsage();
+</script>
+{% endblock %}
