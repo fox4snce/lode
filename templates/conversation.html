@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}{{ conversation.title }}{% endblock %}
+{% block header %}{{ conversation.title }}{% endblock %}
+
+{% block content %}
+<a href="/" class="back-link">← Back to Conversations</a>
+
+<div class="conversation-meta" style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    {% if conversation.create_time %}
+    <strong>Created:</strong> {{ conversation.create_time }}
+    {% endif %}
+    {% if conversation.update_time and conversation.update_time != conversation.create_time %}
+    | <strong>Updated:</strong> {{ conversation.update_time }}
+    {% endif %}
+    {% if conversation.ai_source %}
+    | <strong>AI:</strong> <span style="text-transform: capitalize;">{{ conversation.ai_source }}</span>
+    {% endif %}
+    {% if conversation.is_starred %}
+    | <span class="starred">★ Starred</span>
+    {% endif %}
+</div>
+
+{% if metadata %}
+<div class="metadata-section" style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <h2 style="margin-top: 0; margin-bottom: 15px; color: #2c3e50;">Metadata Analysis</h2>
+    
+    {% if metadata.summary %}
+    <div class="metadata-summary" style="margin-bottom: 20px;">
+        <h3 style="font-size: 16px; color: #34495e; margin-bottom: 8px;">Summary</h3>
+        <p style="margin: 0; line-height: 1.6; color: #555;">{{ metadata.summary }}</p>
+        {% if metadata.one_liner %}
+        <p style="margin-top: 8px; font-style: italic; color: #7f8c8d;">{{ metadata.one_liner }}</p>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
+        {% if metadata.conversation_types %}
+        <div>
+            <h4 style="font-size: 14px; color: #34495e; margin-bottom: 8px;">Types</h4>
+            <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                {% for type in metadata.conversation_types %}
+                <span style="background: #ecf0f1; padding: 4px 10px; border-radius: 12px; font-size: 12px; color: #2c3e50;">{{ type }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if metadata.intents %}
+        <div>
+            <h4 style="font-size: 14px; color: #34495e; margin-bottom: 8px;">Intents</h4>
+            <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+                {% for intent in metadata.intents %}
+                <span style="background: #e8f5e9; padding: 4px 10px; border-radius: 12px; font-size: 12px; color: #2c3e50;">{{ intent }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        {% if metadata.status %}
+        <div>
+            <h4 style="font-size: 14px; color: #34495e; margin-bottom: 8px;">Status</h4>
+            <span style="background: #fff3e0; padding: 4px 10px; border-radius: 12px; font-size: 12px; color: #2c3e50; text-transform: capitalize;">{{ metadata.status }}</span>
+        </div>
+        {% endif %}
+        
+        {% if metadata.confidence_score is not none %}
+        <div>
+            <h4 style="font-size: 14px; color: #34495e; margin-bottom: 8px;">Confidence</h4>
+            <span style="color: #555;">{{ "%.0f"|format(metadata.confidence_score * 100) }}%</span>
+        </div>
+        {% endif %}
+    </div>
+    
+    {% if metadata.topics %}
+    <div style="margin-bottom: 20px;">
+        <h4 style="font-size: 14px; color: #34495e; margin-bottom: 8px;">Topics</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+            {% for topic in metadata.topics %}
+            <span style="background: #e3f2fd; padding: 4px 10px; border-radius: 12px; font-size: 12px; color: #2c3e50;">{{ topic }}</span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if metadata.keywords %}
+    <div style="margin-bottom: 20px;">
+        <h4 style="font-size: 14px; color: #34495e; margin-bottom: 8px;">Keywords</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+            {% for keyword in metadata.keywords %}
+            <span style="background: #f3e5f5; padding: 3px 8px; border-radius: 10px; font-size: 11px; color: #555;">{{ keyword }}</span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if metadata.project_candidates %}
+    <div style="margin-bottom: 20px;">
+        <h4 style="font-size: 14px; color: #34495e; margin-bottom: 10px;">Projects</h4>
+        {% for project in metadata.project_candidates %}
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #3498db;">
+            <strong style="color: #2c3e50;">{{ project.name }}</strong>
+            <p style="margin: 5px 0 0 0; font-size: 13px; color: #555;">{{ project.description }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    {% if metadata.entities %}
+    <div style="margin-bottom: 20px;">
+        <h4 style="font-size: 14px; color: #34495e; margin-bottom: 10px;">Entities</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px;">
+            {% for entity in metadata.entities %}
+            <div style="background: #f8f9fa; padding: 8px; border-radius: 6px; border-left: 3px solid #9b59b6;">
+                <strong style="font-size: 13px; color: #2c3e50;">{{ entity.name }}</strong>
+                <span style="font-size: 11px; color: #7f8c8d; margin-left: 5px;">({{ entity.entity_type }})</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if metadata.outputs %}
+    <div style="margin-bottom: 20px;">
+        <h4 style="font-size: 14px; color: #34495e; margin-bottom: 10px;">Outputs & Artifacts</h4>
+        {% for output in metadata.outputs %}
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #27ae60;">
+            <strong style="color: #2c3e50; text-transform: capitalize;">{{ output.artifact_type }}</strong>
+            <p style="margin: 5px 0 0 0; font-size: 13px; color: #555;">{{ output.description }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    {% if metadata.open_loops %}
+    <div style="margin-bottom: 20px;">
+        <h4 style="font-size: 14px; color: #34495e; margin-bottom: 10px;">Open Loops</h4>
+        {% for open_loop in metadata.open_loops %}
+        <div style="background: #fff3cd; padding: 10px; border-radius: 6px; margin-bottom: 8px; border-left: 3px solid #f39c12;">
+            <strong style="color: #2c3e50; text-transform: capitalize;">{{ open_loop.loop_type }}</strong>
+            <p style="margin: 5px 0 0 0; font-size: 13px; color: #555;">{{ open_loop.description }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    {% if metadata.notable_quotes %}
+    <div style="margin-bottom: 20px;">
+        <h4 style="font-size: 14px; color: #34495e; margin-bottom: 10px;">Notable Quotes</h4>
+        {% for quote in metadata.notable_quotes %}
+        <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #e74c3c; font-style: italic;">
+            <p style="margin: 0 0 5px 0; color: #2c3e50;">"{{ quote.quote }}"</p>
+            {% if quote.context %}
+            <p style="margin: 0; font-size: 11px; color: #7f8c8d;">— {{ quote.context }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; font-size: 11px; color: #7f8c8d;">
+        Metadata extracted: {{ metadata.extracted_at }} | Model: {{ metadata.model_used or 'N/A' }} | Schema: {{ metadata.schema_version or 'N/A' }}
+    </div>
+</div>
+{% endif %}
+
+{% for message in messages %}
+<div class="message">
+    <div class="message-header">
+        <span class="message-role {{ message.role_display|default(message.role) }}">{{ message.role_display|default(message.role) }}</span>
+        {% if message.create_time %}
+        <span class="message-time">{{ message.create_time }}</span>
+        {% endif %}
+    </div>
+    <div class="message-content">{{ message.content }}</div>
+</div>
+{% endfor %}
+{% endblock %}
+

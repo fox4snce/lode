@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Lode{% endblock %}
+
+{% block content %}
+<div class="menu-bar">
+    <h1>Lode</h1>
+    <div class="menu-items">
+        <a href="/import">Import</a>
+        <a href="/analytics">Analytics</a>
+        <a href="/find-tools">Find Tools</a>
+        <a href="/export">Export</a>
+        <a href="/settings">Settings</a>
+        <a href="/about">About</a>
+    </div>
+</div>
+
+<div class="main-layout">
+    <!-- Left Panel: Search & Filters -->
+    <div class="panel panel-left">
+        <div class="search-box">
+            <input type="text" 
+                   id="search-input"
+                   placeholder="Search conversations..."
+                   hx-get="/api/conversations"
+                   hx-trigger="keyup changed delay:500ms, search"
+                   hx-target="#conversation-list"
+                   hx-include="#filters"
+                   name="q">
+        </div>
+        
+        <div class="filters" id="filters">
+            <div class="filter-group">
+                <label>Sort By</label>
+                <select name="sort" 
+                        hx-get="/api/conversations"
+                        hx-trigger="change"
+                        hx-target="#conversation-list"
+                        hx-include="#search-input">
+                    <option value="update_time">Recent</option>
+                    <option value="create_time">Oldest</option>
+                    <option value="message_count">Most Messages</option>
+                    <option value="word_count">Most Words</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label>AI Source</label>
+                <select name="ai_source"
+                        hx-get="/api/conversations"
+                        hx-trigger="change"
+                        hx-target="#conversation-list"
+                        hx-include="#search-input">
+                    <option value="">All</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="claude">Claude</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label>Starred Only</label>
+                <select name="starred"
+                        hx-get="/api/conversations"
+                        hx-trigger="change"
+                        hx-target="#conversation-list"
+                        hx-include="#search-input">
+                    <option value="">All</option>
+                    <option value="true">Starred</option>
+                </select>
+            </div>
+        </div>
+        
+        <ul class="conversation-list" id="conversation-list">
+            <li class="loading">Loading conversations...</li>
+        </ul>
+    </div>
+    
+    <!-- Center Panel: Messages -->
+    <div class="panel panel-center">
+        <div class="message-view" id="message-view">
+            <div class="empty-state">
+                <h3>Select a conversation</h3>
+                <p>Choose a conversation from the list to view messages</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Panel: Details -->
+    <div class="panel panel-right">
+        <div class="card">
+            <h2>Conversation Details</h2>
+            <div id="conversation-details">
+                <p class="empty-state">No conversation selected</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load conversations on page load
+document.addEventListener('DOMContentLoaded', function() {
+    htmx.ajax('GET', '/api/conversations', {
+        target: '#conversation-list',
+        swap: 'innerHTML',
+        headers: {'HX-Request': 'true'}
+    });
+});
+
+// Handle conversation click
+document.body.addEventListener('click', function(event) {
+    const item = event.target.closest('.conversation-item');
+    if (item) {
+        const convId = item.dataset.conversationId;
+        if (convId) {
+            // Update active state
+            document.querySelectorAll('.conversation-item').forEach(el => {
+                el.classList.remove('active');
+            });
+            item.classList.add('active');
+            
+            // Load messages
+            htmx.ajax('GET', `/api/conversations/${convId}/messages`, {
+                target: '#message-view',
+                swap: 'innerHTML',
+                headers: {'HX-Request': 'true'}
+            });
+            
+            // Load details
+            htmx.ajax('GET', `/api/conversations/${convId}`, {
+                target: '#conversation-details',
+                swap: 'innerHTML',
+                headers: {'HX-Request': 'true'}
+            });
+        }
+    }
+});
+</script>
+{% endblock %}
+

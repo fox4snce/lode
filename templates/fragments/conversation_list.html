@@ -1,0 +1,23 @@
+{% if conversations %}
+    {% for conv in conversations %}
+    <li class="conversation-item" data-conversation-id="{{ conv.conversation_id }}">
+        <div class="conversation-title">{{ conv.title or 'Untitled' }}</div>
+        <div class="conversation-meta">
+            {{ conv.message_count }} messages • {{ conv.word_count }} words
+            {% if conv.ai_source %}{{ conv.ai_source }}{% endif %}
+        </div>
+        {% if conv.tags %}
+        <div class="tags">
+            {% for tag in conv.tags %}
+            <span class="tag">{{ tag }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </li>
+    {% endfor %}
+{% else %}
+    <li class="empty-state">
+        <p>No conversations found</p>
+    </li>
+{% endif %}
+

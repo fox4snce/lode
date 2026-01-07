@@ -1,0 +1,12 @@
+{% if messages %}
+    {% for msg in messages %}
+    <div class="message {{ msg.role }}">
+        <div class="message-header">{{ msg.role|title }} • {% if msg.create_time %}{{ msg.create_time|timestamp }}{% else %}Unknown{% endif %}</div>
+        <div class="message-content">{{ msg.content|replace('\n', '<br>')|safe }}</div>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">
+        <p>No messages in this conversation</p>
+    </div>
+{% endif %}

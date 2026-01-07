@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - Lode{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card" style="max-width: 600px; margin: 100px auto;">
+        <h2>Welcome to Lode</h2>
+        <p>Lode helps you organize and search through your AI conversation history.</p>
+        
+        <div id="init-status"></div>
+        
+        <form hx-post="/api/setup/initialize" 
+              hx-target="#init-status"
+              hx-swap="innerHTML"
+              hx-indicator="#loading">
+            <button type="submit" class="btn btn-primary">
+                Initialize Database
+            </button>
+            <span id="loading" class="htmx-indicator">Initializing...</span>
+        </form>
+    </div>
+</div>
+
+<script>
+document.body.addEventListener('htmx:afterRequest', function(event) {
+    if (event.detail.xhr.status === 200) {
+        setTimeout(() => {
+            window.location.href = '/main';
+        }, 1000);
+    }
+});
+</script>
+{% endblock %}
+

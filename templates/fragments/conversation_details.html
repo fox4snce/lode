@@ -1,0 +1,24 @@
+{% if conversation %}
+    <h3>{{ conversation.title or 'Untitled' }}</h3>
+    <p><strong>ID:</strong> {{ conversation.conversation_id }}</p>
+    <p><strong>Source:</strong> {{ conversation.ai_source or 'Unknown' }}</p>
+    <p><strong>Created:</strong> {% if conversation.create_time %}{{ conversation.create_time|timestamp }}{% else %}Unknown{% endif %}</p>
+    <p><strong>Updated:</strong> {% if conversation.update_time %}{{ conversation.update_time|timestamp }}{% else %}Unknown{% endif %}</p>
+    {% if conversation.tags %}
+    <div class="tags">
+        {% for tag in conversation.tags %}
+        <span class="tag">{{ tag }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% if conversation.stats %}
+    <div class="mt-20">
+        <h4>Statistics</h4>
+        <p>Messages: {{ conversation.stats.get('message_count_total', 0) }}</p>
+        <p>Words: {{ conversation.stats.get('word_count_total', 0) }}</p>
+    </div>
+    {% endif %}
+{% else %}
+    <p class="empty-state">No conversation selected</p>
+{% endif %}
+

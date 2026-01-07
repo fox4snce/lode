@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatVault</title>
+    <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+    <!-- Top Bar -->
+    <header class="top-bar">
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Search conversations..." class="search-input">
+        </div>
+        <div class="filters-container">
+            <select id="tag-filter" class="filter-select">
+                <option value="">All Tags</option>
+            </select>
+            <select id="sort-select" class="filter-select">
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="longest">Longest</option>
+                <option value="most_messages">Most Messages</option>
+            </select>
+        </div>
+        <div class="jobs-indicator" id="jobs-indicator" style="display: none;">
+            <span id="jobs-count">0</span> jobs
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+        <!-- Left Panel: Conversation List -->
+        <aside class="conversation-list-panel">
+            <div id="conversation-list" class="conversation-list">
+                <!-- Conversations will be loaded here -->
+            </div>
+            <div class="load-more-container">
+                <button id="load-more-btn" class="load-more-btn">Load More</button>
+            </div>
+        </aside>
+
+        <!-- Center Panel: Message Viewer -->
+        <main class="message-viewer-panel">
+            <div id="message-viewer" class="message-viewer">
+                <div class="empty-state">
+                    <p>Select a conversation to view messages</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Panel: Inspector -->
+        <aside class="inspector-panel">
+            <div id="inspector" class="inspector">
+                <div class="empty-state">
+                    <p>No conversation selected</p>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Job Progress Modal -->
+    <div id="job-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Background Jobs</h2>
+                <button class="close-btn" id="close-modal">&times;</button>
+            </div>
+            <div id="job-list" class="job-list">
+                <!-- Jobs will be listed here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
