@@ -206,7 +206,7 @@ async function wipeImportedFiles() {
     resultDiv.innerHTML = '<div class="loading">Wiping imported files...</div>';
     
     try {
-        const response = await fetch('/api/cleanup/wipe-imported-files', { method: 'POST' });
+        const response = await fetch('/api/cleanup/wipe-files', { method: 'POST' });
         const data = await response.json();
         
         resultDiv.innerHTML = `<div class="success">Imported files wiped successfully. ${data.deleted || 0} files deleted.</div>`;
