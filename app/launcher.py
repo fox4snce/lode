@@ -27,15 +27,29 @@ class ServerThread(threading.Thread):
         super().__init__(daemon=True)
         self.port = port
         self.server = None
+        self.config = None
     
     def run(self):
-        config = uvicorn.Config(app, host="127.0.0.1", port=self.port, log_level="info")
-        self.server = uvicorn.Server(config)
-        self.server.run()
+        try:
+            self.config = uvicorn.Config(app, host="127.0.0.1", port=self.port, log_level="info")
+            self.server = uvicorn.Server(self.config)
+            self.server.run()
+        except Exception as e:
+            print(f"ERROR in ServerThread: {e}")
+            import traceback
+            traceback.print_exc()
     
     def shutdown(self):
         if self.server:
             self.server.should_exit = True
+            # Force shutdown
+            try:
+                import time
+                time.sleep(0.5)
+                if hasattr(self.server, 'force_exit'):
+                    self.server.force_exit = True
+            except:
+                pass
 
 
 def is_our_server(port):
@@ -344,15 +358,44 @@ def main():
     
     def on_closed():
         """Cleanup on window close."""
-        server_thread.shutdown()
+        print("=== CLEANUP STARTING ===")
+        try:
+            server_thread.shutdown()
+            print("Server thread shutdown called")
+        except Exception as e:
+            print(f"Error shutting down server: {e}")
+        
         if vite_process:
-            vite_process.terminate()
+            try:
+                print("Terminating Vite process...")
+                vite_process.terminate()
+                # Give it a moment, then kill if needed
+                import time
+                time.sleep(1)
+                if vite_process.poll() is None:
+                    print("Vite process still running, killing...")
+                    vite_process.kill()
+                print("Vite process terminated")
+            except Exception as e:
+                print(f"Error terminating Vite: {e}")
+        print("=== CLEANUP COMPLETE ===")
     
     # Start webview with debug enabled to see console errors
     try:
+        print("=== STARTING WEBVIEW ===")
         webview.start(debug=True)
+    except KeyboardInterrupt:
+        print("Keyboard interrupt received")
+    except Exception as e:
+        print(f"ERROR in webview.start(): {e}")
+        import traceback
+        traceback.print_exc()
     finally:
+        print("=== FINALLY BLOCK - CLEANUP ===")
         on_closed()
+        # Force exit to prevent hanging
+        import os
+        os._exit(0)
 
 
 if __name__ == "__main__":

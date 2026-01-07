@@ -17,10 +17,15 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('main')
 
   useEffect(() => {
+    console.log('App mounted, checking setup...')
     checkSetup()
-      .then(setInitialized)
+      .then((result) => {
+        console.log('Setup check result:', result)
+        setInitialized(result)
+      })
       .catch((error) => {
         console.error('Failed to check setup:', error)
+        console.error('Error details:', error.message, error.stack)
         setInitialized(false) // Default to showing welcome screen on error
       })
   }, [])
