@@ -1,10 +1,28 @@
 console.log('=== main.tsx MODULE LOADING ===')
 console.log('Timestamp:', new Date().toISOString())
 
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App'
-import './index.css'
+let React, ReactDOM, App
+
+try {
+  console.log('Importing React...')
+  React = await import('react')
+  console.log('React imported:', !!React)
+  
+  console.log('Importing ReactDOM...')
+  ReactDOM = await import('react-dom/client')
+  console.log('ReactDOM imported:', !!ReactDOM)
+  
+  console.log('Importing App...')
+  App = (await import('./App')).default
+  console.log('App imported:', !!App)
+  
+  console.log('Importing CSS...')
+  await import('./index.css')
+  console.log('CSS imported')
+} catch (error) {
+  console.error('IMPORT ERROR:', error)
+  throw error
+}
 
 console.log('=== main.tsx: Imports successful ===')
 console.log('main.tsx: Starting React app...')
@@ -34,12 +52,20 @@ try {
     testMsg.style.background = '#ffd43b'
   }
   
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  )
-  console.log('main.tsx: App rendered')
+  console.log('main.tsx: About to render App component')
+  console.log('App component type:', typeof App)
+  
+  try {
+    root.render(
+      React.createElement(React.StrictMode, null,
+        React.createElement(App)
+      )
+    )
+    console.log('main.tsx: App rendered successfully')
+  } catch (renderError) {
+    console.error('RENDER ERROR:', renderError)
+    throw renderError
+  }
   
   if (testMsg) {
     setTimeout(() => {
