@@ -282,16 +282,31 @@ def main():
         # Wait for Vite to start
         print("Waiting for Vite dev server to start...")
         time.sleep(5)  # Increased wait time
-        # Check if Vite is actually running
+        # Check if Vite is actually running - try both localhost and 127.0.0.1
+        vite_url_localhost = "http://localhost:5173"
+        vite_url_127 = "http://127.0.0.1:5173"
+        frontend_url = vite_url_localhost  # Default
+        
         try:
-            response = requests.get("http://localhost:5173", timeout=2)
+            response = requests.get(vite_url_localhost, timeout=2)
             print(f"Vite dev server is running! Status: {response.status_code}")
-            print(f"Using frontend URL: http://localhost:5173")
+            print(f"Using frontend URL: {vite_url_localhost}")
+            # Check if we got actual HTML content
+            if len(response.text) > 100:
+                print(f"Vite returned content ({len(response.text)} bytes)")
+            else:
+                print(f"WARNING: Vite returned very little content ({len(response.text)} bytes)")
         except Exception as e:
-            print(f"WARNING: Vite dev server may not be running: {e}")
-            print("You may need to manually start: cd frontend && npm run dev")
-            print("Falling back to FastAPI static serving (which won't work)")
-        frontend_url = "http://localhost:5173"
+            print(f"WARNING: localhost:5173 not accessible: {e}")
+            # Try 127.0.0.1 instead (pywebview on Windows sometimes prefers this)
+            try:
+                response = requests.get(vite_url_127, timeout=2)
+                print(f"Vite accessible via 127.0.0.1! Status: {response.status_code}")
+                frontend_url = vite_url_127
+            except Exception as e2:
+                print(f"ERROR: Both localhost and 127.0.0.1 failed: {e2}")
+                print("You may need to manually start: cd frontend && npm run dev")
+                print("Falling back to FastAPI static serving (which won't work)")
         print(f"Webview will load: {frontend_url}")
     else:
         vite_process = None
