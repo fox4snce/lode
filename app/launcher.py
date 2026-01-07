@@ -342,10 +342,20 @@ def main():
     print(f"=== Vite process exists: {vite_process is not None} ===")
     print(f"=== Testing if URL is accessible... ===")
     try:
-        test_res = requests.get(frontend_url, timeout=2)
+        test_res = requests.get(frontend_url, timeout=5)
         print(f"=== URL test: Status {test_res.status_code}, Content length: {len(test_res.text)} ===")
+        if len(test_res.text) < 100:
+            print(f"=== WARNING: Very little content returned! ===")
+        # Check if it's HTML
+        if '<html' in test_res.text.lower() or '<!doctype' in test_res.text.lower():
+            print(f"=== Content appears to be HTML ===")
+        else:
+            print(f"=== WARNING: Content doesn't look like HTML! ===")
+            print(f"=== First 200 chars: {test_res.text[:200]} ===")
     except Exception as e:
         print(f"=== URL test FAILED: {e} ===")
+        import traceback
+        traceback.print_exc()
     
     window = webview.create_window(
         title="Lode",
@@ -355,6 +365,7 @@ def main():
         min_size=(1000, 700)
     )
     print(f"=== Webview created, URL should be: {frontend_url} ===")
+    print(f"=== Window object: {window} ===")
     
     def on_closed():
         """Cleanup on window close."""
