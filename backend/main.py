@@ -247,7 +247,7 @@ async def get_conversation(conversation_id: str = PathParam(...)):
 async def get_messages(
     conversation_id: str = PathParam(...),
     anchor_message_id: Optional[str] = Query(None),
-    direction: str = Query("around", regex="^(older|newer|around)$"),
+    direction: str = Query("around", pattern="^(older|newer|around)$"),
     limit: int = Query(200, ge=1, le=1000)
 ):
     """Get messages with windowing support."""
@@ -551,7 +551,7 @@ async def save_state(request: StateRequest):
 # Analytics endpoints
 @app.get("/api/analytics/usage")
 async def get_usage_over_time(
-    period: str = Query("day", regex="^(day|week|month)$"),
+    period: str = Query("day", pattern="^(day|week|month)$"),
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None)
 ):
@@ -920,7 +920,7 @@ async def get_import_report(batch_id: str = PathParam(...)):
 @app.post("/api/export/conversation/{conversation_id}")
 async def export_conversation(
     conversation_id: str = PathParam(...),
-    format: str = Query("markdown", regex="^(markdown|csv|json)$"),
+    format: str = Query("markdown", pattern="^(markdown|csv|json)$"),
     include_timestamps: bool = Query(True),
     include_metadata: bool = Query(True)
 ):
