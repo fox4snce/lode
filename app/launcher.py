@@ -311,6 +311,13 @@ def main():
     # Create webview window
     print(f"=== CREATING WEBVIEW WITH URL: {frontend_url} ===")
     print(f"=== Vite process exists: {vite_process is not None} ===")
+    print(f"=== Testing if URL is accessible... ===")
+    try:
+        test_res = requests.get(frontend_url, timeout=2)
+        print(f"=== URL test: Status {test_res.status_code}, Content length: {len(test_res.text)} ===")
+    except Exception as e:
+        print(f"=== URL test FAILED: {e} ===")
+    
     window = webview.create_window(
         title="Lode",
         url=frontend_url,
@@ -326,9 +333,9 @@ def main():
         if vite_process:
             vite_process.terminate()
     
-    # Start webview
+    # Start webview with debug enabled to see console errors
     try:
-        webview.start(debug=False)
+        webview.start(debug=True)
     finally:
         on_closed()
 
