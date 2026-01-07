@@ -419,6 +419,14 @@ def main():
         import traceback
         traceback.print_exc()
     
+    # Try opening in browser first to verify it works
+    print(f"=== TEST: Opening {frontend_url} in default browser to verify it works ===")
+    import webbrowser
+    webbrowser.open(frontend_url)
+    print("=== If the browser shows the app correctly, the issue is with pywebview ===")
+    print("=== Waiting 3 seconds, then opening webview... ===")
+    time.sleep(3)
+    
     window = webview.create_window(
         title="Lode",
         url=frontend_url,
