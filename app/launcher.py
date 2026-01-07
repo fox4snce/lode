@@ -273,13 +273,10 @@ def main():
     # Wait for server
     if not wait_for_server(port):
         print("Failed to start server")
-        if vite_process:
-            vite_process.terminate()
         sys.exit(1)
     
     # Create webview window
     print(f"=== CREATING WEBVIEW WITH URL: {frontend_url} ===")
-    print(f"=== Vite process exists: {vite_process is not None} ===")
     print(f"=== Testing if URL is accessible... ===")
     try:
         test_res = requests.get(frontend_url, timeout=5)
