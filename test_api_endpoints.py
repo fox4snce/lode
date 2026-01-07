@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional
 import time
 
 # API base URL
-BASE_URL = "http://localhost:8000/api"
+BASE_URL = "http://127.0.0.1:8000/api"
 
 # Test results tracking
 test_results = {
@@ -40,9 +40,10 @@ def skip_test(name: str, reason: str):
 def check_server():
     """Check if API server is running."""
     try:
-        response = requests.get(f"{BASE_URL}/health", timeout=2)
+        response = requests.get(f"{BASE_URL}/health", timeout=5)
         return response.status_code == 200
-    except:
+    except Exception as e:
+        print(f"Server check error: {e}")
         return False
 
 # ============================================================================
@@ -485,7 +486,7 @@ def test_analytics_streaks():
 def test_analytics_words(limit: int = 10):
     """Test words analytics."""
     try:
-        response = requests.get(f"{BASE_URL}/analytics/words?limit={limit}", timeout=10)
+        response = requests.get(f"{BASE_URL}/analytics/top-words?limit={limit}", timeout=10)
         if response.status_code == 200:
             data = response.json()
             log_test(f"Analytics Words (limit={limit})", True, f"Found {len(data)} words")
@@ -500,7 +501,7 @@ def test_analytics_words(limit: int = 10):
 def test_analytics_phrases(limit: int = 10):
     """Test phrases analytics."""
     try:
-        response = requests.get(f"{BASE_URL}/analytics/phrases?limit={limit}", timeout=10)
+        response = requests.get(f"{BASE_URL}/analytics/top-phrases?limit={limit}", timeout=10)
         if response.status_code == 200:
             data = response.json()
             log_test(f"Analytics Phrases (limit={limit})", True, f"Found {len(data)} phrases")
@@ -530,7 +531,7 @@ def test_analytics_vocabulary():
 def test_analytics_ratios():
     """Test ratios analytics."""
     try:
-        response = requests.get(f"{BASE_URL}/analytics/ratios", timeout=10)
+        response = requests.get(f"{BASE_URL}/analytics/response-ratio", timeout=10)
         if response.status_code == 200:
             data = response.json()
             log_test("Analytics Ratios", True)
@@ -587,7 +588,7 @@ def test_export_conversation(conversation_id: str, format: str = "markdown"):
 def test_integrity_checks():
     """Test integrity checks."""
     try:
-        response = requests.post(f"{BASE_URL}/settings/integrity", timeout=30)
+        response = requests.get(f"{BASE_URL}/integrity/check", timeout=30)
         if response.status_code == 200:
             data = response.json()
             log_test("Integrity Checks", True)
@@ -602,7 +603,7 @@ def test_integrity_checks():
 def test_deduplication():
     """Test deduplication."""
     try:
-        response = requests.post(f"{BASE_URL}/settings/deduplicate", timeout=30)
+        response = requests.get(f"{BASE_URL}/deduplication/find-conversations", timeout=30)
         if response.status_code == 200:
             data = response.json()
             log_test("Deduplication", True)
@@ -670,7 +671,7 @@ def test_get_state():
 def test_save_state(conversation_id: str):
     """Test saving state."""
     try:
-        response = requests.put(
+        response = requests.post(
             f"{BASE_URL}/state",
             json={"last_conversation_id": conversation_id},
             timeout=5

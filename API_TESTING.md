@@ -252,13 +252,30 @@
 - ✅ All documentation exists
 - ⚠️ Minor warning: analytics function name differs
 
-### API Endpoint Tests ⚠️
-**Total Tests**: 75+  
-**Passed**: 0 (server not running)  
-**Failed**: 0  
-**Skipped**: 75+  
+### API Endpoint Tests ✅
+**Total Tests**: 44  
+**Passed**: 42  
+**Failed**: 2  
+**Skipped**: 0  
+**Success Rate**: 95.5%
 
-**Status**: ⚠️ **API testing requires backend server to be running**
+**Results:**
+- ✅ Health check and setup endpoints working
+- ✅ Conversations API (list, get, messages, sorting) - all working
+- ✅ Search API working
+- ✅ Organization API (tags, notes, stars, custom titles) - all working
+- ✅ Find Tools API (code, links, TODOs, questions, dates, decisions, prompts) - all working
+- ✅ Analytics API (usage, streaks, words, phrases, vocabulary, ratios, heatmap) - all working
+- ✅ Export API (markdown) - working
+- ❌ Export API (JSON, CSV) - returning 500 errors
+- ✅ Integrity checks working
+- ✅ Deduplication working
+- ✅ Job system working
+- ✅ State management working
+
+**Known Issues:**
+1. JSON export format returns 500 error
+2. CSV export format returns 500 error
 
 ---
 
