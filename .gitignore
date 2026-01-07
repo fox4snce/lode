@@ -52,9 +52,6 @@ htmlcov/
 *.bak
 *~
 
-# ONNX model files (large, should be downloaded separately)
-vendor/
-
 # Frontend build artifacts
 frontend/node_modules/
 frontend/dist/
@@ -66,6 +63,9 @@ docs/
 
 # ONNX model files (large, should be downloaded separately)
 vendor/
+
+# External git repositories (submodules or separate repos)
+storyvectordb/
 
 # Test files (optional - uncomment if you don't want tests in repo)
 # test_*.py
