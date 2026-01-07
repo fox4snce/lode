@@ -30,7 +30,7 @@ export default function AboutScreen({ onClose }: Props) {
           color: '#333',
           textAlign: 'center'
         }}>
-          ChatVault
+          Lode
         </h1>
         
         <p style={{
