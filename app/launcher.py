@@ -36,8 +36,27 @@ class ServerThread(threading.Thread):
             self.server.should_exit = True
 
 
-def kill_process_on_port(port):
-    """Kill any process using the specified port."""
+def is_our_server(port):
+    """Check if the process on the port is our ChatVault server."""
+    try:
+        response = requests.get(f"http://127.0.0.1:{port}/api/health", timeout=1)
+        if response.status_code == 200:
+            data = response.json()
+            # Check if it's our API (has version field)
+            if isinstance(data, dict) and data.get('status') == 'ok':
+                return True
+    except:
+        pass
+    return False
+
+
+def kill_chatvault_server(port):
+    """Kill only ChatVault server processes on the specified port."""
+    # First check if it's actually our server
+    if not is_our_server(port):
+        print(f"Port {port} is in use, but it's not a ChatVault server. Skipping cleanup.")
+        return False
+    
     if platform.system() == "Windows":
         try:
             # Find process using the port
@@ -57,19 +76,33 @@ def kill_process_on_port(port):
                         if pid.isdigit():
                             pids.append(pid)
             
-            # Kill processes
+            # Verify it's a Python process running our server before killing
             for pid in set(pids):
                 try:
-                    print(f"Killing process {pid} on port {port}...")
-                    subprocess.run(["taskkill", "/F", "/PID", pid], 
-                                 capture_output=True, shell=True)
-                    time.sleep(0.5)
+                    # Check process command line to verify it's our server
+                    result = subprocess.run(
+                        ["wmic", "process", "where", f"ProcessId={pid}", "get", "CommandLine"],
+                        capture_output=True,
+                        text=True,
+                        shell=True
+                    )
+                    cmdline = result.stdout.lower()
+                    # Only kill if it's Python running backend.main or uvicorn with our app
+                    if ("python" in cmdline and 
+                        ("backend.main" in cmdline or 
+                         "uvicorn" in cmdline and "backend.main:app" in cmdline or
+                         "app/launcher.py" in cmdline)):
+                        print(f"Killing ChatVault server process {pid} on port {port}...")
+                        subprocess.run(["taskkill", "/F", "/PID", pid], 
+                                     capture_output=True, shell=True)
+                        time.sleep(0.5)
+                        return True
                 except Exception as e:
-                    print(f"Could not kill process {pid}: {e}")
+                    print(f"Could not verify/kill process {pid}: {e}")
         except Exception as e:
             print(f"Error checking port {port}: {e}")
     else:
-        # Linux/Mac
+        # Linux/Mac - check if it's our process
         try:
             result = subprocess.run(
                 ["lsof", "-ti", f":{port}"],
@@ -80,12 +113,25 @@ def kill_process_on_port(port):
                 pids = result.stdout.strip().split('\n')
                 for pid in pids:
                     try:
-                        print(f"Killing process {pid} on port {port}...")
-                        subprocess.run(["kill", "-9", pid], capture_output=True)
+                        # Check process command
+                        result = subprocess.run(
+                            ["ps", "-p", pid, "-o", "command="],
+                            capture_output=True,
+                            text=True
+                        )
+                        cmdline = result.stdout.lower()
+                        if ("python" in cmdline and 
+                            ("backend.main" in cmdline or 
+                             "uvicorn" in cmdline and "backend.main:app" in cmdline or
+                             "app/launcher.py" in cmdline)):
+                            print(f"Killing ChatVault server process {pid} on port {port}...")
+                            subprocess.run(["kill", "-9", pid], capture_output=True)
+                            return True
                     except:
                         pass
         except:
             pass
+    return False
 
 
 def is_port_in_use(port):
@@ -113,11 +159,16 @@ def main():
     # Use fixed port 8000 for FastAPI (matches Vite proxy config)
     port = 8000
     
-    # Kill any existing processes on port 8000
+    # Kill any existing ChatVault server processes on port 8000
     if is_port_in_use(port):
-        print(f"Port {port} is in use. Cleaning up old processes...")
-        kill_process_on_port(port)
-        time.sleep(2)  # Give processes time to die
+        print(f"Port {port} is in use. Checking if it's a ChatVault server...")
+        if kill_chatvault_server(port):
+            print("Cleaned up old ChatVault server process.")
+            time.sleep(2)  # Give process time to die
+        else:
+            print(f"ERROR: Port {port} is in use by another application.")
+            print("Please stop that application or use a different port.")
+            sys.exit(1)
     
     # Check if we should use Vite dev server or built files
     frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
