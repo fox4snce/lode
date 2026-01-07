@@ -53,9 +53,18 @@ export interface State {
 
 // Core
 export async function checkSetup(): Promise<boolean> {
-  const res = await fetch(`${API_BASE}/setup/check`)
-  const data = await res.json()
-  return data.initialized
+  try {
+    const res = await fetch(`${API_BASE}/setup/check`)
+    if (!res.ok) {
+      console.error('Setup check failed:', res.status, res.statusText)
+      return false
+    }
+    const data = await res.json()
+    return data.initialized ?? false
+  } catch (error) {
+    console.error('Setup check error:', error)
+    return false
+  }
 }
 
 export async function initializeDatabase(): Promise<void> {

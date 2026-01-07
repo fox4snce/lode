@@ -17,11 +17,27 @@ function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('main')
 
   useEffect(() => {
-    checkSetup().then(setInitialized)
+    checkSetup()
+      .then(setInitialized)
+      .catch((error) => {
+        console.error('Failed to check setup:', error)
+        setInitialized(false) // Default to showing welcome screen on error
+      })
   }, [])
 
   if (initialized === null) {
-    return <div>Loading...</div>
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        fontSize: '16px',
+        color: '#666'
+      }}>
+        Loading...
+      </div>
+    )
   }
 
   if (!initialized) {
