@@ -1,16 +1,18 @@
 """
 FastAPI backend for Lode.
 """
-from fastapi import FastAPI, HTTPException, Query, Path as PathParam
+from fastapi import FastAPI, HTTPException, Query, Path as PathParam, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
+from jinja2 import Environment, FileSystemLoader
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 import socket
 from pathlib import Path
 import sys
 import os
+import sqlite3
 
 # Add parent to path for imports
 parent_dir = Path(__file__).parent.parent
@@ -26,7 +28,34 @@ from backend.routes import organization
 # Import route modules (they define routers)
 from api.routes import conversations, messages, jobs
 
-app = FastAPI(title="Lode API", version="1.0.0")
+# Setup Jinja2 templates
+templates_dir = Path(__file__).parent.parent / "templates"
+jinja_env = Environment(loader=FileSystemLoader(str(templates_dir)))
+
+# Add custom filters
+def timestamp_filter(value):
+    """Convert Unix timestamp to readable date."""
+    if not value:
+        return "Unknown"
+    try:
+        from datetime import datetime
+        return datetime.fromtimestamp(int(value)).strftime("%Y-%m-%d %H:%M")
+    except:
+        return str(value)
+
+jinja_env.filters['timestamp'] = timestamp_filter
+jinja_env.filters['date'] = timestamp_filter
+
+def render_template(template_name: str, **context):
+    """Render a Jinja2 template."""
+    template = jinja_env.get_template(template_name)
+    return template.render(**context)
+
+app = FastAPI(title="Lode", version="1.0.0")
+
+# Mount static files
+static_dir = Path(__file__).parent.parent / "static"
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # CORS for dev (pywebview)
 app.add_middleware(
@@ -124,24 +153,28 @@ async def setup_initialize():
 
 
 # Conversation endpoints
-@app.get("/api/conversations", response_model=List[ConversationSummary])
+@app.get("/api/conversations")
 async def list_conversations(
-    sort: str = Query("newest"),
+    request: Request,
+    sort: str = Query("update_time"),
     q: Optional[str] = Query(None),
     tag: Optional[str] = Query(None),
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
-    starred: Optional[bool] = Query(None),
+    starred: Optional[str] = Query(None),
+    ai_source: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0)
 ):
-    """List conversations with filtering and sorting."""
+    """List conversations with filtering and sorting. Returns HTML fragment if HTMX request."""
     if not check_database_initialized():
+        if request.headers.get("HX-Request"):
+            return HTMLResponse(render_template("fragments/conversation_list.html", conversations=[]))
         return []
     
     conn = get_db_connection()
+    conn.row_factory = sqlite3.Row
     
-    # Build query
     query = """
         SELECT 
             c.conversation_id,
@@ -158,6 +191,10 @@ async def list_conversations(
     """
     params = []
     
+    if q:
+        query += " AND c.title LIKE ?"
+        params.append(f"%{q}%")
+    
     if tag:
         query += """
             AND c.conversation_id IN (
@@ -169,9 +206,12 @@ async def list_conversations(
         """
         params.append(tag)
     
-    if starred is not None:
-        query += " AND c.is_starred = ?"
-        params.append(1 if starred else 0)
+    if starred == "true":
+        query += " AND c.is_starred = 1"
+    
+    if ai_source:
+        query += " AND c.ai_source = ?"
+        params.append(ai_source)
     
     if date_from:
         query += " AND c.create_time >= ?"
@@ -181,77 +221,97 @@ async def list_conversations(
         query += " AND c.create_time <= ?"
         params.append(date_to)
     
-    # Sorting
-    if sort == "newest":
-        query += " ORDER BY c.create_time DESC NULLS LAST"
-    elif sort == "oldest":
-        query += " ORDER BY c.create_time ASC NULLS LAST"
-    elif sort == "longest":
-        query += " ORDER BY s.word_count_total DESC NULLS LAST"
-    elif sort == "most_messages":
-        query += " ORDER BY s.message_count_total DESC NULLS LAST"
-    else:
-        query += " ORDER BY c.create_time DESC NULLS LAST"
-    
+    sort_map = {
+        "update_time": "c.update_time DESC NULLS LAST",
+        "create_time": "c.create_time ASC NULLS LAST",
+        "message_count": "s.message_count_total DESC NULLS LAST",
+        "word_count": "s.word_count_total DESC NULLS LAST"
+    }
+    query += f" ORDER BY {sort_map.get(sort, 'c.update_time DESC NULLS LAST')}"
     query += " LIMIT ? OFFSET ?"
     params.extend([limit, offset])
     
     cursor = conn.execute(query, params)
     rows = cursor.fetchall()
     
-    # Get tags for each
     results = []
     for row in rows:
         conv_id = row['conversation_id']
         tag_cursor = conn.execute("""
-            SELECT t.name
-            FROM tags t
+            SELECT t.name FROM tags t
             JOIN conversation_tags ct ON ct.tag_id = t.tag_id
             WHERE ct.conversation_id = ?
         """, (conv_id,))
         tags = [r[0] for r in tag_cursor.fetchall()]
         
-        results.append(ConversationSummary(
-            conversation_id=conv_id,
-            title=row['title'],
-            create_time=row['create_time'],
-            update_time=row['update_time'],
-            message_count=row['message_count'] or 0,
-            word_count=row['word_count'] or 0,
-            ai_source=row['ai_source'],
-            is_starred=bool(row['is_starred']),
-            tags=tags
-        ))
+        results.append({
+            "conversation_id": conv_id,
+            "title": row['title'],
+            "create_time": row['create_time'],
+            "update_time": row['update_time'],
+            "message_count": row['message_count'] or 0,
+            "word_count": row['word_count'] or 0,
+            "ai_source": row['ai_source'],
+            "is_starred": bool(row['is_starred']),
+            "tags": tags
+        })
     
     conn.close()
+    
+    if request.headers.get("HX-Request"):
+        return HTMLResponse(render_template("fragments/conversation_list.html", conversations=results))
     return results
 
-@app.get("/api/conversations/{conversation_id}", response_model=Dict)
-async def get_conversation(conversation_id: str = PathParam(...)):
-    """Get conversation details."""
+@app.get("/api/conversations/{conversation_id}")
+async def get_conversation(request: Request, conversation_id: str = PathParam(...)):
+    """Get conversation details. Returns HTML fragment if HTMX request."""
     conn = get_db_connection()
-    cursor = conn.execute("""
-        SELECT * FROM conversations WHERE conversation_id = ?
-    """, (conversation_id,))
+    conn.row_factory = sqlite3.Row
+    cursor = conn.execute("SELECT * FROM conversations WHERE conversation_id = ?", (conversation_id,))
     row = cursor.fetchone()
     
     if not row:
         conn.close()
         raise HTTPException(status_code=404, detail="Conversation not found")
     
-    result = dict(row)
+    tag_cursor = conn.execute("""
+        SELECT t.name FROM tags t
+        JOIN conversation_tags ct ON ct.tag_id = t.tag_id
+        WHERE ct.conversation_id = ?
+    """, (conversation_id,))
+    tags = [r[0] for r in tag_cursor.fetchall()]
+    
+    stats_cursor = conn.execute("SELECT * FROM conversation_stats WHERE conversation_id = ?", (conversation_id,))
+    stats_row = stats_cursor.fetchone()
+    stats = dict(stats_row) if stats_row else None
+    
+    result = {
+        "conversation_id": row['conversation_id'],
+        "title": row['title'],
+        "create_time": row['create_time'],
+        "update_time": row['update_time'],
+        "ai_source": row['ai_source'],
+        "is_starred": bool(row['is_starred']),
+        "tags": tags,
+        "stats": stats
+    }
     conn.close()
+    
+    if request.headers.get("HX-Request"):
+        return HTMLResponse(render_template("fragments/conversation_details.html", conversation=result))
     return result
 
-@app.get("/api/conversations/{conversation_id}/messages", response_model=List[Message])
+@app.get("/api/conversations/{conversation_id}/messages")
 async def get_messages(
+    request: Request,
     conversation_id: str = PathParam(...),
     anchor_message_id: Optional[str] = Query(None),
     direction: str = Query("around", pattern="^(older|newer|around)$"),
     limit: int = Query(200, ge=1, le=1000)
 ):
-    """Get messages with windowing support."""
+    """Get messages with windowing support. Returns HTML fragment if HTMX request."""
     conn = get_db_connection()
+    conn.row_factory = sqlite3.Row
     
     # Verify conversation exists
     cursor = conn.execute("SELECT conversation_id FROM conversations WHERE conversation_id = ?", (conversation_id,))
@@ -260,82 +320,69 @@ async def get_messages(
         raise HTTPException(status_code=404, detail="Conversation not found")
     
     if anchor_message_id:
-        # Get anchor message position
         cursor = conn.execute("""
             SELECT id, create_time FROM messages
             WHERE conversation_id = ? AND message_id = ?
         """, (conversation_id, anchor_message_id))
         anchor = cursor.fetchone()
-        
         if not anchor:
             conn.close()
             raise HTTPException(status_code=404, detail="Anchor message not found")
-        
         anchor_id = anchor['id']
         anchor_time = anchor['create_time']
         
         if direction == "around":
-            # Get messages around anchor
             cursor = conn.execute("""
                 SELECT message_id, role, content, create_time, parent_id
                 FROM messages
                 WHERE conversation_id = ?
-                    AND (
-                        (create_time = ? AND id <= ?)
-                        OR (create_time < ?)
-                        OR (create_time > ?)
-                    )
+                    AND ((create_time = ? AND id <= ?) OR (create_time < ?) OR (create_time > ?))
                 ORDER BY create_time ASC, id ASC
                 LIMIT ?
             """, (conversation_id, anchor_time, anchor_id, anchor_time, anchor_time, limit))
         elif direction == "older":
-            # Get older messages
             cursor = conn.execute("""
                 SELECT message_id, role, content, create_time, parent_id
                 FROM messages
-                WHERE conversation_id = ?
-                    AND (create_time < ? OR (create_time = ? AND id < ?))
+                WHERE conversation_id = ? AND (create_time < ? OR (create_time = ? AND id < ?))
                 ORDER BY create_time DESC, id DESC
                 LIMIT ?
             """, (conversation_id, anchor_time, anchor_time, anchor_id, limit))
-        else:  # newer
-            # Get newer messages
+        else:
             cursor = conn.execute("""
                 SELECT message_id, role, content, create_time, parent_id
                 FROM messages
-                WHERE conversation_id = ?
-                    AND (create_time > ? OR (create_time = ? AND id > ?))
+                WHERE conversation_id = ? AND (create_time > ? OR (create_time = ? AND id > ?))
                 ORDER BY create_time ASC, id ASC
                 LIMIT ?
             """, (conversation_id, anchor_time, anchor_time, anchor_id, limit))
     else:
-        # Get latest messages
         cursor = conn.execute("""
             SELECT message_id, role, content, create_time, parent_id
             FROM messages
             WHERE conversation_id = ?
-            ORDER BY create_time DESC, id DESC
+            ORDER BY create_time ASC, id ASC
             LIMIT ?
         """, (conversation_id, limit))
     
     rows = cursor.fetchall()
-    
-    # Reverse if we got older messages
     if direction == "older":
         rows = list(reversed(rows))
     
+    messages = [{
+        "message_id": row['message_id'],
+        "role": row['role'],
+        "content": row['content'] or '',
+        "create_time": row['create_time'],
+        "parent_id": row.get('parent_id')
+    } for row in rows]
+    
     conn.close()
     
-    return [
-        Message(
-            message_id=row['message_id'],
-            role=row['role'],
-            content=row['content'] or '',
-            create_time=row['create_time'],
-            parent_id=row['parent_id']
-        )
-        for row in rows
-    ]
+    # Return HTML fragment if HTMX request
+    if request.headers.get("HX-Request"):
+        return HTMLResponse(render_template("fragments/message_list.html", messages=messages))
+    return messages
 
 @app.get("/api/messages/{message_id}/context", response_model=List[Message])
 async def get_message_context(
@@ -978,12 +1025,7 @@ if static_path.exists():
     async def index():
         return FileResponse(static_path / "index.html")
 else:
-    # Dev mode: serve from Vite dev server (handled by launcher)
-    @app.get("/")
-    async def index():
-        # Redirect to Vite dev server in dev mode
-        from fastapi.responses import RedirectResponse
-        return RedirectResponse(url="http://localhost:5173")
+    # HTML routes are defined above
 
 
 if __name__ == "__main__":

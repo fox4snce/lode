@@ -262,15 +262,13 @@ def main():
     # Create lock file to prevent multiple instances
     create_lock_file()
     
-    # Check if we should use Vite dev server or built files
-    frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
-    use_dev_server = not frontend_dist.exists()
+    # No Vite - FastAPI serves HTML directly
+    frontend_url = f"http://127.0.0.1:{port}"
+    vite_process = None
+    print(f"FastAPI will serve HTML directly at {frontend_url}")
     
-    # FORCE use dev server for now
-    use_dev_server = True
-    print(f"FORCING dev server mode. Dist exists: {frontend_dist.exists()}")
-    
-    if use_dev_server:
+    # OLD VITE CODE REMOVED - keeping structure for now
+    if False:
         # Start Vite dev server (it proxies /api to FastAPI on port 8000)
         frontend_dir = Path(__file__).parent.parent / "frontend"
         print(f"Starting Vite dev server in {frontend_dir}...")
@@ -385,8 +383,7 @@ def main():
                 sys.exit(1)
         print(f"Webview will load: {frontend_url}")
     else:
-        vite_process = None
-        frontend_url = f"http://127.0.0.1:{port}"
+        pass  # Already set above
     
     # Start FastAPI server
     server_thread = ServerThread(port)
