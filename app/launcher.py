@@ -462,9 +462,12 @@ def main():
         print("=== CLEANUP COMPLETE ===")
     
     # Start webview with debug enabled to see console errors
+    # webview.start() blocks until the window is closed
     try:
         print("=== STARTING WEBVIEW ===")
+        print("=== webview.start() will block until window is closed ===")
         webview.start(debug=True)
+        print("=== webview.start() returned - window was closed ===")
     except KeyboardInterrupt:
         print("Keyboard interrupt received")
     except Exception as e:
@@ -474,9 +477,6 @@ def main():
     finally:
         print("=== FINALLY BLOCK - CLEANUP ===")
         on_closed()
-        # Force exit to prevent hanging
-        import os
-        os._exit(0)
 
 
 if __name__ == "__main__":
