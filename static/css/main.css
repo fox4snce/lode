@@ -273,6 +273,7 @@ body {
     border-radius: 4px;
     overflow-x: auto;
     font-size: 13px;
+    text-align: left;
 }
 
 .message-content code {

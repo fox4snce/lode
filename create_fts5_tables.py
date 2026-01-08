@@ -44,22 +44,45 @@ def create_fts5_tables(db_path='conversations.db'):
     # Populate FTS5 tables with existing data
     print("Populating FTS5 tables with existing data...")
     
-    # Populate messages_fts
-    cursor.execute('''
-        INSERT INTO messages_fts(conversation_id, message_id, role, content, create_time)
-        SELECT conversation_id, message_id, role, content, create_time
-        FROM messages
-        WHERE content IS NOT NULL
-    ''')
-    print(f"  Indexed {cursor.rowcount} messages")
+    # Check if tables already have data and rebuild if needed
+    cursor.execute("SELECT COUNT(*) FROM messages_fts")
+    existing_messages = cursor.fetchone()[0]
     
-    # Populate conversations_fts
-    cursor.execute('''
-        INSERT INTO conversations_fts(conversation_id, title, create_time)
-        SELECT conversation_id, COALESCE(title, ''), create_time
-        FROM conversations
-    ''')
-    print(f"  Indexed {cursor.rowcount} conversations")
+    cursor.execute("SELECT COUNT(*) FROM messages WHERE content IS NOT NULL")
+    total_messages = cursor.fetchone()[0]
+    
+    # If counts don't match or table is empty, rebuild
+    if existing_messages != total_messages:
+        print(f"  Rebuilding messages_fts (existing: {existing_messages}, total: {total_messages})")
+        cursor.execute("DELETE FROM messages_fts")
+        cursor.execute('''
+            INSERT INTO messages_fts(conversation_id, message_id, role, content, create_time)
+            SELECT conversation_id, message_id, role, content, create_time
+            FROM messages
+            WHERE content IS NOT NULL
+        ''')
+        print(f"  Indexed {cursor.rowcount} messages")
+    else:
+        print(f"  messages_fts already populated ({existing_messages} messages)")
+    
+    cursor.execute("SELECT COUNT(*) FROM conversations_fts")
+    existing_convs = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(*) FROM conversations")
+    total_convs = cursor.fetchone()[0]
+    
+    # If counts don't match or table is empty, rebuild
+    if existing_convs != total_convs:
+        print(f"  Rebuilding conversations_fts (existing: {existing_convs}, total: {total_convs})")
+        cursor.execute("DELETE FROM conversations_fts")
+        cursor.execute('''
+            INSERT INTO conversations_fts(conversation_id, title, create_time)
+            SELECT conversation_id, COALESCE(title, ''), create_time
+            FROM conversations
+        ''')
+        print(f"  Indexed {cursor.rowcount} conversations")
+    else:
+        print(f"  conversations_fts already populated ({existing_convs} conversations)")
     
     # Create triggers to keep FTS5 in sync with main tables
     # Messages trigger

@@ -109,23 +109,42 @@ async function exportConversation() {
         
         const data = await response.json();
         
+        let content = '';
+        let contentType = '';
+        
         if (format === 'markdown') {
-            resultDiv.innerHTML = `
-                <div class="success">Export completed!</div>
-                <div style="margin-top: 15px;">
-                    <h3>Exported Content:</h3>
-                    <pre style="background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; max-height: 500px; overflow-y: auto;">${escapeHtml(data.content)}</pre>
-                </div>
-            `;
+            content = data.content || '';
+            contentType = 'markdown';
+        } else if (format === 'csv') {
+            content = data.content || '';
+            contentType = 'csv';
         } else {
-            resultDiv.innerHTML = `
-                <div class="success">Export completed!</div>
-                <div style="margin-top: 15px;">
-                    <h3>Exported Data:</h3>
-                    <pre style="background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; max-height: 500px; overflow-y: auto;">${JSON.stringify(data, null, 2)}</pre>
-                </div>
-            `;
+            content = JSON.stringify(data, null, 2);
+            contentType = 'json';
         }
+        
+        resultDiv.innerHTML = `
+            <div class="success">Export completed!</div>
+            <div style="margin-top: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3>Exported Content:</h3>
+                    <div>
+                        <button onclick="copyExportedContent()" class="btn btn-primary" style="margin-right: 10px;">Copy</button>
+                        <button onclick="saveExportedContent('${format}')" class="btn btn-primary">Save to File</button>
+                    </div>
+                </div>
+                <div id="export-content-display" style="position: relative;">
+                    <pre id="export-content-text" style="background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; max-height: 500px; overflow-y: auto; text-align: left;">${escapeHtml(content)}</pre>
+                </div>
+                <div id="export-folder-info" style="margin-top: 10px; font-size: 12px; color: #7f8c8d; display: none;">
+                    <span>Export folder: </span><span id="export-folder-path"></span>
+                </div>
+            </div>
+        `;
+        
+        // Store content globally for copy/save functions
+        window.exportedContent = content;
+        window.exportedFormat = format;
     } catch (error) {
         resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
     }
@@ -135,6 +154,75 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+function copyExportedContent() {
+    if (!window.exportedContent) {
+        alert('No content to copy');
+        return;
+    }
+    
+    navigator.clipboard.writeText(window.exportedContent).then(() => {
+        // Show brief success message
+        const btn = event.target;
+        const originalText = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.style.background = '#27ae60';
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.style.background = '';
+        }, 2000);
+    }).catch(err => {
+        alert('Failed to copy: ' + err.message);
+    });
+}
+
+function saveExportedContent(format) {
+    if (!window.exportedContent) {
+        alert('No content to save');
+        return;
+    }
+    
+    const conversationId = document.getElementById('conversation-select').value;
+    const conversationSelect = document.getElementById('conversation-select');
+    const conversationName = conversationSelect.options[conversationSelect.selectedIndex].text;
+    
+    // Determine file extension and MIME type
+    let extension = '';
+    let mimeType = '';
+    if (format === 'markdown') {
+        extension = '.md';
+        mimeType = 'text/markdown';
+    } else if (format === 'csv') {
+        extension = '.csv';
+        mimeType = 'text/csv';
+    } else {
+        extension = '.json';
+        mimeType = 'application/json';
+    }
+    
+    // Sanitize filename
+    const sanitized = conversationName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const filename = `${sanitized}_${conversationId.substring(0, 8)}${extension}`;
+    
+    // Create blob and download
+    const blob = new Blob([window.exportedContent], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    // Show file path info (we can't get the actual save location, but show filename)
+    const folderInfo = document.getElementById('export-folder-info');
+    const folderPath = document.getElementById('export-folder-path');
+    if (folderInfo && folderPath) {
+        folderPath.textContent = `Downloaded as: ${filename}`;
+        folderInfo.style.display = 'block';
+    }
 }
 
 // Load conversations on page load

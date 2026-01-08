@@ -20,9 +20,23 @@ DB_PATH = 'conversations.db'
 
 def escape_fts_query(query: str) -> str:
     """Escape special FTS5 characters in query string."""
-    # FTS5 special characters: ", ', \
-    # We need to escape them for literal search
-    return query.replace('"', '""').replace("'", "''")
+    # FTS5 query syntax:
+    # - Simple words: just use the word directly
+    # - Phrases: wrap in double quotes
+    # - Special chars like quotes need escaping: " becomes ""
+    query = query.strip()
+    
+    if not query:
+        return query
+    
+    # If it's a single word with no special characters, use as-is
+    # FTS5 handles case-insensitive matching automatically
+    if not any(char in query for char in [' ', '"', "'", '-', '(', ')', '*', '+', ':', '|', '(', ')', '{', '}']):
+        return query
+    
+    # For phrases or queries with spaces, wrap in quotes and escape internal quotes
+    escaped = query.replace('"', '""')
+    return f'"{escaped}"'
 
 
 def search_messages(
@@ -77,7 +91,7 @@ def search_messages(
     
     where_clause = " AND ".join(where_parts)
     
-    # Query with ranking
+    # Query - for external content tables, use simpler approach
     sql = f'''
         SELECT 
             m.conversation_id,
@@ -86,13 +100,12 @@ def search_messages(
             m.content,
             m.create_time,
             c.title as conversation_title,
-            rank
+            1.0 as rank
         FROM messages_fts
-        JOIN messages m ON m.message_id = messages_fts.message_id 
-            AND m.conversation_id = messages_fts.conversation_id
+        JOIN messages m ON m.id = messages_fts.rowid
         JOIN conversations c ON c.conversation_id = m.conversation_id
         WHERE {where_clause}
-        ORDER BY rank
+        ORDER BY m.create_time DESC
         LIMIT ? OFFSET ?
     '''
     
@@ -161,7 +174,7 @@ def search_conversations(
     
     where_clause = " AND ".join(where_parts)
     
-    # Query
+    # Query - for external content tables, use simpler approach
     sql = f'''
         SELECT 
             c.conversation_id,
@@ -169,11 +182,11 @@ def search_conversations(
             c.create_time,
             c.update_time,
             c.ai_source,
-            rank
+            1.0 as rank
         FROM conversations_fts
-        JOIN conversations c ON c.conversation_id = conversations_fts.conversation_id
+        JOIN conversations c ON c.id = conversations_fts.rowid
         WHERE {where_clause}
-        ORDER BY rank
+        ORDER BY c.update_time DESC
         LIMIT ? OFFSET ?
     '''
     

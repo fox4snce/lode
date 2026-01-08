@@ -236,25 +236,138 @@ async def list_conversations(
     conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     
-    query = """
-        SELECT 
-            c.conversation_id,
-            c.title,
-            c.create_time,
-            c.update_time,
-            c.ai_source,
-            c.is_starred,
-            COALESCE(s.message_count_total, 0) as message_count,
-            COALESCE(s.word_count_total, 0) as word_count
-        FROM conversations c
-        LEFT JOIN conversation_stats s ON s.conversation_id = c.conversation_id
-        WHERE 1=1
-    """
-    params = []
-    
+    # Use FTS5 search if query provided, otherwise regular query
     if q:
-        query += " AND c.title LIKE ?"
-        params.append(f"%{q}%")
+        # Check if FTS5 tables exist and use them
+        try:
+            import search_fts5
+            from backend.db import get_db_path
+            
+            db_path = str(get_db_path())
+            
+            # First check if FTS5 tables exist
+            conn_check = sqlite3.connect(db_path)
+            cursor_check = conn_check.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name IN ('messages_fts', 'conversations_fts')
+            """)
+            fts_tables = [row[0] for row in cursor_check.fetchall()]
+            conn_check.close()
+            
+            if len(fts_tables) < 2:
+                # FTS5 tables don't exist, fall back to title search
+                print(f"FTS5 tables not found, falling back to title search. Found tables: {fts_tables}")
+                raise Exception("FTS5 tables not initialized")
+            
+            # Search conversations using FTS5
+            fts_results = search_fts5.search_conversations(
+                query=q,
+                db_path=db_path,
+                limit=limit,
+                offset=offset
+            )
+            # Also search messages to find conversations
+            msg_results = search_fts5.search_messages(
+                query=q,
+                db_path=db_path,
+                limit=limit * 2,  # Get more to deduplicate
+                offset=offset
+            )
+            
+            # Collect unique conversation IDs
+            conv_ids = set()
+            for r in fts_results:
+                conv_ids.add(r['conversation_id'])
+            for r in msg_results:
+                conv_ids.add(r['conversation_id'])
+            
+            if not conv_ids:
+                # No results found - return empty but log for debugging
+                print(f"FTS5 search for '{q}' returned 0 results")
+                if request.headers.get("HX-Request"):
+                    return HTMLResponse(render_template("fragments/conversation_list.html", conversations=[]))
+                return []
+            
+            # Build query for those conversation IDs and apply other filters
+            placeholders = ','.join('?' * len(conv_ids))
+            query = f"""
+                SELECT 
+                    c.conversation_id,
+                    c.title,
+                    c.create_time,
+                    c.update_time,
+                    c.ai_source,
+                    c.is_starred,
+                    COALESCE(s.message_count_total, 0) as message_count,
+                    COALESCE(s.word_count_total, 0) as word_count
+                FROM conversations c
+                LEFT JOIN conversation_stats s ON s.conversation_id = c.conversation_id
+                WHERE c.conversation_id IN ({placeholders})
+            """
+            params = list(conv_ids)
+            
+            # Apply additional filters
+            if tag:
+                query += """
+                    AND c.conversation_id IN (
+                        SELECT ct.conversation_id 
+                        FROM conversation_tags ct
+                        JOIN tags t ON t.tag_id = ct.tag_id
+                        WHERE t.name = ?
+                    )
+                """
+                params.append(tag)
+            
+            if starred == "true":
+                query += " AND c.is_starred = 1"
+            
+            if ai_source and ai_source.strip():
+                query += " AND c.ai_source = ?"
+                params.append(ai_source)
+            
+            if date_from:
+                query += " AND c.create_time >= ?"
+                params.append(date_from)
+            
+            if date_to:
+                query += " AND c.create_time <= ?"
+                params.append(date_to)
+        except Exception as e:
+            # Fallback to title search if FTS5 fails
+            print(f"FTS5 search error: {e}, falling back to title search")
+            query = """
+                SELECT 
+                    c.conversation_id,
+                    c.title,
+                    c.create_time,
+                    c.update_time,
+                    c.ai_source,
+                    c.is_starred,
+                    COALESCE(s.message_count_total, 0) as message_count,
+                    COALESCE(s.word_count_total, 0) as word_count
+                FROM conversations c
+                LEFT JOIN conversation_stats s ON s.conversation_id = c.conversation_id
+                WHERE 1=1
+            """
+            params = []
+            query += " AND c.title LIKE ?"
+            params.append(f"%{q}%")
+    else:
+        query = """
+            SELECT 
+                c.conversation_id,
+                c.title,
+                c.create_time,
+                c.update_time,
+                c.ai_source,
+                c.is_starred,
+                COALESCE(s.message_count_total, 0) as message_count,
+                COALESCE(s.word_count_total, 0) as word_count
+            FROM conversations c
+            LEFT JOIN conversation_stats s ON s.conversation_id = c.conversation_id
+            WHERE 1=1
+        """
+        params = []
     
     if tag:
         query += """
@@ -1058,6 +1171,9 @@ async def export_conversation(
         else:
             # For CSV/JSON, return structured data
             from backend.db import get_db_connection
+            import csv
+            import io
+            
             conn = get_db_connection()
             cursor = conn.execute("SELECT * FROM conversations WHERE conversation_id = ?", (conversation_id,))
             conv = dict(cursor.fetchone())
@@ -1073,8 +1189,36 @@ async def export_conversation(
             if format == "json":
                 return {"conversation": dict(conv), "messages": [dict(m) for m in msgs]}
             else:  # CSV
-                # Return as structured data, frontend can convert
-                return {"format": "csv", "conversation": dict(conv), "messages": [dict(m) for m in msgs]}
+                # Generate actual CSV content
+                output = io.StringIO()
+                writer = csv.writer(output)
+                
+                # Write conversation metadata as header rows if metadata included
+                if include_metadata:
+                    writer.writerow(["Field", "Value"])
+                    writer.writerow(["Conversation ID", conv.get('conversation_id', '')])
+                    writer.writerow(["Title", conv.get('title', '')])
+                    writer.writerow(["AI Source", conv.get('ai_source', '')])
+                    writer.writerow(["Create Time", conv.get('create_time', '')])
+                    writer.writerow(["Update Time", conv.get('update_time', '')])
+                    writer.writerow([])  # Empty row separator
+                
+                # Write messages
+                writer.writerow(["Message ID", "Role", "Content", "Create Time", "Parent ID"])
+                for msg in msgs:
+                    content = msg.get('content', '').replace('\n', ' ').replace('\r', ' ')
+                    create_time = msg.get('create_time', '') if include_timestamps else ''
+                    writer.writerow([
+                        msg.get('message_id', ''),
+                        msg.get('role', ''),
+                        content,
+                        create_time,
+                        msg.get('parent_id', '') or ''
+                    ])
+                
+                csv_content = output.getvalue()
+                output.close()
+                return {"format": "csv", "content": csv_content}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

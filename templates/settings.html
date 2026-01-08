@@ -198,7 +198,54 @@ async function findDuplicateConversations() {
 }
 
 async function wipeImportedFiles() {
-    if (!confirm('Are you sure you want to wipe all imported files? This cannot be undone.')) {
+    // Create a custom confirmation dialog
+    const confirmed = await new Promise((resolve) => {
+        const modal = document.createElement('div');
+        modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+        
+        const dialog = document.createElement('div');
+        dialog.style.cssText = 'background: white; padding: 30px; border-radius: 8px; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);';
+        
+        dialog.innerHTML = `
+            <h2 style="margin: 0 0 15px 0; color: #e74c3c;">⚠️ WARNING</h2>
+            <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.5;">
+                <strong>Are you sure you want to wipe all imported files?</strong>
+            </p>
+            <p style="margin: 0 0 20px 0; color: #e74c3c; font-weight: bold; font-size: 14px;">
+                ALL DATA WILL BE DELETED
+            </p>
+            <p style="margin: 0 0 20px 0; font-size: 14px; color: #7f8c8d;">
+                This action cannot be undone. All imported source files will be permanently deleted.
+            </p>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="cancel-wipe" style="padding: 10px 20px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
+                <button id="confirm-wipe" style="padding: 10px 20px; border: none; background: #e74c3c; color: white; border-radius: 4px; cursor: pointer; font-weight: bold;">Delete All Files</button>
+            </div>
+        `;
+        
+        modal.appendChild(dialog);
+        document.body.appendChild(modal);
+        
+        document.getElementById('cancel-wipe').onclick = () => {
+            document.body.removeChild(modal);
+            resolve(false);
+        };
+        
+        document.getElementById('confirm-wipe').onclick = () => {
+            document.body.removeChild(modal);
+            resolve(true);
+        };
+        
+        // Close on background click
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+                resolve(false);
+            }
+        };
+    });
+    
+    if (!confirmed) {
         return;
     }
     
@@ -209,7 +256,7 @@ async function wipeImportedFiles() {
         const response = await fetch('/api/cleanup/wipe-files', { method: 'POST' });
         const data = await response.json();
         
-        resultDiv.innerHTML = `<div class="success">Imported files wiped successfully. ${data.deleted || 0} files deleted.</div>`;
+        resultDiv.innerHTML = `<div class="success">Imported files wiped successfully. ${data.deleted?.length || 0} files deleted.</div>`;
     } catch (error) {
         resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
     }

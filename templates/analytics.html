@@ -269,14 +269,14 @@ async function loadVocabulary() {
         const response = await fetch('/api/analytics/vocabulary');
         const data = await response.json();
         
-        if (!data || Object.keys(data).length === 0) {
+        if (!data || !Array.isArray(data) || data.length === 0) {
             div.innerHTML = '<div class="empty-state">No vocabulary data available</div>';
             return;
         }
         
-        let html = '<table><tr><th>Metric</th><th>Value</th></tr>';
-        Object.entries(data).forEach(([key, value]) => {
-            html += `<tr><td>${key.replace(/_/g, ' ')}</td><td>${value}</td></tr>`;
+        let html = '<table><tr><th>Period</th><th>Unique Words</th></tr>';
+        data.forEach(row => {
+            html += `<tr><td>${row.period || ''}</td><td>${row.unique_words || 0}</td></tr>`;
         });
         html += '</table>';
         div.innerHTML = html;
@@ -322,9 +322,29 @@ async function loadHeatmap() {
             return;
         }
         
-        let html = '<table><tr><th>Hour</th><th>Count</th></tr>';
+        // Find max count for scaling
+        const maxCount = Math.max(...data.map(row => row.count || 0), 1);
+        
+        // Create graph at top
+        let html = '<div style="margin-bottom: 30px;"><h4>Message Count by Hour</h4>';
+        html += '<div style="display: flex; align-items: flex-end; gap: 4px; height: 200px; border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-bottom: 20px;">';
+        
         data.forEach(row => {
-            html += `<tr><td>${row.hour || row.time || ''}</td><td>${row.count || 0}</td></tr>`;
+            const count = row.count || 0;
+            const height = maxCount > 0 ? (count / maxCount) * 100 : 0;
+            const hourLabel = row.hour_label || row.hour || '';
+            html += `<div style="flex: 1; display: flex; flex-direction: column; align-items: center;">`;
+            html += `<div style="background: #3498db; width: 100%; height: ${height}%; min-height: ${count > 0 ? '2px' : '0'}; border-radius: 2px 2px 0 0; margin-bottom: 5px;" title="${hourLabel}: ${count} messages"></div>`;
+            html += `<div style="font-size: 11px; color: #7f8c8d; transform: rotate(-45deg); transform-origin: center; white-space: nowrap;">${hourLabel}</div>`;
+            html += `</div>`;
+        });
+        html += '</div></div>';
+        
+        // Keep the list table
+        html += '<h4>Detailed List</h4><table><tr><th>Hour</th><th>Count</th></tr>';
+        data.forEach(row => {
+            const hourLabel = row.hour_label || row.hour || '';
+            html += `<tr><td>${hourLabel}</td><td>${row.count || 0}</td></tr>`;
         });
         html += '</table>';
         div.innerHTML = html;
