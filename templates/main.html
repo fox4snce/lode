@@ -117,9 +117,117 @@ function loadConversations() {
     });
 }
 
+// Store target message ID for scrolling after load
+let targetMessageId = null;
+
+// Function to scroll to target message after messages load
+function scrollToTargetMessage() {
+    if (targetMessageId) {
+        setTimeout(() => {
+            const messageEl = document.querySelector(`[data-message-id="${targetMessageId}"]`);
+            if (messageEl) {
+                messageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Highlight the message briefly
+                messageEl.style.backgroundColor = '#fff3cd';
+                messageEl.style.borderLeft = '3px solid #ffc107';
+                setTimeout(() => {
+                    messageEl.style.transition = 'background-color 1s, border-left 1s';
+                    messageEl.style.backgroundColor = '';
+                    messageEl.style.borderLeft = '';
+                }, 2000);
+            }
+            targetMessageId = null; // Clear after scrolling
+        }, 200);
+    }
+}
+
+// Listen for HTMX afterSwap event to scroll to message
+document.body.addEventListener('htmx:afterSwap', function(event) {
+    if (event.detail.target.id === 'message-view' && targetMessageId) {
+        scrollToTargetMessage();
+    }
+});
+
+// Function to load a specific conversation and message
+function loadConversationAndMessage(conversationId, messageId) {
+    // Store message ID for scrolling
+    targetMessageId = messageId || null;
+    
+    // Function to actually load the conversation (called after list loads)
+    function doLoadConversation() {
+        // Find and activate the conversation in the list
+        const convItem = document.querySelector(`[data-conversation-id="${conversationId}"]`);
+        if (convItem) {
+            // Update active state
+            document.querySelectorAll('.conversation-item').forEach(el => {
+                el.classList.remove('active');
+            });
+            convItem.classList.add('active');
+            // Scroll the conversation into view
+            convItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        // Load messages with anchor
+        const url = messageId 
+            ? `/api/conversations/${conversationId}/messages?anchor_message_id=${messageId}&direction=around&limit=200`
+            : `/api/conversations/${conversationId}/messages?limit=200`;
+        
+        htmx.ajax('GET', url, {
+            target: '#message-view',
+            swap: 'innerHTML',
+            headers: {'HX-Request': 'true'}
+        });
+        
+        // Load details
+        htmx.ajax('GET', `/api/conversations/${conversationId}`, {
+            target: '#conversation-details',
+            swap: 'innerHTML',
+            headers: {'HX-Request': 'true'}
+        });
+    }
+    
+    // First, ensure conversations are loaded
+    // Check if conversation list is already loaded
+    const existingItem = document.querySelector(`[data-conversation-id="${conversationId}"]`);
+    if (existingItem) {
+        // Already loaded, proceed immediately
+        doLoadConversation();
+    } else {
+        // Need to wait for conversations to load
+        loadConversations();
+        
+        // Listen for the conversation list to be updated
+        const checkInterval = setInterval(() => {
+            const convItem = document.querySelector(`[data-conversation-id="${conversationId}"]`);
+            if (convItem) {
+                clearInterval(checkInterval);
+                doLoadConversation();
+            }
+        }, 100);
+        
+        // Timeout after 3 seconds
+        setTimeout(() => {
+            clearInterval(checkInterval);
+            // Try anyway - maybe conversation doesn't exist in list
+            doLoadConversation();
+        }, 3000);
+    }
+}
+
 // Load conversations on page load
 document.addEventListener('DOMContentLoaded', function() {
-    loadConversations();
+    // Check for URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const conversationId = urlParams.get('conversation');
+    const messageId = urlParams.get('message');
+    
+    if (conversationId) {
+        // Load the specific conversation and message
+        loadConversationAndMessage(conversationId, messageId);
+    } else {
+        // Just load conversations normally
+        loadConversations();
+    }
 });
 
 // Listen for reload trigger from star button

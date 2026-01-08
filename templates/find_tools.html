@@ -17,10 +17,10 @@
 </div>
 
 <div class="container">
-    <div class="card">
-        <h2>Find Tools</h2>
+    <div class="card" style="padding: 16px;">
+        <h2 style="margin: 0 0 12px 0; font-size: 20px;">Find Tools</h2>
         
-        <div class="tabs" style="border-bottom: 1px solid #ddd; margin-bottom: 20px;">
+        <div class="tabs" style="border-bottom: 1px solid #ddd; margin-bottom: 12px;">
             <button class="tab-btn active" onclick="showTab('code')">Code Blocks</button>
             <button class="tab-btn" onclick="showTab('links')">Links</button>
             <button class="tab-btn" onclick="showTab('todos')">TODOs</button>
@@ -30,39 +30,32 @@
             <button class="tab-btn" onclick="showTab('prompts')">Prompts</button>
         </div>
         
-        <div id="tab-content">
+        <div id="tab-content" style="margin-top: 0;">
             <div id="code-tab" class="tab-panel active">
-                <h3>Code Blocks</h3>
                 <div id="code-data" class="loading">Loading...</div>
             </div>
             
             <div id="links-tab" class="tab-panel">
-                <h3>Links</h3>
                 <div id="links-data" class="loading">Loading...</div>
             </div>
             
             <div id="todos-tab" class="tab-panel">
-                <h3>TODOs</h3>
                 <div id="todos-data" class="loading">Loading...</div>
             </div>
             
             <div id="questions-tab" class="tab-panel">
-                <h3>Questions</h3>
                 <div id="questions-data" class="loading">Loading...</div>
             </div>
             
             <div id="dates-tab" class="tab-panel">
-                <h3>Dates</h3>
                 <div id="dates-data" class="loading">Loading...</div>
             </div>
             
             <div id="decisions-tab" class="tab-panel">
-                <h3>Decisions</h3>
                 <div id="decisions-data" class="loading">Loading...</div>
             </div>
             
             <div id="prompts-tab" class="tab-panel">
-                <h3>Prompts</h3>
                 <div id="prompts-data" class="loading">Loading...</div>
             </div>
         </div>
@@ -106,61 +99,109 @@
 
 #tab-content {
     text-align: left;
-}
-
-.result-item {
-    padding: 15px;
-    margin-bottom: 10px;
-    background: #f8f9fa;
-    border-radius: 4px;
-    border-left: 3px solid #3498db;
-}
-
-.result-item h4 {
-    margin: 0 0 8px 0;
-    color: #2c3e50;
-}
-
-.result-item .meta {
-    font-size: 12px;
-    color: #7f8c8d;
-    margin-bottom: 8px;
-}
-
-.result-item .content {
-    background: white;
-    padding: 10px;
-    border-radius: 4px;
-    font-family: monospace;
-    font-size: 13px;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    max-height: 200px;
+    max-height: calc(100vh - 250px);
     overflow-y: auto;
+}
+
+/* Compact, IDE-style result cards */
+.result-item {
+    padding: 8px 12px;
+    margin-bottom: 1px;
+    background: #fff;
+    border-left: 2px solid #e0e0e0;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.1s;
+    display: flex;
+    flex-direction: column;
     text-align: left;
+}
+
+.result-item:hover {
+    background: #f8f9fa;
+    border-left-color: #3498db;
+}
+
+.result-item .result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+
+.result-item .result-content {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.result-item .result-content.full {
+    -webkit-line-clamp: unset;
+    display: block;
+}
+
+.result-item .result-meta {
+    font-size: 11px;
+    color: #7f8c8d;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.result-item .result-action {
+    font-size: 11px;
+    color: #3498db;
+    text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.result-item .result-action:hover {
+    text-decoration: underline;
 }
 
 .result-item pre {
-    text-align: left;
-    margin: 0;
-    padding: 10px;
+    margin: 4px 0 0 0;
+    padding: 8px;
     background: #2c3e50;
     color: #ecf0f1;
-    border-radius: 4px;
+    border-radius: 3px;
     overflow-x: auto;
-    font-size: 13px;
+    font-size: 12px;
+    line-height: 1.4;
+    max-height: 150px;
+    overflow-y: auto;
 }
 
 .result-item code {
-    text-align: left;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    background: #f4f4f4;
+    padding: 2px 4px;
+    border-radius: 2px;
+    color: #d63384;
 }
 
-.result-item a {
+.result-item pre code {
+    background: transparent;
+    padding: 0;
+    color: inherit;
+}
+
+.result-item a.external-link {
     color: #3498db;
     text-decoration: none;
+    word-break: break-all;
 }
 
-.result-item a:hover {
+.result-item a.external-link:hover {
     text-decoration: underline;
 }
 </style>
@@ -197,15 +238,315 @@ function showTab(tabName) {
 function formatResult(item, type) {
     const convId = item.conversation_id || '';
     const msgId = item.message_id || '';
-    const content = item.content || item.text || item.code || item.link || item.todo || item.question || item.date || item.decision || item.prompt || '';
+    const title = item.title || item.conversation_title || '';
+    
+    // Special handling for TODOs
+    if (type === 'todo' && item.marker && item.context) {
+        const marker = item.marker;
+        let context = item.context;
+        
+        // Clean up context - remove leading/trailing whitespace
+        context = context.trim();
+        
+        // Find the marker in context (case-insensitive)
+        const markerIndex = context.toLowerCase().indexOf(marker.toLowerCase());
+        let todoText = '';
+        
+        if (markerIndex !== -1) {
+            // Extract from marker position to end of line or next 200 chars
+            const afterMarker = context.substring(markerIndex);
+            const lines = afterMarker.split('\n');
+            let firstLine = lines[0].trim();
+            
+            // Remove duplicate markers at the start
+            // Pattern: "review review scheduled" -> "review scheduled"
+            const markerLower = marker.toLowerCase();
+            const markerRegex = new RegExp(`^(${marker}\\s+)+`, 'i');
+            firstLine = firstLine.replace(markerRegex, marker + ' ').trim();
+            
+            // Remove any leading colon, dash, or extra spaces after marker
+            firstLine = firstLine.replace(/^[:-\s]+/, '').trim();
+            
+            // If first line is short, include next line too
+            todoText = firstLine;
+            if (firstLine.length < 100 && lines.length > 1) {
+                const nextLine = lines[1].trim();
+                todoText = firstLine + (nextLine ? ' ' + nextLine : '');
+            }
+            
+            // Limit to 250 chars
+            if (todoText.length > 250) {
+                todoText = todoText.substring(0, 247) + '...';
+            }
+        } else {
+            // Fallback: just show context, limit to 250 chars
+            todoText = context.length > 250 ? context.substring(0, 247) + '...' : context;
+        }
+        
+        let html = `<div class="result-item">`;
+        html += `<div class="result-header">`;
+        html += `<div style="flex: 1; min-width: 0;">`;
+        
+        // Show entire TODO text in orange highlight color
+        html += `<div class="result-content">`;
+        html += `<span style="color: #e67e22; font-weight: 500;">${escapeHtml(todoText)}</span>`;
+        html += `</div>`;
+        
+        // Metadata line
+        html += `<div class="result-meta">`;
+        if (title) {
+            html += `<span>${escapeHtml(title.substring(0, 40))}${title.length > 40 ? '...' : ''}</span>`;
+        }
+        if (convId) {
+            html += `<span>•</span>`;
+            html += `<span>${convId.substring(0, 16)}${convId.length > 16 ? '...' : ''}</span>`;
+        }
+        if (msgId) {
+            html += `<span>•</span>`;
+            html += `<span>${msgId.substring(0, 12)}${msgId.length > 12 ? '...' : ''}</span>`;
+        }
+        html += `</div>`;
+        html += `</div>`;
+        
+        // Action link (right-aligned)
+        if (convId && msgId) {
+            html += `<a href="/main?conversation=${convId}&message=${msgId}" class="result-action">View →</a>`;
+        }
+        html += `</div>`;
+        html += `</div>`;
+        return html;
+    }
+    
+    // Special handling for Decisions (similar to TODOs)
+    if (type === 'decision' && item.decision_marker && item.context) {
+        const marker = item.decision_marker;
+        let context = item.context;
+        
+        context = context.trim();
+        const markerIndex = context.toLowerCase().indexOf(marker.toLowerCase());
+        let decisionText = '';
+        
+        if (markerIndex !== -1) {
+            const afterMarker = context.substring(markerIndex);
+            const lines = afterMarker.split('\n');
+            let firstLine = lines[0].trim();
+            
+            // Remove duplicate markers
+            const markerLower = marker.toLowerCase();
+            const markerRegex = new RegExp(`^(${marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+)+`, 'i');
+            firstLine = firstLine.replace(markerRegex, marker + ' ').trim();
+            firstLine = firstLine.replace(/^[:-\s]+/, '').trim();
+            
+            decisionText = firstLine;
+            if (firstLine.length < 100 && lines.length > 1) {
+                const nextLine = lines[1].trim();
+                decisionText = firstLine + (nextLine ? ' ' + nextLine : '');
+            }
+            
+            if (decisionText.length > 250) {
+                decisionText = decisionText.substring(0, 247) + '...';
+            }
+        } else {
+            decisionText = context.length > 250 ? context.substring(0, 247) + '...' : context;
+        }
+        
+        let html = `<div class="result-item">`;
+        html += `<div class="result-header">`;
+        html += `<div style="flex: 1; min-width: 0;">`;
+        html += `<div class="result-content">`;
+        html += `<span style="color: #27ae60; font-weight: 500;">${escapeHtml(decisionText)}</span>`;
+        html += `</div>`;
+        html += `<div class="result-meta">`;
+        if (title) {
+            html += `<span>${escapeHtml(title.substring(0, 40))}${title.length > 40 ? '...' : ''}</span>`;
+        }
+        if (convId) {
+            html += `<span>•</span>`;
+            html += `<span>${convId.substring(0, 16)}${convId.length > 16 ? '...' : ''}</span>`;
+        }
+        if (msgId) {
+            html += `<span>•</span>`;
+            html += `<span>${msgId.substring(0, 12)}${msgId.length > 12 ? '...' : ''}</span>`;
+        }
+        html += `</div>`;
+        html += `</div>`;
+        if (convId && msgId) {
+            html += `<a href="/main?conversation=${convId}&message=${msgId}" class="result-action">View →</a>`;
+        }
+        html += `</div>`;
+        html += `</div>`;
+        return html;
+    }
+    
+    // Special handling for Questions
+    if (type === 'question' && item.question) {
+        let questionText = item.question.trim();
+        if (questionText.length > 250) {
+            questionText = questionText.substring(0, 247) + '...';
+        }
+        
+        let html = `<div class="result-item">`;
+        html += `<div class="result-header">`;
+        html += `<div style="flex: 1; min-width: 0;">`;
+        html += `<div class="result-content">`;
+        html += `<span style="color: #3498db; font-weight: 500;">${escapeHtml(questionText)}</span>`;
+        html += `</div>`;
+        html += `<div class="result-meta">`;
+        if (title) {
+            html += `<span>${escapeHtml(title.substring(0, 40))}${title.length > 40 ? '...' : ''}</span>`;
+        }
+        if (convId) {
+            html += `<span>•</span>`;
+            html += `<span>${convId.substring(0, 16)}${convId.length > 16 ? '...' : ''}</span>`;
+        }
+        if (msgId) {
+            html += `<span>•</span>`;
+            html += `<span>${msgId.substring(0, 12)}${msgId.length > 12 ? '...' : ''}</span>`;
+        }
+        html += `</div>`;
+        html += `</div>`;
+        if (convId && msgId) {
+            html += `<a href="/main?conversation=${convId}&message=${msgId}" class="result-action">View →</a>`;
+        }
+        html += `</div>`;
+        html += `</div>`;
+        return html;
+    }
+    
+    // Special handling for Dates
+    if (type === 'date' && item.date) {
+        let dateText = '';
+        if (item.context) {
+            // Extract context around the date
+            const dateIndex = item.context.toLowerCase().indexOf(item.date.toLowerCase());
+            if (dateIndex !== -1) {
+                const afterDate = item.context.substring(dateIndex);
+                const lines = afterDate.split('\n');
+                let firstLine = lines[0].trim();
+                
+                // Remove duplicate dates at start
+                const dateRegex = new RegExp(`^(${item.date.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+)+`, 'i');
+                firstLine = firstLine.replace(dateRegex, item.date + ' ').trim();
+                firstLine = firstLine.replace(/^[:-\s]+/, '').trim();
+                
+                dateText = firstLine;
+                if (firstLine.length < 100 && lines.length > 1) {
+                    const nextLine = lines[1].trim();
+                    dateText = firstLine + (nextLine ? ' ' + nextLine : '');
+                }
+                
+                if (dateText.length > 250) {
+                    dateText = dateText.substring(0, 247) + '...';
+                }
+            } else {
+                dateText = item.context.length > 250 ? item.context.substring(0, 247) + '...' : item.context;
+            }
+        } else {
+            dateText = item.date;
+        }
+        
+        let html = `<div class="result-item">`;
+        html += `<div class="result-header">`;
+        html += `<div style="flex: 1; min-width: 0;">`;
+        html += `<div class="result-content">`;
+        html += `<span style="color: #9b59b6; font-weight: 500;">${escapeHtml(dateText)}</span>`;
+        html += `</div>`;
+        html += `<div class="result-meta">`;
+        if (title) {
+            html += `<span>${escapeHtml(title.substring(0, 40))}${title.length > 40 ? '...' : ''}</span>`;
+        }
+        if (convId) {
+            html += `<span>•</span>`;
+            html += `<span>${convId.substring(0, 16)}${convId.length > 16 ? '...' : ''}</span>`;
+        }
+        if (msgId) {
+            html += `<span>•</span>`;
+            html += `<span>${msgId.substring(0, 12)}${msgId.length > 12 ? '...' : ''}</span>`;
+        }
+        html += `</div>`;
+        html += `</div>`;
+        if (convId && msgId) {
+            html += `<a href="/main?conversation=${convId}&message=${msgId}" class="result-action">View →</a>`;
+        }
+        html += `</div>`;
+        html += `</div>`;
+        return html;
+    }
+    
+    // Special handling for Prompts
+    if (type === 'prompt' && item.prompt) {
+        let promptText = item.prompt.trim();
+        if (promptText.length > 250) {
+            promptText = promptText.substring(0, 247) + '...';
+        }
+        
+        let html = `<div class="result-item">`;
+        html += `<div class="result-header">`;
+        html += `<div style="flex: 1; min-width: 0;">`;
+        html += `<div class="result-content">`;
+        html += `<span style="color: #8e44ad; font-weight: 500;">${escapeHtml(promptText)}</span>`;
+        html += `</div>`;
+        html += `<div class="result-meta">`;
+        if (title) {
+            html += `<span>${escapeHtml(title.substring(0, 40))}${title.length > 40 ? '...' : ''}</span>`;
+        }
+        if (convId) {
+            html += `<span>•</span>`;
+            html += `<span>${convId.substring(0, 16)}${convId.length > 16 ? '...' : ''}</span>`;
+        }
+        if (msgId) {
+            html += `<span>•</span>`;
+            html += `<span>${msgId.substring(0, 12)}${msgId.length > 12 ? '...' : ''}</span>`;
+        }
+        html += `</div>`;
+        html += `</div>`;
+        if (convId && msgId) {
+            html += `<a href="/main?conversation=${convId}&message=${msgId}" class="result-action">View →</a>`;
+        }
+        html += `</div>`;
+        html += `</div>`;
+        return html;
+    }
+    
+    // Default handling for code and other types
+    const content = item.content || item.text || item.code || item.link || '';
+    
+    // Truncate content for display (first 200 chars)
+    const preview = content.length > 200 ? content.substring(0, 200) + '...' : content;
+    const isCode = type === 'code' || content.includes('```') || content.includes('function') || content.includes('class ');
     
     let html = `<div class="result-item">`;
-    html += `<h4>${item.title || 'Result'}</h4>`;
-    html += `<div class="meta">Conversation: ${convId.substring(0, 20)}... | Message: ${msgId.substring(0, 20)}...</div>`;
-    html += `<div class="content">${escapeHtml(content)}</div>`;
-    if (convId && msgId) {
-        html += `<div style="margin-top: 8px;"><a href="/main?conversation=${convId}&message=${msgId}">View in context</a></div>`;
+    html += `<div class="result-header">`;
+    html += `<div style="flex: 1; min-width: 0;">`;
+    
+    // Primary content line
+    if (isCode) {
+        html += `<pre><code>${escapeHtml(content.substring(0, 500))}${content.length > 500 ? '...' : ''}</code></pre>`;
+    } else {
+        html += `<div class="result-content">${escapeHtml(preview)}</div>`;
     }
+    
+    // Metadata line
+    html += `<div class="result-meta">`;
+    if (title) {
+        html += `<span>${escapeHtml(title.substring(0, 40))}${title.length > 40 ? '...' : ''}</span>`;
+    }
+    if (convId) {
+        html += `<span>•</span>`;
+        html += `<span>${convId.substring(0, 16)}${convId.length > 16 ? '...' : ''}</span>`;
+    }
+    if (msgId) {
+        html += `<span>•</span>`;
+        html += `<span>${msgId.substring(0, 12)}${msgId.length > 12 ? '...' : ''}</span>`;
+    }
+    html += `</div>`;
+    html += `</div>`;
+    
+    // Action link (right-aligned)
+    if (convId && msgId) {
+        html += `<a href="/main?conversation=${convId}&message=${msgId}" class="result-action">View →</a>`;
+    }
+    html += `</div>`;
     html += `</div>`;
     return html;
 }
@@ -225,11 +566,11 @@ async function loadCode() {
         const data = await response.json();
         
         if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state">No code blocks found</div>';
+            div.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: #7f8c8d;">No code blocks found</div>';
             return;
         }
         
-        let html = '';
+        let html = `<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 8px; padding: 0 4px;">Found ${data.length} result${data.length !== 1 ? 's' : ''}</div>`;
         data.forEach(item => {
             html += formatResult(item, 'code');
         });
@@ -248,18 +589,63 @@ async function loadLinks() {
         const data = await response.json();
         
         if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state">No links found</div>';
+            div.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: #7f8c8d;">No links found</div>';
             return;
         }
         
-        let html = '';
+        let html = `<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 8px; padding: 0 4px;">Found ${data.length} result${data.length !== 1 ? 's' : ''}</div>`;
         data.forEach(item => {
+            // Use formatResult for consistency, but handle links specially
             const link = item.link || item.url || '';
-            html += `<div class="result-item">
-                <h4><a href="${link}" target="_blank">${link}</a></h4>
-                <div class="meta">Conversation: ${(item.conversation_id || '').substring(0, 20)}...</div>
-                ${item.context ? `<div class="content">${escapeHtml(item.context)}</div>` : ''}
-            </div>`;
+            let linkText = link;
+            
+            // If we have context, show it
+            if (item.context) {
+                const linkIndex = item.context.toLowerCase().indexOf(link.toLowerCase());
+                if (linkIndex !== -1) {
+                    const afterLink = item.context.substring(linkIndex);
+                    const lines = afterLink.split('\n');
+                    let firstLine = lines[0].trim();
+                    
+                    // Remove duplicate link at start
+                    const linkRegex = new RegExp(`^(${link.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+)+`, 'i');
+                    firstLine = firstLine.replace(linkRegex, link + ' ').trim();
+                    
+                    linkText = firstLine;
+                    if (firstLine.length < 100 && lines.length > 1) {
+                        linkText = firstLine + ' ' + lines[1].trim();
+                    }
+                    if (linkText.length > 250) {
+                        linkText = linkText.substring(0, 247) + '...';
+                    }
+                } else {
+                    linkText = item.context.length > 250 ? item.context.substring(0, 247) + '...' : item.context;
+                }
+            }
+            
+            let resultHtml = `<div class="result-item">`;
+            resultHtml += `<div class="result-header">`;
+            resultHtml += `<div style="flex: 1; min-width: 0;">`;
+            resultHtml += `<div class="result-content">`;
+            resultHtml += `<a href="${link}" target="_blank" class="external-link" style="color: #3498db; font-weight: 500;">${escapeHtml(linkText)}</a>`;
+            resultHtml += `</div>`;
+            resultHtml += `<div class="result-meta">`;
+            if (item.title || item.conversation_title) {
+                const t = item.title || item.conversation_title || '';
+                resultHtml += `<span>${escapeHtml(t.substring(0, 40))}${t.length > 40 ? '...' : ''}</span>`;
+            }
+            if (item.conversation_id) {
+                resultHtml += `<span>•</span>`;
+                resultHtml += `<span>${item.conversation_id.substring(0, 16)}${item.conversation_id.length > 16 ? '...' : ''}</span>`;
+            }
+            resultHtml += `</div>`;
+            resultHtml += `</div>`;
+            if (item.conversation_id && item.message_id) {
+                resultHtml += `<a href="/main?conversation=${item.conversation_id}&message=${item.message_id}" class="result-action">View →</a>`;
+            }
+            resultHtml += `</div>`;
+            resultHtml += `</div>`;
+            html += resultHtml;
         });
         div.innerHTML = html;
     } catch (error) {
@@ -276,11 +662,11 @@ async function loadTodos() {
         const data = await response.json();
         
         if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state">No TODOs found</div>';
+            div.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: #7f8c8d;">No TODOs found</div>';
             return;
         }
         
-        let html = '';
+        let html = `<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 8px; padding: 0 4px;">Found ${data.length} result${data.length !== 1 ? 's' : ''}</div>`;
         data.forEach(item => {
             html += formatResult(item, 'todo');
         });
@@ -299,11 +685,11 @@ async function loadQuestions() {
         const data = await response.json();
         
         if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state">No questions found</div>';
+            div.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: #7f8c8d;">No questions found</div>';
             return;
         }
         
-        let html = '';
+        let html = `<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 8px; padding: 0 4px;">Found ${data.length} result${data.length !== 1 ? 's' : ''}</div>`;
         data.forEach(item => {
             html += formatResult(item, 'question');
         });
@@ -322,11 +708,11 @@ async function loadDates() {
         const data = await response.json();
         
         if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state">No dates found</div>';
+            div.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: #7f8c8d;">No dates found</div>';
             return;
         }
         
-        let html = '';
+        let html = `<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 8px; padding: 0 4px;">Found ${data.length} result${data.length !== 1 ? 's' : ''}</div>`;
         data.forEach(item => {
             html += formatResult(item, 'date');
         });
@@ -345,11 +731,11 @@ async function loadDecisions() {
         const data = await response.json();
         
         if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state">No decisions found</div>';
+            div.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: #7f8c8d;">No decisions found</div>';
             return;
         }
         
-        let html = '';
+        let html = `<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 8px; padding: 0 4px;">Found ${data.length} result${data.length !== 1 ? 's' : ''}</div>`;
         data.forEach(item => {
             html += formatResult(item, 'decision');
         });
@@ -368,11 +754,11 @@ async function loadPrompts() {
         const data = await response.json();
         
         if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state">No prompts found</div>';
+            div.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: #7f8c8d;">No prompts found</div>';
             return;
         }
         
-        let html = '';
+        let html = `<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 8px; padding: 0 4px;">Found ${data.length} result${data.length !== 1 ? 's' : ''}</div>`;
         data.forEach(item => {
             html += formatResult(item, 'prompt');
         });

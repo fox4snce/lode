@@ -89,12 +89,20 @@ def find_links(db_path: str = DB_PATH, limit: int = 100) -> List[Dict]:
                 except:
                     pass
                 
+                # Get context around the URL
+                idx = row['content'].find(url)
+                start = max(0, idx - 80)
+                end = min(len(row['content']), idx + len(url) + 80)
+                context = row['content'][start:end]
+                
                 results.append({
                     'conversation_id': row['conversation_id'],
                     'message_id': row['message_id'],
                     'role': row['role'],
                     'url': url,
+                    'link': url,  # Alias for consistency
                     'domain': domain if 'domain' in locals() else '',
+                    'context': context,
                     'create_time': row['create_time']
                 })
                 if len(results) >= limit:
@@ -239,11 +247,18 @@ def find_dates(db_path: str = DB_PATH, limit: int = 100) -> List[Dict]:
             for date_str in matches:
                 if date_str not in seen_dates:
                     seen_dates.add(date_str)
+                    # Get context around the date
+                    idx = row['content'].find(date_str)
+                    start = max(0, idx - 80)
+                    end = min(len(row['content']), idx + len(date_str) + 80)
+                    context = row['content'][start:end]
+                    
                     results.append({
                         'conversation_id': row['conversation_id'],
                         'message_id': row['message_id'],
                         'role': row['role'],
                         'date': date_str,
+                        'context': context,
                         'create_time': row['create_time']
                     })
                     if len(results) >= limit:
