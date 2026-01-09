@@ -10,9 +10,12 @@ Features:
 - Response ratio: user vs assistant volume
 - Time-of-day heatmap
 """
+import os
 import sqlite3
 import re
-from typing import List, Dict, Optional
+from functools import lru_cache
+from pathlib import Path
+from typing import List, Dict, Optional, Set
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 
@@ -30,6 +33,45 @@ STOPWORDS = {
     'every', 'both', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor', 'not',
     'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just', 'now'
 }
+
+@lru_cache(maxsize=1)
+def load_boring_words() -> Set[str]:
+    """
+    Load a larger stopword list from `docs/words.md`.
+
+    Notes:
+    - We only keep lowercase a-z words because `extract_words()` emits only `[a-z]+`.
+    - If the file isn't present (e.g., packaged build), we fall back to the built-in STOPWORDS.
+    - You can override the path with env var `LODE_BORING_WORDS_PATH`.
+    """
+    candidates = []
+
+    env_path = os.getenv("LODE_BORING_WORDS_PATH")
+    if env_path:
+        candidates.append(Path(env_path))
+
+    # repo-relative default
+    candidates.append(Path(__file__).parent / "docs" / "words.md")
+
+    for p in candidates:
+        try:
+            if not p.exists():
+                continue
+            words: Set[str] = set()
+            for line in p.read_text(encoding="utf-8", errors="ignore").splitlines():
+                w = (line or "").strip().lower()
+                if not w:
+                    continue
+                # Match extract_words() output space: keep only plain a-z tokens
+                if re.fullmatch(r"[a-z]+", w):
+                    words.add(w)
+            # Always include the small built-in list too
+            words |= set(STOPWORDS)
+            return words
+        except Exception:
+            continue
+
+    return set(STOPWORDS)
 
 
 def extract_words(text: str) -> List[str]:
@@ -196,11 +238,12 @@ def top_words(db_path: str = DB_PATH, limit: int = 50, min_length: int = 3) -> L
     ''')
     
     word_counts = Counter()
+    boring = load_boring_words()
     
     for row in cursor.fetchall():
         words = extract_words(row[0])
         # Filter stopwords and short words
-        words = [w for w in words if w not in STOPWORDS and len(w) >= min_length]
+        words = [w for w in words if w not in boring and len(w) >= min_length]
         word_counts.update(words)
     
     conn.close()

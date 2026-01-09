@@ -893,7 +893,8 @@ async def refresh_analytics():
         set_cached(conn, "streaks", analytics.longest_streak(db_path))
 
         # Top words/phrases (UI defaults)
-        set_cached(conn, "top_words:50", analytics.top_words(db_path, limit=50))
+        # Note: bump cache key when filtering behavior changes.
+        set_cached(conn, "top_words_v2:50", analytics.top_words(db_path, limit=50))
         set_cached(conn, "top_phrases:30", analytics.top_phrases(db_path, limit=30))
 
         # Vocabulary (UI default)
@@ -993,7 +994,8 @@ async def get_top_words(limit: int = Query(50, ge=1, le=200)):
         from backend.analytics_cache import get_cached, set_cached
 
         db_path = str(get_db_path())
-        cache_key = f"top_words:{limit}"
+        # Note: bump cache key when filtering behavior changes.
+        cache_key = f"top_words_v2:{limit}"
         conn = sqlite3.connect(db_path)
         cached = get_cached(conn, cache_key)
         if cached is not None:
