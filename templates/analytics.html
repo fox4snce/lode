@@ -477,7 +477,8 @@ function renderHeatmapData(data, div) {
     const maxCount = Math.max(...data.map(row => row.count || 0), 1);
     
     // Create graph at top
-    let html = '<div style="margin-bottom: 30px;"><h4>Message Count by Hour</h4>';
+    let html = '<div style="margin-bottom: 30px;">';
+    html += '<h4 style="margin-bottom: 15px;">Message Count by Hour</h4>';
     html += '<div style="display: flex; align-items: flex-end; gap: 4px; height: 200px; border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-bottom: 20px;">';
     
     data.forEach(row => {
