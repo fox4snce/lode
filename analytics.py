@@ -53,14 +53,14 @@ def usage_over_time(
         end_date: Optional end date
     
     Returns:
-        List of dicts with period, message_count, conversation_count
+        List of dicts with period, message_count, conversation_count, word_count
     """
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     
-    # Get all messages with timestamps
+    # Get all messages with timestamps and content
     query = '''
-        SELECT create_time, conversation_id
+        SELECT create_time, conversation_id, content
         FROM messages
         WHERE create_time IS NOT NULL
     '''
@@ -80,12 +80,16 @@ def usage_over_time(
     messages = cursor.fetchall()
     
     # Group by period
-    period_counts = defaultdict(lambda: {'messages': 0, 'conversations': set()})
+    period_counts = defaultdict(lambda: {'messages': 0, 'conversations': set(), 'word_count': 0})
     
     for row in messages:
         try:
             dt = datetime.fromtimestamp(row['create_time'])
             conv_id = row['conversation_id']
+            content = row['content'] or ''
+            
+            # Calculate word count from message content
+            word_count = len(content.split())
             
             if period == 'day':
                 key = dt.date().isoformat()
@@ -100,6 +104,7 @@ def usage_over_time(
             
             period_counts[key]['messages'] += 1
             period_counts[key]['conversations'].add(conv_id)
+            period_counts[key]['word_count'] += word_count
         except (ValueError, OSError):
             continue
     
@@ -109,7 +114,8 @@ def usage_over_time(
         results.append({
             'period': key,
             'message_count': period_counts[key]['messages'],
-            'conversation_count': len(period_counts[key]['conversations'])
+            'conversation_count': len(period_counts[key]['conversations']),
+            'word_count': period_counts[key]['word_count']
         })
     
     conn.close()
