@@ -307,26 +307,25 @@ def main():
         width=1400,
         height=900,
         min_size=(1000, 700),
-        # On Windows, pywebview expects an .ico path here.
-        icon=str(window_icon_ico) if window_icon_ico.exists() else None,
         # Critical UX: allow selecting/copying text everywhere (default browser behavior).
         text_select=True,
     )
     print(f"=== Webview created, URL should be: {frontend_url} ===")
     print(f"=== Window object: {window} ===")
     
-    def _set_windows_taskbar_icon_from_master_png():
+    def _set_windows_window_and_taskbar_icons():
         """
         Windows-only:
-        - Keep the window/titlebar icon from `icon=...` (lode.ico)
-        - Override the BIG icon (taskbar) using master.png (converted to a temp .ico).
+        - Set SMALL icon (window/titlebar) from lode.ico
+        - Set BIG icon (taskbar) from master.png (converted to a temp .ico).
         """
         if platform.system() != "Windows":
             return
 
+        if not window_icon_ico.exists():
+            print(f"Window icon not found: {window_icon_ico}")
         if not taskbar_master_png.exists():
             print(f"Taskbar icon not found: {taskbar_master_png}")
-            return
 
         try:
             from PIL import Image
@@ -339,7 +338,9 @@ def main():
             # Convert master.png -> temp ico (Windows APIs expect .ico for setting HICON easily)
             tmp_ico = Path(tempfile.gettempdir()) / "lode_taskbar_master.ico"
             try:
-                if (not tmp_ico.exists()) or (tmp_ico.stat().st_mtime < taskbar_master_png.stat().st_mtime):
+                if taskbar_master_png.exists() and (
+                    (not tmp_ico.exists()) or (tmp_ico.stat().st_mtime < taskbar_master_png.stat().st_mtime)
+                ):
                     img = Image.open(taskbar_master_png).convert("RGBA")
                     img.save(
                         tmp_ico,
@@ -348,7 +349,7 @@ def main():
                     )
             except Exception as e:
                 print(f"Failed converting {taskbar_master_png} to {tmp_ico}: {e}")
-                return
+                tmp_ico = None
 
             native = getattr(window, "native", None)
             hwnd = None
@@ -369,27 +370,45 @@ def main():
 
             user32 = ctypes.windll.user32
             WM_SETICON = 0x0080
+            ICON_SMALL = 0
             ICON_BIG = 1
             IMAGE_ICON = 1
             LR_LOADFROMFILE = 0x0010
             LR_DEFAULTSIZE = 0x0040
 
-            hicon = user32.LoadImageW(
-                None,
-                str(tmp_ico),
-                IMAGE_ICON,
-                0,
-                0,
-                LR_LOADFROMFILE | LR_DEFAULTSIZE,
-            )
-            if not hicon:
-                print(f"LoadImageW failed for icon: {tmp_ico}")
-                return
+            # Window/titlebar icon (small)
+            if window_icon_ico.exists():
+                hicon_small = user32.LoadImageW(
+                    None,
+                    str(window_icon_ico),
+                    IMAGE_ICON,
+                    0,
+                    0,
+                    LR_LOADFROMFILE | LR_DEFAULTSIZE,
+                )
+                if hicon_small:
+                    user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, hicon_small)
+                    print(f"Set Windows window icon (small) from {window_icon_ico}")
+                else:
+                    print(f"LoadImageW failed for small icon: {window_icon_ico}")
 
-            user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon)
-            print(f"Set Windows taskbar icon from {taskbar_master_png} (via {tmp_ico})")
+            # Taskbar icon (big)
+            if tmp_ico and Path(tmp_ico).exists():
+                hicon_big = user32.LoadImageW(
+                    None,
+                    str(tmp_ico),
+                    IMAGE_ICON,
+                    0,
+                    0,
+                    LR_LOADFROMFILE | LR_DEFAULTSIZE,
+                )
+                if hicon_big:
+                    user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon_big)
+                    print(f"Set Windows taskbar icon (big) from {taskbar_master_png} (via {tmp_ico})")
+                else:
+                    print(f"LoadImageW failed for big icon: {tmp_ico}")
         except Exception as e:
-            print(f"Failed setting Windows taskbar icon: {e}")
+            print(f"Failed setting Windows icons: {e}")
 
     def on_closed():
         """Cleanup on window close."""
@@ -408,7 +427,7 @@ def main():
     try:
         print("=== STARTING WEBVIEW ===")
         print("=== webview.start() will block until window is closed ===")
-        webview.start(_set_windows_taskbar_icon_from_master_png, debug=False)
+        webview.start(_set_windows_window_and_taskbar_icons, debug=False)
         print("=== webview.start() returned - window was closed ===")
     except KeyboardInterrupt:
         print("Keyboard interrupt received")
