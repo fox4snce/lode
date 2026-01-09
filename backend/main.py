@@ -261,7 +261,7 @@ async def list_conversations(
     date_to: Optional[str] = Query(None),
     starred: Optional[str] = Query(None),
     ai_source: Optional[str] = Query(None),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0)
 ):
     """List conversations with filtering and sorting. Returns HTML fragment if HTMX request."""
@@ -432,12 +432,21 @@ async def list_conversations(
         query += " AND c.create_time <= ?"
         params.append(date_to)
     
+    # Calculate total count (same WHERE conditions, no LIMIT/OFFSET/ORDER BY)
+    # Build count query by extracting FROM and WHERE parts
+    from_where = query.split("FROM", 1)[1].split("ORDER BY")[0] if "ORDER BY" in query else query.split("FROM", 1)[1]
+    count_query = "SELECT COUNT(*) as total FROM" + from_where
+    count_cursor = conn.execute(count_query, params)
+    total_count = count_cursor.fetchone()['total']
+    
     sort_map = {
         "update_time": "c.update_time DESC NULLS LAST",
         "create_time": "c.create_time ASC NULLS LAST",
         "message_count": "s.message_count_total DESC NULLS LAST",
         "word_count": "s.word_count_total DESC NULLS LAST"
     }
+    
+    # Apply sorting and pagination
     query += f" ORDER BY {sort_map.get(sort, 'c.update_time DESC NULLS LAST')}"
     query += " LIMIT ? OFFSET ?"
     params.extend([limit, offset])
@@ -470,7 +479,14 @@ async def list_conversations(
     conn.close()
     
     if request.headers.get("HX-Request"):
-        return HTMLResponse(render_template("fragments/conversation_list.html", conversations=results))
+        return HTMLResponse(render_template(
+            "fragments/conversation_list.html", 
+            conversations=results,
+            total_count=total_count,
+            offset=offset,
+            limit=limit,
+            has_more=(offset + limit < total_count)
+        ))
     return results
 
 @app.get("/api/conversations/{conversation_id}")

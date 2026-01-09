@@ -1,3 +1,4 @@
+<div data-total-count="{{ total_count|default(0) }}" data-has-more="{{ 'true' if has_more else 'false' }}" data-offset="{{ offset|default(0) }}">
 {% if conversations %}
     {% for conv in conversations %}
     <li class="conversation-item" data-conversation-id="{{ conv.conversation_id }}">
@@ -28,6 +29,11 @@
         </div>
     </li>
     {% endfor %}
+    {% if has_more is defined and has_more %}
+    <li class="load-more-indicator" id="load-more-indicator" style="display: none; padding: 12px; text-align: center; color: #666;">
+        <span>Loading more conversations...</span>
+    </li>
+    {% endif %}
 {% else %}
     <li class="empty-state">
         <p>No conversations found</p>

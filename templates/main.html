@@ -23,10 +23,7 @@
             <input type="text" 
                    id="search-input"
                    placeholder="Search conversations..."
-                   hx-get="/api/conversations"
-                   hx-trigger="keyup changed delay:500ms, search"
-                   hx-target="#conversation-list"
-                   hx-include="#filters"
+                   onkeyup="setTimeout(() => loadConversations(true), 500)"
                    name="q">
         </div>
         
@@ -34,10 +31,7 @@
             <div class="filter-group">
                 <label>Sort By</label>
                 <select name="sort" 
-                        hx-get="/api/conversations"
-                        hx-trigger="change"
-                        hx-target="#conversation-list"
-                        hx-include="#search-input">
+                        onchange="loadConversations(true)">
                     <option value="update_time">Recent</option>
                     <option value="create_time">Oldest</option>
                     <option value="message_count">Most Messages</option>
@@ -48,10 +42,7 @@
             <div class="filter-group">
                 <label>AI Source</label>
                 <select name="ai_source"
-                        hx-get="/api/conversations"
-                        hx-trigger="change"
-                        hx-target="#conversation-list"
-                        hx-include="#search-input">
+                        onchange="loadConversations(true)">
                     <option value="">All</option>
                     <option value="gpt">OpenAI (GPT)</option>
                     <option value="claude">Claude</option>
@@ -61,17 +52,18 @@
             <div class="filter-group">
                 <label>Starred Only</label>
                 <select name="starred"
-                        hx-get="/api/conversations"
-                        hx-trigger="change"
-                        hx-target="#conversation-list"
-                        hx-include="#search-input">
+                        onchange="loadConversations(true)">
                     <option value="">All</option>
                     <option value="true">Starred</option>
                 </select>
             </div>
         </div>
         
-        <ul class="conversation-list" id="conversation-list">
+        <div id="conversation-count" style="padding: 8px 15px; font-size: 12px; color: #666; border-bottom: 1px solid #eee;">
+            <span id="count-text">Loading...</span>
+        </div>
+        
+        <ul class="conversation-list" id="conversation-list" style="overflow-y: auto; max-height: calc(100vh - 300px);">
             <li class="loading">Loading conversations...</li>
         </ul>
     </div>
@@ -98,24 +90,155 @@
 </div>
 
 <script>
-function loadConversations() {
-    // Get current filter values
+// Pagination state
+let currentOffset = 0;
+let totalCount = 0;
+let isLoading = false;
+let hasMore = true;
+let currentFilters = null;
+
+function getCurrentFilters() {
     const searchInput = document.getElementById('search-input');
     const sortSelect = document.querySelector('[name="sort"]');
     const aiSourceSelect = document.querySelector('[name="ai_source"]');
     const starredSelect = document.querySelector('[name="starred"]');
     
-    const params = new URLSearchParams();
-    if (searchInput && searchInput.value) params.append('q', searchInput.value);
-    if (sortSelect && sortSelect.value) params.append('sort', sortSelect.value);
-    if (aiSourceSelect && aiSourceSelect.value) params.append('ai_source', aiSourceSelect.value);
-    if (starredSelect && starredSelect.value) params.append('starred', starredSelect.value);
+    return {
+        q: searchInput ? searchInput.value : '',
+        sort: sortSelect ? sortSelect.value : 'update_time',
+        ai_source: aiSourceSelect ? aiSourceSelect.value : '',
+        starred: starredSelect ? starredSelect.value : ''
+    };
+}
+
+function filtersChanged() {
+    const newFilters = JSON.stringify(getCurrentFilters());
+    if (currentFilters !== newFilters) {
+        currentFilters = newFilters;
+        return true;
+    }
+    return false;
+}
+
+function loadConversations(reset = false) {
+    if (isLoading) return;
     
-    htmx.ajax('GET', `/api/conversations?${params}`, {
-        target: '#conversation-list',
-        swap: 'innerHTML',
+    // Reset pagination if filters changed or explicit reset
+    if (reset || filtersChanged()) {
+        currentOffset = 0;
+        hasMore = true;
+        const listEl = document.getElementById('conversation-list');
+        if (listEl) {
+            listEl.innerHTML = '<li class="loading">Loading conversations...</li>';
+        }
+    }
+    
+    if (!hasMore) return;
+    
+    isLoading = true;
+    const filters = getCurrentFilters();
+    const params = new URLSearchParams();
+    if (filters.q) params.append('q', filters.q);
+    if (filters.sort) params.append('sort', filters.sort);
+    if (filters.ai_source) params.append('ai_source', filters.ai_source);
+    if (filters.starred) params.append('starred', filters.starred);
+    params.append('limit', '100');
+    params.append('offset', currentOffset.toString());
+    
+    fetch(`/api/conversations?${params}`, {
         headers: {'HX-Request': 'true'}
+    })
+    .then(response => response.text())
+    .then(html => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const newItems = doc.querySelectorAll('.conversation-item, .empty-state');
+        const loadMoreIndicator = doc.querySelector('.load-more-indicator');
+        
+        const listEl = document.getElementById('conversation-list');
+        if (!listEl) return;
+        
+        // Remove loading indicator
+        const loadingEl = listEl.querySelector('.loading');
+        if (loadingEl) loadingEl.remove();
+        
+        // Remove old load-more indicator
+        const oldIndicator = listEl.querySelector('.load-more-indicator');
+        if (oldIndicator) oldIndicator.remove();
+        
+        if (reset || currentOffset === 0) {
+            // Replace all items
+            listEl.innerHTML = '';
+        }
+        
+        // Get metadata from wrapper
+        if (wrapper) {
+            totalCount = parseInt(wrapper.getAttribute('data-total-count') || '0');
+            hasMore = wrapper.getAttribute('data-has-more') === 'true';
+            const newOffset = parseInt(wrapper.getAttribute('data-offset') || '0');
+            if (reset || currentOffset === 0) {
+                currentOffset = newOffset;
+            }
+        }
+        
+        // Append new items
+        newItems.forEach(item => {
+            listEl.appendChild(item.cloneNode(true));
+        });
+        
+        // Update current offset
+        currentOffset += newItems.length;
+        
+        updateCountDisplay();
+        isLoading = false;
+        
+        // Re-attach event listeners for new items
+        attachConversationListeners();
+    })
+    .catch(error => {
+        console.error('Error loading conversations:', error);
+        isLoading = false;
+        const listEl = document.getElementById('conversation-list');
+        if (listEl) {
+            listEl.innerHTML = '<li class="empty-state"><p>Error loading conversations</p></li>';
+        }
     });
+}
+
+function updateCountDisplay() {
+    const countEl = document.getElementById('count-text');
+    if (!countEl) return;
+    
+    const loadedCount = document.querySelectorAll('.conversation-item').length;
+    if (totalCount > 0) {
+        countEl.textContent = `Showing ${loadedCount} of ${totalCount} conversations`;
+    } else if (loadedCount > 0) {
+        countEl.textContent = `Showing ${loadedCount} conversations`;
+    } else {
+        countEl.textContent = 'No conversations';
+    }
+}
+
+// Infinite scroll handler
+function setupInfiniteScroll() {
+    const listEl = document.getElementById('conversation-list');
+    if (!listEl) return;
+    
+    listEl.addEventListener('scroll', function() {
+        // Check if user scrolled near bottom (within 200px)
+        const scrollTop = listEl.scrollTop;
+        const scrollHeight = listEl.scrollHeight;
+        const clientHeight = listEl.clientHeight;
+        
+        if (scrollHeight - scrollTop - clientHeight < 200 && hasMore && !isLoading) {
+            loadConversations(false);
+        }
+    });
+}
+
+function attachConversationListeners() {
+    // Star button listeners are handled by HTMX, but we need to ensure they work
+    // The HTMX attributes should handle this automatically
 }
 
 // Store target message ID for scrolling after load
@@ -239,6 +362,9 @@ function loadConversationAndMessage(conversationId, messageId) {
 
 // Load conversations on page load
 document.addEventListener('DOMContentLoaded', function() {
+    setupInfiniteScroll();
+    currentFilters = JSON.stringify(getCurrentFilters());
+    
     // Check for URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const conversationId = urlParams.get('conversation');
@@ -249,7 +375,7 @@ document.addEventListener('DOMContentLoaded', function() {
         loadConversationAndMessage(conversationId, messageId);
     } else {
         // Just load conversations normally
-        loadConversations();
+        loadConversations(true);
     }
 });
 
