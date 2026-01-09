@@ -318,97 +318,131 @@ def main():
         Windows-only:
         - Set SMALL icon (window/titlebar) from lode.ico
         - Set BIG icon (taskbar) from master.png (converted to a temp .ico).
+        
+        This function is called by webview.start() when the window is created.
+        We use a small delay to ensure the window handle is available.
         """
         if platform.system() != "Windows":
             return
 
-        if not window_icon_ico.exists():
-            print(f"Window icon not found: {window_icon_ico}")
-        if not taskbar_master_png.exists():
-            print(f"Taskbar icon not found: {taskbar_master_png}")
+        def _set_icons_with_delay():
+            """Set icons after a short delay to ensure window handle is available."""
+            # Give the window time to fully initialize
+            time.sleep(0.5)
+            
+            if not window_icon_ico.exists():
+                print(f"Window icon not found: {window_icon_ico}")
+            if not taskbar_master_png.exists():
+                print(f"Taskbar icon not found: {taskbar_master_png}")
 
-        try:
-            from PIL import Image
-        except Exception as e:
-            print("Pillow is required to set taskbar icon from master.png. Install requirements.txt.")
-            print(f"Import error: {e}")
-            return
-
-        try:
-            # Convert master.png -> temp ico (Windows APIs expect .ico for setting HICON easily)
-            tmp_ico = Path(tempfile.gettempdir()) / "lode_taskbar_master.ico"
             try:
-                if taskbar_master_png.exists() and (
-                    (not tmp_ico.exists()) or (tmp_ico.stat().st_mtime < taskbar_master_png.stat().st_mtime)
-                ):
-                    img = Image.open(taskbar_master_png).convert("RGBA")
-                    img.save(
-                        tmp_ico,
-                        format="ICO",
-                        sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)],
-                    )
+                from PIL import Image
             except Exception as e:
-                print(f"Failed converting {taskbar_master_png} to {tmp_ico}: {e}")
-                tmp_ico = None
-
-            native = getattr(window, "native", None)
-            hwnd = None
-            if native is not None:
-                handle = getattr(native, "Handle", None)
-                if handle is not None:
-                    try:
-                        hwnd = int(handle)
-                    except Exception:
-                        try:
-                            hwnd = int(handle.ToInt64())
-                        except Exception:
-                            hwnd = None
-
-            if not hwnd:
-                print("Could not resolve native window handle (HWND); skipping taskbar icon override.")
+                print("Pillow is required to set taskbar icon from master.png. Install requirements.txt.")
+                print(f"Import error: {e}")
                 return
 
-            user32 = ctypes.windll.user32
-            WM_SETICON = 0x0080
-            ICON_SMALL = 0
-            ICON_BIG = 1
-            IMAGE_ICON = 1
-            LR_LOADFROMFILE = 0x0010
-            LR_DEFAULTSIZE = 0x0040
+            try:
+                # Convert master.png -> temp ico (Windows APIs expect .ico for setting HICON easily)
+                tmp_ico = Path(tempfile.gettempdir()) / "lode_taskbar_master.ico"
+                try:
+                    if taskbar_master_png.exists() and (
+                        (not tmp_ico.exists()) or (tmp_ico.stat().st_mtime < taskbar_master_png.stat().st_mtime)
+                    ):
+                        img = Image.open(taskbar_master_png).convert("RGBA")
+                        img.save(
+                            tmp_ico,
+                            format="ICO",
+                            sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)],
+                        )
+                        print(f"Converted {taskbar_master_png} to {tmp_ico}")
+                except Exception as e:
+                    print(f"Failed converting {taskbar_master_png} to {tmp_ico}: {e}")
+                    tmp_ico = None
 
-            # Window/titlebar icon (small)
-            if window_icon_ico.exists():
-                hicon_small = user32.LoadImageW(
-                    None,
-                    str(window_icon_ico),
-                    IMAGE_ICON,
-                    0,
-                    0,
-                    LR_LOADFROMFILE | LR_DEFAULTSIZE,
-                )
-                if hicon_small:
-                    user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, hicon_small)
-                    print(f"Set Windows window icon (small) from {window_icon_ico}")
-                else:
-                    print(f"LoadImageW failed for small icon: {window_icon_ico}")
+                # Try multiple times to get the window handle (window might not be ready immediately)
+                hwnd = None
+                for attempt in range(5):
+                    try:
+                        native = getattr(window, "native", None)
+                        if native is not None:
+                            handle = getattr(native, "Handle", None)
+                            if handle is not None:
+                                try:
+                                    hwnd = int(handle)
+                                    break
+                                except Exception:
+                                    try:
+                                        hwnd = int(handle.ToInt64())
+                                        break
+                                    except Exception:
+                                        pass
+                        if not hwnd:
+                            time.sleep(0.2)  # Wait a bit and try again
+                    except Exception as e:
+                        print(f"Attempt {attempt + 1} to get window handle failed: {e}")
+                        time.sleep(0.2)
 
-            # Taskbar icon (big)
-            if tmp_ico and Path(tmp_ico).exists():
-                hicon_big = user32.LoadImageW(
-                    None,
-                    str(tmp_ico),
-                    IMAGE_ICON,
-                    0,
-                    0,
-                    LR_LOADFROMFILE | LR_DEFAULTSIZE,
-                )
-                if hicon_big:
-                    user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon_big)
-                    print(f"Set Windows taskbar icon (big) from {taskbar_master_png} (via {tmp_ico})")
+                if not hwnd:
+                    print("Could not resolve native window handle (HWND) after multiple attempts; skipping icon override.")
+                    print("Note: Taskbar icon may only update after packaging the app as an executable.")
+                    return
+
+                user32 = ctypes.windll.user32
+                WM_SETICON = 0x0080
+                ICON_SMALL = 0
+                ICON_BIG = 1
+                IMAGE_ICON = 1
+                LR_LOADFROMFILE = 0x0010
+                LR_DEFAULTSIZE = 0x0040
+
+                # Window/titlebar icon (small)
+                if window_icon_ico.exists():
+                    hicon_small = user32.LoadImageW(
+                        None,
+                        str(window_icon_ico),
+                        IMAGE_ICON,
+                        0,
+                        0,
+                        LR_LOADFROMFILE | LR_DEFAULTSIZE,
+                    )
+                    if hicon_small:
+                        user32.SendMessageW(hwnd, WM_SETICON, ICON_SMALL, hicon_small)
+                        print(f"Set Windows window icon (small) from {window_icon_ico}")
+                    else:
+                        error_code = ctypes.get_last_error()
+                        print(f"LoadImageW failed for small icon: {window_icon_ico} (error: {error_code})")
+
+                # Taskbar icon (big)
+                if tmp_ico and Path(tmp_ico).exists():
+                    hicon_big = user32.LoadImageW(
+                        None,
+                        str(tmp_ico),
+                        IMAGE_ICON,
+                        0,
+                        0,
+                        LR_LOADFROMFILE | LR_DEFAULTSIZE,
+                    )
+                    if hicon_big:
+                        user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon_big)
+                        print(f"Set Windows taskbar icon (big) from {taskbar_master_png} (via {tmp_ico})")
+                        print("Note: Windows may cache the taskbar icon. If it doesn't update, try:")
+                        print("  1. Restart the application")
+                        print("  2. Clear Windows icon cache (restart explorer.exe)")
+                        print("  3. The icon will definitely work after packaging as an executable")
+                    else:
+                        error_code = ctypes.get_last_error()
+                        print(f"LoadImageW failed for big icon: {tmp_ico} (error: {error_code})")
                 else:
-                    print(f"LoadImageW failed for big icon: {tmp_ico}")
-        except Exception as e:
-            print(f"Failed setting Windows icons: {e}")
+                    print("Taskbar icon file not available")
+            except Exception as e:
+                print(f"Failed setting Windows icons: {e}")
+                import traceback
+                traceback.print_exc()
+        
+        # Run icon setting in a separate thread to avoid blocking
+        icon_thread = threading.Thread(target=_set_icons_with_delay, daemon=True)
+        icon_thread.start()
 
     def on_closed():
         """Cleanup on window close."""
