@@ -152,11 +152,21 @@ function loadConversations(reset = false) {
     .then(html => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
+        const wrapper = doc.querySelector('[data-total-count]');
         const newItems = doc.querySelectorAll('.conversation-item, .empty-state');
-        const loadMoreIndicator = doc.querySelector('.load-more-indicator');
         
         const listEl = document.getElementById('conversation-list');
         if (!listEl) return;
+        
+        // Get metadata from wrapper
+        if (wrapper) {
+            totalCount = parseInt(wrapper.getAttribute('data-total-count') || '0');
+            hasMore = wrapper.getAttribute('data-has-more') === 'true';
+            const newOffset = parseInt(wrapper.getAttribute('data-offset') || '0');
+            if (reset || currentOffset === 0) {
+                currentOffset = newOffset;
+            }
+        }
         
         // Remove loading indicator
         const loadingEl = listEl.querySelector('.loading');
@@ -169,16 +179,6 @@ function loadConversations(reset = false) {
         if (reset || currentOffset === 0) {
             // Replace all items
             listEl.innerHTML = '';
-        }
-        
-        // Get metadata from wrapper
-        if (wrapper) {
-            totalCount = parseInt(wrapper.getAttribute('data-total-count') || '0');
-            hasMore = wrapper.getAttribute('data-has-more') === 'true';
-            const newOffset = parseInt(wrapper.getAttribute('data-offset') || '0');
-            if (reset || currentOffset === 0) {
-                currentOffset = newOffset;
-            }
         }
         
         // Append new items
