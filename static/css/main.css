@@ -309,7 +309,9 @@ body {
 
 .panel {
     background: white;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .panel-left {
@@ -320,10 +322,12 @@ body {
 .panel-center {
     flex: 1;
     border-right: 1px solid #ddd;
+    overflow-y: auto;
 }
 
 .panel-right {
     width: 350px;
+    overflow-y: auto;
 }
 
 /* Search */
@@ -343,6 +347,11 @@ body {
 /* Conversation list */
 .conversation-list {
     list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
 }
 
 .conversation-item {
