@@ -445,6 +445,93 @@ document.body.addEventListener('click', function(event) {
         }
     }
 });
+
+// Export function for sidebar
+async function exportConversationFromSidebar(conversationId) {
+    if (!conversationId) {
+        alert('No conversation selected');
+        return;
+    }
+    
+    const format = document.getElementById('export-format-sidebar').value;
+    const includeTimestamps = document.getElementById('export-include-timestamps-sidebar').checked;
+    const includeMetadata = document.getElementById('export-include-metadata-sidebar').checked;
+    
+    const statusDiv = document.getElementById('export-status-sidebar');
+    statusDiv.innerHTML = '<span style="color: #3498db;">Exporting...</span>';
+    
+    try {
+        const response = await fetch(
+            `/api/export/conversation/${conversationId}?format=${format}&include_timestamps=${includeTimestamps}&include_metadata=${includeMetadata}`,
+            { method: 'POST' }
+        );
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || 'Export failed');
+        }
+        
+        const data = await response.json();
+        
+        let content = '';
+        let contentType = '';
+        
+        if (format === 'markdown') {
+            content = data.content || '';
+            contentType = 'text/markdown';
+        } else if (format === 'csv') {
+            content = data.content || '';
+            contentType = 'text/csv';
+        } else {
+            content = JSON.stringify(data, null, 2);
+            contentType = 'application/json';
+        }
+        
+        // Store content for download
+        window.exportedContent = content;
+        window.exportedFormat = format;
+        
+        // Get conversation title for filename
+        const titleElement = document.querySelector('#conversation-details h3');
+        const conversationTitle = titleElement ? titleElement.textContent.trim() : 'conversation';
+        
+        // Determine file extension
+        let extension = '';
+        if (format === 'markdown') {
+            extension = '.md';
+        } else if (format === 'csv') {
+            extension = '.csv';
+        } else {
+            extension = '.json';
+        }
+        
+        // Sanitize filename
+        const sanitized = conversationTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+        const filename = `${sanitized}_${conversationId.substring(0, 8)}${extension}`;
+        
+        // Create blob and download
+        const blob = new Blob([content], { type: contentType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        statusDiv.innerHTML = `<span style="color: #27ae60;">✓ Exported successfully!<br><small style="color: #7f8c8d;">Downloaded as: ${filename}</small></span>`;
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+            statusDiv.innerHTML = '';
+        }, 5000);
+        
+    } catch (error) {
+        statusDiv.innerHTML = `<span style="color: #e74c3c;">Error: ${error.message}</span>`;
+        console.error('Export error:', error);
+    }
+}
 </script>
 {% endblock %}
 

@@ -18,6 +18,40 @@
         <p>Words: {{ conversation.stats.get('word_count_total', 0) }}</p>
     </div>
     {% endif %}
+    
+    <div class="mt-20" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+        <h4>Export</h4>
+        <div style="margin-bottom: 12px;">
+            <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: #7f8c8d;">Format</label>
+            <select id="export-format-sidebar" style="width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                <option value="markdown">Markdown</option>
+                <option value="csv">CSV</option>
+                <option value="json">JSON</option>
+            </select>
+        </div>
+        
+        <div style="margin-bottom: 12px;">
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+                <input type="checkbox" id="export-include-timestamps-sidebar" checked style="cursor: pointer;">
+                <span>Include Timestamps</span>
+            </label>
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+                <input type="checkbox" id="export-include-metadata-sidebar" checked style="cursor: pointer;">
+                <span>Include Metadata</span>
+            </label>
+        </div>
+        
+        <button onclick="exportConversationFromSidebar('{{ conversation.conversation_id }}')" 
+                class="btn btn-primary" 
+                style="width: 100%;">
+            Export Conversation
+        </button>
+        
+        <div id="export-status-sidebar" style="margin-top: 12px; font-size: 12px; min-height: 20px;"></div>
+    </div>
 {% else %}
     <p class="empty-state">No conversation selected</p>
 {% endif %}
