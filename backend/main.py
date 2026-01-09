@@ -239,6 +239,11 @@ async def settings_screen(request: Request):
         return HTMLResponse(render_template("welcome.html"))
     return HTMLResponse(render_template("settings.html"))
 
+@app.get("/help", response_class=HTMLResponse)
+async def help_screen(request: Request):
+    """Help screen."""
+    return HTMLResponse(render_template("help.html"))
+
 @app.get("/about", response_class=HTMLResponse)
 async def about_screen(request: Request):
     """About screen."""

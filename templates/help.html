@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% block title %}Help - Lode{% endblock %}
+
+{% block content %}
+<div class="menu-bar">
+    <h1>Lode</h1>
+    <div class="menu-items">
+        <a href="/main">Main</a>
+        <a href="/import">Import</a>
+        <a href="/analytics">Analytics</a>
+        <a href="/find-tools">Find Tools</a>
+        <a href="/export">Export</a>
+        <a href="/settings">Settings</a>
+        <a href="/help">Help</a>
+        <a href="/about">About</a>
+    </div>
+</div>
+
+<div class="container">
+    <div class="card">
+        <h2>Help & Documentation</h2>
+        
+        <div style="margin-bottom: 30px;">
+            <h3>Quick Navigation</h3>
+            <ul style="list-style: none; padding: 0;">
+                <li style="margin-bottom: 8px;"><a href="#main-help" style="color: #3498db; text-decoration: none;">📱 Main - Conversation Viewer</a></li>
+                <li style="margin-bottom: 8px;"><a href="#import-help" style="color: #3498db; text-decoration: none;">📥 Import</a></li>
+                <li style="margin-bottom: 8px;"><a href="#analytics-help" style="color: #3498db; text-decoration: none;">📊 Analytics</a></li>
+                <li style="margin-bottom: 8px;"><a href="#find-tools-help" style="color: #3498db; text-decoration: none;">🔍 Find Tools</a></li>
+                <li style="margin-bottom: 8px;"><a href="#export-help" style="color: #3498db; text-decoration: none;">💾 Export</a></li>
+                <li style="margin-bottom: 8px;"><a href="#settings-help" style="color: #3498db; text-decoration: none;">⚙️ Settings</a></li>
+            </ul>
+        </div>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+
+        <div id="main-help" style="margin-bottom: 40px;">
+            <h3>📱 Main - Conversation Viewer</h3>
+            <p>The main screen is where you view and search through your conversations.</p>
+            
+            <h4>Left Panel - Conversation List</h4>
+            <ul>
+                <li><strong>Search Box</strong>: Type to search conversations and messages. Results update as you type.</li>
+                <li><strong>Sort By</strong>: Choose how to sort conversations:
+                    <ul>
+                        <li><strong>Recent</strong>: Most recently updated first</li>
+                        <li><strong>Oldest</strong>: Oldest conversations first</li>
+                        <li><strong>Most Messages</strong>: Conversations with the most messages</li>
+                        <li><strong>Most Words</strong>: Conversations with the most words</li>
+                    </ul>
+                </li>
+                <li><strong>AI Source Filter</strong>: Filter by source (OpenAI/Claude or All)</li>
+                <li><strong>Starred Only</strong>: Show only starred conversations</li>
+                <li><strong>Conversation List</strong>: Click any conversation to view it</li>
+            </ul>
+
+            <h4>Center Panel - Messages</h4>
+            <ul>
+                <li>Displays all messages from the selected conversation</li>
+                <li>Messages show role (user/assistant), timestamp, and content</li>
+                <li>When you search, matching messages are highlighted</li>
+                <li>Click a search result to jump to that message in the conversation</li>
+            </ul>
+
+            <h4>Right Panel - Conversation Details</h4>
+            <ul>
+                <li><strong>Metadata Tab</strong>: Shows conversation info (title, dates, message counts, word counts)</li>
+                <li><strong>Tags Tab</strong>: Add or remove tags to organize conversations</li>
+                <li><strong>Notes Tab</strong>: Add notes about the conversation</li>
+                <li><strong>Bookmarks Tab</strong>: Bookmark specific messages for quick access</li>
+                <li><strong>Stats Tab</strong>: View detailed statistics about the conversation</li>
+            </ul>
+
+            <h4>Tips</h4>
+            <ul>
+                <li>Use <strong>Ctrl+K</strong> (or <strong>Cmd+K</strong> on Mac) to quickly focus the search box</li>
+                <li>Search supports full-text search - try searching for keywords, phrases, or even code snippets</li>
+                <li>Star important conversations for quick access</li>
+            </ul>
+        </div>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+
+        <div id="import-help" style="margin-bottom: 40px;">
+            <h3>📥 Import</h3>
+            <p>Import your conversation history from OpenAI or Claude exports.</p>
+            
+            <h4>How to Import</h4>
+            <ol>
+                <li><strong>Select Source Type</strong>: Choose either "OpenAI" or "Claude"</li>
+                <li><strong>Choose File</strong>:
+                    <ul>
+                        <li>Click "Browse Files" to select a file from your computer, or</li>
+                        <li>Enter the full path to your conversation export file</li>
+                    </ul>
+                </li>
+                <li><strong>Options</strong>:
+                    <ul>
+                        <li><strong>Calculate Statistics</strong>: Automatically calculate conversation stats (recommended)</li>
+                        <li><strong>Build Search Index</strong>: Create search index for fast searching (recommended)</li>
+                    </ul>
+                </li>
+                <li><strong>Start Import</strong>: Click "Start Import" to begin</li>
+            </ol>
+
+            <h4>Import Process</h4>
+            <ul>
+                <li>Imports run in the background - you can continue using the app</li>
+                <li>Progress is shown in real-time</li>
+                <li>You'll see a success message when complete</li>
+                <li>Check "Recent Jobs" to see import history</li>
+            </ul>
+
+            <h4>Supported Formats</h4>
+            <ul>
+                <li><strong>OpenAI</strong>: JSON export from ChatGPT</li>
+                <li><strong>Claude</strong>: JSON export from Claude/Anthropic</li>
+            </ul>
+
+            <h4>Tips</h4>
+            <ul>
+                <li>Large files may take a few minutes to import</li>
+                <li>You can import multiple files - each import adds to your database</li>
+                <li>After importing, conversations appear in the Main screen</li>
+            </ul>
+        </div>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+
+        <div id="analytics-help" style="margin-bottom: 40px;">
+            <h3>📊 Analytics</h3>
+            <p>View statistics and insights about your conversation history.</p>
+            
+            <h4>Available Analytics</h4>
+            <ul>
+                <li><strong>Usage</strong>: Messages and conversations over time (by day, week, or month)</li>
+                <li><strong>Streaks</strong>: Longest consecutive days with conversations</li>
+                <li><strong>Top Words</strong>: Most frequently used words (stopwords filtered)</li>
+                <li><strong>Top Phrases</strong>: Most frequently used phrases</li>
+                <li><strong>Vocabulary</strong>: Unique word count trends over time</li>
+                <li><strong>Response Ratio</strong>: Comparison of user vs assistant message volume</li>
+                <li><strong>Time of Day</strong>: Heatmap showing when you chat most (by hour)</li>
+            </ul>
+
+            <h4>How to Use</h4>
+            <ul>
+                <li>Click any tab to view that analytics category</li>
+                <li>For Usage, select a period (Day/Week/Month) from the dropdown</li>
+                <li>Data updates automatically when you switch tabs</li>
+            </ul>
+
+            <h4>Tips</h4>
+            <ul>
+                <li>Analytics are calculated from imported conversations</li>
+                <li>More data = more accurate analytics</li>
+                <li>Use analytics to understand your conversation patterns</li>
+            </ul>
+        </div>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+
+        <div id="find-tools-help" style="margin-bottom: 40px;">
+            <h3>🔍 Find Tools</h3>
+            <p>Quickly find specific content across all your conversations.</p>
+            
+            <h4>Available Tools</h4>
+            <ul>
+                <li><strong>Code Blocks</strong>: Find all code snippets (fenced code blocks)</li>
+                <li><strong>Links</strong>: Find all URLs and links mentioned</li>
+                <li><strong>TODOs</strong>: Find TODO items, FIXMEs, and action items</li>
+                <li><strong>Questions</strong>: Find all questions asked</li>
+                <li><strong>Dates</strong>: Find dates mentioned in conversations</li>
+                <li><strong>Decisions</strong>: Find decision statements ("I decided", "we'll do", etc.)</li>
+                <li><strong>Prompts</strong>: Find prompt requests ("Write...", "Generate...", etc.)</li>
+            </ul>
+
+            <h4>How to Use</h4>
+            <ul>
+                <li>Click a tab to see results for that content type</li>
+                <li>Use the search box to filter results</li>
+                <li>Use date filters to narrow by time range</li>
+                <li>Sort results by date or relevance</li>
+                <li>Click "View →" to jump to that content in the conversation</li>
+            </ul>
+
+            <h4>Tips</h4>
+            <ul>
+                <li>Results show context so you know what you're looking at</li>
+                <li>Use search to find specific items within results</li>
+                <li>Date filters help narrow down to specific time periods</li>
+            </ul>
+        </div>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+
+        <div id="export-help" style="margin-bottom: 40px;">
+            <h3>💾 Export</h3>
+            <p>Export conversations to various formats for backup or sharing.</p>
+            
+            <h4>How to Export</h4>
+            <ol>
+                <li><strong>Select Conversation</strong>: Choose a conversation from the dropdown</li>
+                <li><strong>Choose Format</strong>:
+                    <ul>
+                        <li><strong>Markdown</strong>: Human-readable format with formatting</li>
+                        <li><strong>CSV</strong>: Spreadsheet format (one row per message)</li>
+                        <li><strong>JSON</strong>: Structured data format</li>
+                    </ul>
+                </li>
+                <li><strong>Options</strong>:
+                    <ul>
+                        <li><strong>Include Timestamps</strong>: Add message timestamps</li>
+                        <li><strong>Include Metadata</strong>: Include conversation metadata</li>
+                    </ul>
+                </li>
+                <li><strong>Export</strong>: Click "Export" to generate</li>
+            </ol>
+
+            <h4>After Export</h4>
+            <ul>
+                <li>Exported content appears in a preview box</li>
+                <li>Click <strong>Copy</strong> to copy to clipboard</li>
+                <li>Click <strong>Save to File</strong> to download as a file</li>
+            </ul>
+
+            <h4>Tips</h4>
+            <ul>
+                <li>Markdown is best for reading and sharing</li>
+                <li>CSV is useful for analysis in spreadsheet apps</li>
+                <li>JSON preserves all data structure</li>
+                <li>You can copy and paste directly from the preview</li>
+            </ul>
+        </div>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+
+        <div id="settings-help" style="margin-bottom: 40px;">
+            <h3>⚙️ Settings</h3>
+            <p>Manage your database and perform maintenance tasks.</p>
+            
+            <h4>Integrity Checks</h4>
+            <ul>
+                <li>Verifies database consistency</li>
+                <li>Checks for missing timestamps, broken threads, orphaned messages, and duplicate IDs</li>
+                <li>Click "Run Integrity Checks" to scan your database</li>
+                <li>Results show any issues found (or "Pass" if everything is OK)</li>
+            </ul>
+
+            <h4>Deduplication</h4>
+            <ul>
+                <li><strong>Find Duplicate Messages</strong>: Identifies identical messages (by content hash)</li>
+                <li><strong>Find Duplicate Conversations</strong>: Identifies identical conversations</li>
+                <li>Results show groups of duplicates with message IDs and content previews</li>
+                <li>Use this to clean up duplicate imports</li>
+            </ul>
+
+            <h4>Cleanup</h4>
+            <ul>
+                <li><strong>Wipe Imported Files</strong>: Deletes the original import files from disk</li>
+                <li>This only removes files - your database remains intact</li>
+                <li>Useful to free up disk space after successful imports</li>
+                <li><strong>Warning</strong>: This action cannot be undone!</li>
+            </ul>
+
+            <h4>Encryption</h4>
+            <ul>
+                <li>Encryption features coming soon</li>
+                <li>Will allow encrypting your database for additional security</li>
+            </ul>
+
+            <h4>Tips</h4>
+            <ul>
+                <li>Run integrity checks periodically to ensure data quality</li>
+                <li>Use deduplication if you've imported the same conversations multiple times</li>
+                <li>Only wipe imported files if you're sure you don't need them</li>
+            </ul>
+        </div>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+
+        <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 4px;">
+            <h3>Need More Help?</h3>
+            <p>This is the MVP version of Lode. For more detailed documentation, check the <a href="/about" style="color: #3498db;">About</a> page or visit the project repository.</p>
+            <p style="margin-top: 10px;">
+                <a href="https://ko-fi.com/recursiverealms" target="_blank" class="btn btn-primary">
+                    Support on Ko-fi
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
