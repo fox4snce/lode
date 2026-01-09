@@ -57,6 +57,7 @@ def initialize_database():
     import create_deduplication_tables
     import create_import_report_tables
     import create_entity_keyword_tables
+    import create_analytics_cache_tables
     
     db_path = get_db_path()
     
@@ -70,6 +71,7 @@ def initialize_database():
     create_deduplication_tables.create_deduplication_tables(str(db_path))
     create_import_report_tables.create_import_report_tables(str(db_path))
     create_entity_keyword_tables.create_entity_keyword_tables(str(db_path))
+    create_analytics_cache_tables.create_analytics_cache_tables(str(db_path))
     
     return True
 

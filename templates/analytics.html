@@ -155,27 +155,55 @@ function clearAnalyticsCache() {
 }
 
 function refreshAllAnalytics() {
-    clearAnalyticsCache();
-    // Reload current tab
-    const activeTab = document.querySelector('.tab-btn.active');
-    if (activeTab) {
-        const tabName = activeTab.textContent.toLowerCase().replace(/\s+/g, '');
-        if (tabName.includes('usage')) {
-            loadUsage(true);
-        } else if (tabName.includes('streak')) {
-            loadStreaks(true);
-        } else if (tabName.includes('word')) {
-            loadWords(true);
-        } else if (tabName.includes('phrase')) {
-            loadPhrases(true);
-        } else if (tabName.includes('vocab')) {
-            loadVocabulary(true);
-        } else if (tabName.includes('response')) {
-            loadResponseRatio(true);
-        } else if (tabName.includes('time') || tabName.includes('heatmap')) {
-            loadHeatmap(true);
-        }
+    // Server-side refresh: recompute everything once, store in DB cache.
+    const btn = event?.target;
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Refreshing...';
     }
+
+    fetch('/api/analytics/refresh', { method: 'POST' })
+        .then(async (resp) => {
+            if (!resp.ok) {
+                const txt = await resp.text();
+                throw new Error(txt || 'Refresh failed');
+            }
+            return resp.json();
+        })
+        .then(() => {
+            // Clear client cache so subsequent tab loads come from fresh server cache.
+            clearAnalyticsCache();
+
+            // Reload current tab only; other tabs will be fresh when opened.
+            const activeTab = document.querySelector('.tab-btn.active');
+            if (activeTab) {
+                const tabName = activeTab.textContent.toLowerCase().replace(/\s+/g, '');
+                if (tabName.includes('usage')) {
+                    loadUsage(true);
+                } else if (tabName.includes('streak')) {
+                    loadStreaks(true);
+                } else if (tabName.includes('word')) {
+                    loadWords(true);
+                } else if (tabName.includes('phrase')) {
+                    loadPhrases(true);
+                } else if (tabName.includes('vocab')) {
+                    loadVocabulary(true);
+                } else if (tabName.includes('response')) {
+                    loadResponseRatio(true);
+                } else if (tabName.includes('time') || tabName.includes('heatmap')) {
+                    loadHeatmap(true);
+                }
+            }
+        })
+        .catch((err) => {
+            alert(`Analytics refresh failed: ${err.message}`);
+        })
+        .finally(() => {
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Refresh All Analytics';
+            }
+        });
 }
 
 function showTab(tabName) {

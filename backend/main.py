@@ -864,6 +864,55 @@ async def save_state(request: StateRequest):
 
 
 # Analytics endpoints
+@app.post("/api/analytics/refresh")
+async def refresh_analytics():
+    """
+    Recompute ALL analytics once and store results in the DB cache.
+
+    After this completes, all analytics endpoints will serve cached results
+    until the next refresh.
+    """
+    if not check_database_initialized():
+        return {"status": "not_initialized"}
+
+    try:
+        import analytics
+        from backend.db import get_db_path
+        from backend.analytics_cache import clear_cache, set_cached
+
+        db_path = str(get_db_path())
+        conn = sqlite3.connect(db_path)
+
+        clear_cache(conn)
+
+        # Usage: day/week/month (no explicit range)
+        for p in ("day", "week", "month"):
+            set_cached(conn, f"usage:{p}", analytics.usage_over_time(db_path=db_path, period=p))
+
+        # Streaks
+        set_cached(conn, "streaks", analytics.longest_streak(db_path))
+
+        # Top words/phrases (UI defaults)
+        set_cached(conn, "top_words:50", analytics.top_words(db_path, limit=50))
+        set_cached(conn, "top_phrases:30", analytics.top_phrases(db_path, limit=30))
+
+        # Vocabulary (UI default)
+        set_cached(conn, "vocabulary:month", analytics.vocabulary_size_trend(db_path, period="month"))
+
+        # Response ratio + heatmap
+        set_cached(conn, "response_ratio", analytics.response_ratio(db_path))
+        set_cached(conn, "heatmap", analytics.time_of_day_heatmap(db_path))
+
+        conn.commit()
+        conn.close()
+        return {"status": "ok"}
+    except Exception as e:
+        print(f"Analytics refresh error: {e}")
+        import traceback
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/analytics/usage")
 async def get_usage_over_time(
     period: str = Query("day", pattern="^(day|week|month)$"),
@@ -877,18 +926,30 @@ async def get_usage_over_time(
     try:
         import analytics
         from backend.db import get_db_path
+        from backend.analytics_cache import get_cached, set_cached
         from datetime import datetime
         
         start = datetime.fromisoformat(start_date) if start_date else None
         end = datetime.fromisoformat(end_date) if end_date else None
         
-        results = analytics.usage_over_time(
-            db_path=str(get_db_path()),
-            period=period,
-            start_date=start,
-            end_date=end
-        )
-        return results
+        db_path = str(get_db_path())
+
+        # Cache only the canonical "no explicit date range" query.
+        if not start and not end:
+            conn = sqlite3.connect(db_path)
+            cached = get_cached(conn, f"usage:{period}")
+            if cached is not None:
+                conn.close()
+                return cached
+
+            results = analytics.usage_over_time(db_path=db_path, period=period)
+            set_cached(conn, f"usage:{period}", results)
+            conn.commit()
+            conn.close()
+            return results
+
+        # Range queries are computed on demand (not cached).
+        return analytics.usage_over_time(db_path=db_path, period=period, start_date=start, end_date=end)
     except Exception as e:
         print(f"Analytics error: {e}")
         return []
@@ -902,7 +963,19 @@ async def get_longest_streak():
     try:
         import analytics
         from backend.db import get_db_path
-        result = analytics.longest_streak(str(get_db_path()))
+        from backend.analytics_cache import get_cached, set_cached
+
+        db_path = str(get_db_path())
+        conn = sqlite3.connect(db_path)
+        cached = get_cached(conn, "streaks")
+        if cached is not None:
+            conn.close()
+            return cached
+
+        result = analytics.longest_streak(db_path)
+        set_cached(conn, "streaks", result)
+        conn.commit()
+        conn.close()
         return result
     except Exception as e:
         print(f"Analytics error: {e}")
@@ -917,7 +990,20 @@ async def get_top_words(limit: int = Query(50, ge=1, le=200)):
     try:
         import analytics
         from backend.db import get_db_path
-        results = analytics.top_words(str(get_db_path()), limit=limit)
+        from backend.analytics_cache import get_cached, set_cached
+
+        db_path = str(get_db_path())
+        cache_key = f"top_words:{limit}"
+        conn = sqlite3.connect(db_path)
+        cached = get_cached(conn, cache_key)
+        if cached is not None:
+            conn.close()
+            return cached
+
+        results = analytics.top_words(db_path, limit=limit)
+        set_cached(conn, cache_key, results)
+        conn.commit()
+        conn.close()
         return results
     except Exception as e:
         print(f"Analytics error: {e}")
@@ -932,7 +1018,20 @@ async def get_top_phrases(limit: int = Query(30, ge=1, le=100)):
     try:
         import analytics
         from backend.db import get_db_path
-        results = analytics.top_phrases(str(get_db_path()), limit=limit)
+        from backend.analytics_cache import get_cached, set_cached
+
+        db_path = str(get_db_path())
+        cache_key = f"top_phrases:{limit}"
+        conn = sqlite3.connect(db_path)
+        cached = get_cached(conn, cache_key)
+        if cached is not None:
+            conn.close()
+            return cached
+
+        results = analytics.top_phrases(db_path, limit=limit)
+        set_cached(conn, cache_key, results)
+        conn.commit()
+        conn.close()
         return results
     except Exception as e:
         print(f"Analytics error: {e}")
@@ -947,7 +1046,20 @@ async def get_vocabulary_trend(period: str = Query("month", pattern="^(day|week|
     try:
         import analytics
         from backend.db import get_db_path
-        results = analytics.vocabulary_size_trend(str(get_db_path()), period=period)
+        from backend.analytics_cache import get_cached, set_cached
+
+        db_path = str(get_db_path())
+        cache_key = f"vocabulary:{period}"
+        conn = sqlite3.connect(db_path)
+        cached = get_cached(conn, cache_key)
+        if cached is not None:
+            conn.close()
+            return cached
+
+        results = analytics.vocabulary_size_trend(db_path, period=period)
+        set_cached(conn, cache_key, results)
+        conn.commit()
+        conn.close()
         return results
     except Exception as e:
         print(f"Analytics error: {e}")
@@ -962,7 +1074,19 @@ async def get_response_ratio():
     try:
         import analytics
         from backend.db import get_db_path
-        result = analytics.response_ratio(str(get_db_path()))
+        from backend.analytics_cache import get_cached, set_cached
+
+        db_path = str(get_db_path())
+        conn = sqlite3.connect(db_path)
+        cached = get_cached(conn, "response_ratio")
+        if cached is not None:
+            conn.close()
+            return cached
+
+        result = analytics.response_ratio(db_path)
+        set_cached(conn, "response_ratio", result)
+        conn.commit()
+        conn.close()
         return result
     except Exception as e:
         print(f"Analytics error: {e}")
@@ -977,7 +1101,19 @@ async def get_time_of_day_heatmap():
     try:
         import analytics
         from backend.db import get_db_path
-        results = analytics.time_of_day_heatmap(str(get_db_path()))
+        from backend.analytics_cache import get_cached, set_cached
+
+        db_path = str(get_db_path())
+        conn = sqlite3.connect(db_path)
+        cached = get_cached(conn, "heatmap")
+        if cached is not None:
+            conn.close()
+            return cached
+
+        results = analytics.time_of_day_heatmap(db_path)
+        set_cached(conn, "heatmap", results)
+        conn.commit()
+        conn.close()
         return results
     except Exception as e:
         print(f"Analytics error: {e}")
