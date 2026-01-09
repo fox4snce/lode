@@ -31,6 +31,10 @@
             <button class="tab-btn" onclick="showTab('heatmap')">Time of Day</button>
         </div>
         
+        <div style="margin-bottom: 20px; text-align: right;">
+            <button onclick="refreshAllAnalytics()" class="btn btn-primary">Refresh All Analytics</button>
+        </div>
+        
         <div id="tab-content">
             <div id="usage-tab" class="tab-panel active">
                 <h3>Usage Over Time</h3>
@@ -129,6 +133,51 @@ table th {
 </style>
 
 <script>
+// Cache for analytics data
+const analyticsCache = {
+    usage: {},
+    streaks: null,
+    words: null,
+    phrases: null,
+    vocabulary: null,
+    response: null,
+    heatmap: null
+};
+
+function clearAnalyticsCache() {
+    analyticsCache.usage = {};
+    analyticsCache.streaks = null;
+    analyticsCache.words = null;
+    analyticsCache.phrases = null;
+    analyticsCache.vocabulary = null;
+    analyticsCache.response = null;
+    analyticsCache.heatmap = null;
+}
+
+function refreshAllAnalytics() {
+    clearAnalyticsCache();
+    // Reload current tab
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (activeTab) {
+        const tabName = activeTab.textContent.toLowerCase().replace(/\s+/g, '');
+        if (tabName.includes('usage')) {
+            loadUsage(true);
+        } else if (tabName.includes('streak')) {
+            loadStreaks(true);
+        } else if (tabName.includes('word')) {
+            loadWords(true);
+        } else if (tabName.includes('phrase')) {
+            loadPhrases(true);
+        } else if (tabName.includes('vocab')) {
+            loadVocabulary(true);
+        } else if (tabName.includes('response')) {
+            loadResponseRatio(true);
+        } else if (tabName.includes('time') || tabName.includes('heatmap')) {
+            loadHeatmap(true);
+        }
+    }
+}
+
 function showTab(tabName) {
     // Hide all tabs
     document.querySelectorAll('.tab-panel').forEach(panel => {
@@ -142,216 +191,315 @@ function showTab(tabName) {
     document.getElementById(`${tabName}-tab`).classList.add('active');
     event.target.classList.add('active');
     
-    // Load data for the tab
+    // Load data for the tab (from cache if available)
     if (tabName === 'usage') {
-        loadUsage();
+        loadUsage(false);
     } else if (tabName === 'streaks') {
-        loadStreaks();
+        loadStreaks(false);
     } else if (tabName === 'words') {
-        loadWords();
+        loadWords(false);
     } else if (tabName === 'phrases') {
-        loadPhrases();
+        loadPhrases(false);
     } else if (tabName === 'vocabulary') {
-        loadVocabulary();
+        loadVocabulary(false);
     } else if (tabName === 'response') {
-        loadResponseRatio();
+        loadResponseRatio(false);
     } else if (tabName === 'heatmap') {
-        loadHeatmap();
+        loadHeatmap(false);
     }
 }
 
-async function loadUsage() {
+async function loadUsage(forceRefresh = false) {
     const period = document.getElementById('usage-period').value;
     const div = document.getElementById('usage-data');
+    
+    // Check cache first
+    if (!forceRefresh && analyticsCache.usage[period]) {
+        renderUsageData(analyticsCache.usage[period], div);
+        return;
+    }
+    
     div.innerHTML = '<div class="loading">Loading...</div>';
     
     try {
         const response = await fetch(`/api/analytics/usage?period=${period}`);
         const data = await response.json();
         
-        if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state">No data available</div>';
-            return;
-        }
+        // Cache the data
+        analyticsCache.usage[period] = data;
         
-        let html = '<table><tr><th>Date</th><th>Conversations</th><th>Messages</th><th>Words</th></tr>';
-        data.forEach(row => {
-            html += `<tr>
-                <td>${row.period || row.date || ''}</td>
-                <td>${row.conversation_count || 0}</td>
-                <td>${row.message_count || 0}</td>
-                <td>${row.word_count || 0}</td>
-            </tr>`;
-        });
-        html += '</table>';
-        div.innerHTML = html;
+        renderUsageData(data, div);
     } catch (error) {
         div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
     }
 }
 
-async function loadStreaks() {
+function renderUsageData(data, div) {
+    if (data.length === 0) {
+        div.innerHTML = '<div class="empty-state">No data available</div>';
+        return;
+    }
+    
+    let html = '<table><tr><th>Date</th><th>Conversations</th><th>Messages</th><th>Words</th></tr>';
+    data.forEach(row => {
+        html += `<tr>
+            <td>${row.period || row.date || ''}</td>
+            <td>${row.conversation_count || 0}</td>
+            <td>${row.message_count || 0}</td>
+            <td>${row.word_count || 0}</td>
+        </tr>`;
+    });
+    html += '</table>';
+    div.innerHTML = html;
+}
+
+async function loadStreaks(forceRefresh = false) {
     const div = document.getElementById('streaks-data');
+    
+    // Check cache first
+    if (!forceRefresh && analyticsCache.streaks !== null) {
+        renderStreaksData(analyticsCache.streaks, div);
+        return;
+    }
+    
     div.innerHTML = '<div class="loading">Loading...</div>';
     
     try {
         const response = await fetch('/api/analytics/streaks');
         const data = await response.json();
         
-        if (!data || Object.keys(data).length === 0) {
-            div.innerHTML = '<div class="empty-state">No streak data available</div>';
-            return;
-        }
+        // Cache the data
+        analyticsCache.streaks = data;
         
-        let html = '<table><tr><th>Metric</th><th>Value</th></tr>';
-        Object.entries(data).forEach(([key, value]) => {
-            html += `<tr><td>${key.replace(/_/g, ' ')}</td><td>${value}</td></tr>`;
-        });
-        html += '</table>';
-        div.innerHTML = html;
+        renderStreaksData(data, div);
     } catch (error) {
         div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
     }
 }
 
-async function loadWords() {
+function renderStreaksData(data, div) {
+    if (!data || Object.keys(data).length === 0) {
+        div.innerHTML = '<div class="empty-state">No streak data available</div>';
+        return;
+    }
+    
+    let html = '<table><tr><th>Metric</th><th>Value</th></tr>';
+    Object.entries(data).forEach(([key, value]) => {
+        html += `<tr><td>${key.replace(/_/g, ' ')}</td><td>${value}</td></tr>`;
+    });
+    html += '</table>';
+    div.innerHTML = html;
+}
+
+async function loadWords(forceRefresh = false) {
     const div = document.getElementById('words-data');
+    
+    // Check cache first
+    if (!forceRefresh && analyticsCache.words !== null) {
+        renderWordsData(analyticsCache.words, div);
+        return;
+    }
+    
     div.innerHTML = '<div class="loading">Loading...</div>';
     
     try {
         const response = await fetch('/api/analytics/top-words?limit=50');
         const data = await response.json();
         
-        if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state">No word data available</div>';
-            return;
-        }
+        // Cache the data
+        analyticsCache.words = data;
         
-        let html = '<table><tr><th>Word</th><th>Count</th></tr>';
-        data.forEach(row => {
-            html += `<tr><td>${row.word || row.text || ''}</td><td>${row.count || 0}</td></tr>`;
-        });
-        html += '</table>';
-        div.innerHTML = html;
+        renderWordsData(data, div);
     } catch (error) {
         div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
     }
 }
 
-async function loadPhrases() {
+function renderWordsData(data, div) {
+    if (data.length === 0) {
+        div.innerHTML = '<div class="empty-state">No word data available</div>';
+        return;
+    }
+    
+    let html = '<table><tr><th>Word</th><th>Count</th></tr>';
+    data.forEach(row => {
+        html += `<tr><td>${row.word || row.text || ''}</td><td>${row.count || 0}</td></tr>`;
+    });
+    html += '</table>';
+    div.innerHTML = html;
+}
+
+async function loadPhrases(forceRefresh = false) {
     const div = document.getElementById('phrases-data');
+    
+    // Check cache first
+    if (!forceRefresh && analyticsCache.phrases !== null) {
+        renderPhrasesData(analyticsCache.phrases, div);
+        return;
+    }
+    
     div.innerHTML = '<div class="loading">Loading...</div>';
     
     try {
         const response = await fetch('/api/analytics/top-phrases?limit=30');
         const data = await response.json();
         
-        if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state">No phrase data available</div>';
-            return;
-        }
+        // Cache the data
+        analyticsCache.phrases = data;
         
-        let html = '<table><tr><th>Phrase</th><th>Count</th></tr>';
-        data.forEach(row => {
-            html += `<tr><td>${row.phrase || row.text || ''}</td><td>${row.count || 0}</td></tr>`;
-        });
-        html += '</table>';
-        div.innerHTML = html;
+        renderPhrasesData(data, div);
     } catch (error) {
         div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
     }
 }
 
-async function loadVocabulary() {
+function renderPhrasesData(data, div) {
+    if (data.length === 0) {
+        div.innerHTML = '<div class="empty-state">No phrase data available</div>';
+        return;
+    }
+    
+    let html = '<table><tr><th>Phrase</th><th>Count</th></tr>';
+    data.forEach(row => {
+        html += `<tr><td>${row.phrase || row.text || ''}</td><td>${row.count || 0}</td></tr>`;
+    });
+    html += '</table>';
+    div.innerHTML = html;
+}
+
+async function loadVocabulary(forceRefresh = false) {
     const div = document.getElementById('vocabulary-data');
+    
+    // Check cache first
+    if (!forceRefresh && analyticsCache.vocabulary !== null) {
+        renderVocabularyData(analyticsCache.vocabulary, div);
+        return;
+    }
+    
     div.innerHTML = '<div class="loading">Loading...</div>';
     
     try {
         const response = await fetch('/api/analytics/vocabulary');
         const data = await response.json();
         
-        if (!data || !Array.isArray(data) || data.length === 0) {
-            div.innerHTML = '<div class="empty-state">No vocabulary data available</div>';
-            return;
-        }
+        // Cache the data
+        analyticsCache.vocabulary = data;
         
-        let html = '<table><tr><th>Period</th><th>Unique Words</th></tr>';
-        data.forEach(row => {
-            html += `<tr><td>${row.period || ''}</td><td>${row.unique_words || 0}</td></tr>`;
-        });
-        html += '</table>';
-        div.innerHTML = html;
+        renderVocabularyData(data, div);
     } catch (error) {
         div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
     }
 }
 
-async function loadResponseRatio() {
+function renderVocabularyData(data, div) {
+    if (!data || !Array.isArray(data) || data.length === 0) {
+        div.innerHTML = '<div class="empty-state">No vocabulary data available</div>';
+        return;
+    }
+    
+    let html = '<table><tr><th>Period</th><th>Unique Words</th></tr>';
+    data.forEach(row => {
+        html += `<tr><td>${row.period || ''}</td><td>${row.unique_words || 0}</td></tr>`;
+    });
+    html += '</table>';
+    div.innerHTML = html;
+}
+
+async function loadResponseRatio(forceRefresh = false) {
     const div = document.getElementById('response-data');
+    
+    // Check cache first
+    if (!forceRefresh && analyticsCache.response !== null) {
+        renderResponseRatioData(analyticsCache.response, div);
+        return;
+    }
+    
     div.innerHTML = '<div class="loading">Loading...</div>';
     
     try {
         const response = await fetch('/api/analytics/response-ratio');
         const data = await response.json();
         
-        if (!data || Object.keys(data).length === 0) {
-            div.innerHTML = '<div class="empty-state">No response ratio data available</div>';
-            return;
-        }
+        // Cache the data
+        analyticsCache.response = data;
         
-        let html = '<table><tr><th>Metric</th><th>Value</th></tr>';
-        Object.entries(data).forEach(([key, value]) => {
-            html += `<tr><td>${key.replace(/_/g, ' ')}</td><td>${value}</td></tr>`;
-        });
-        html += '</table>';
-        div.innerHTML = html;
+        renderResponseRatioData(data, div);
     } catch (error) {
         div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
     }
 }
 
-async function loadHeatmap() {
+function renderResponseRatioData(data, div) {
+    if (!data || Object.keys(data).length === 0) {
+        div.innerHTML = '<div class="empty-state">No response ratio data available</div>';
+        return;
+    }
+    
+    let html = '<table><tr><th>Metric</th><th>Value</th></tr>';
+    Object.entries(data).forEach(([key, value]) => {
+        html += `<tr><td>${key.replace(/_/g, ' ')}</td><td>${value}</td></tr>`;
+    });
+    html += '</table>';
+    div.innerHTML = html;
+}
+
+async function loadHeatmap(forceRefresh = false) {
     const div = document.getElementById('heatmap-data');
+    
+    // Check cache first
+    if (!forceRefresh && analyticsCache.heatmap !== null) {
+        renderHeatmapData(analyticsCache.heatmap, div);
+        return;
+    }
+    
     div.innerHTML = '<div class="loading">Loading...</div>';
     
     try {
         const response = await fetch('/api/analytics/heatmap');
         const data = await response.json();
         
-        if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state">No heatmap data available</div>';
-            return;
-        }
+        // Cache the data
+        analyticsCache.heatmap = data;
         
-        // Find max count for scaling
-        const maxCount = Math.max(...data.map(row => row.count || 0), 1);
-        
-        // Create graph at top
-        let html = '<div style="margin-bottom: 30px;"><h4>Message Count by Hour</h4>';
-        html += '<div style="display: flex; align-items: flex-end; gap: 4px; height: 200px; border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-bottom: 20px;">';
-        
-        data.forEach(row => {
-            const count = row.count || 0;
-            const height = maxCount > 0 ? (count / maxCount) * 100 : 0;
-            const hourLabel = row.hour_label || row.hour || '';
-            html += `<div style="flex: 1; display: flex; flex-direction: column; align-items: center;">`;
-            html += `<div style="background: #3498db; width: 100%; height: ${height}%; min-height: ${count > 0 ? '2px' : '0'}; border-radius: 2px 2px 0 0; margin-bottom: 5px;" title="${hourLabel}: ${count} messages"></div>`;
-            html += `<div style="font-size: 11px; color: #7f8c8d; transform: rotate(-45deg); transform-origin: center; white-space: nowrap;">${hourLabel}</div>`;
-            html += `</div>`;
-        });
-        html += '</div></div>';
-        
-        // Keep the list table
-        html += '<h4>Detailed List</h4><table><tr><th>Hour</th><th>Count</th></tr>';
-        data.forEach(row => {
-            const hourLabel = row.hour_label || row.hour || '';
-            html += `<tr><td>${hourLabel}</td><td>${row.count || 0}</td></tr>`;
-        });
-        html += '</table>';
-        div.innerHTML = html;
+        renderHeatmapData(data, div);
     } catch (error) {
         div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
     }
+}
+
+function renderHeatmapData(data, div) {
+    if (data.length === 0) {
+        div.innerHTML = '<div class="empty-state">No heatmap data available</div>';
+        return;
+    }
+    
+    // Find max count for scaling
+    const maxCount = Math.max(...data.map(row => row.count || 0), 1);
+    
+    // Create graph at top
+    let html = '<div style="margin-bottom: 30px;"><h4>Message Count by Hour</h4>';
+    html += '<div style="display: flex; align-items: flex-end; gap: 4px; height: 200px; border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-bottom: 20px;">';
+    
+    data.forEach(row => {
+        const count = row.count || 0;
+        const heightPercent = maxCount > 0 ? (count / maxCount) * 100 : 0;
+        const heightPx = (heightPercent / 100) * 200; // Convert to pixels based on container height
+        const hourLabel = row.hour_label || row.hour || '';
+        html += `<div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end;">`;
+        html += `<div style="background: #3498db; width: 100%; height: ${heightPx}px; min-height: ${count > 0 ? '2px' : '0'}; border-radius: 2px 2px 0 0; margin-bottom: 5px;" title="${hourLabel}: ${count} messages"></div>`;
+        html += `<div style="font-size: 11px; color: #7f8c8d; transform: rotate(-45deg); transform-origin: center; white-space: nowrap; margin-top: 5px;">${hourLabel}</div>`;
+        html += `</div>`;
+    });
+    html += '</div></div>';
+    
+    // Keep the list table
+    html += '<h4>Detailed List</h4><table><tr><th>Hour</th><th>Count</th></tr>';
+    data.forEach(row => {
+        const hourLabel = row.hour_label || row.hour || '';
+        html += `<tr><td>${hourLabel}</td><td>${row.count || 0}</td></tr>`;
+    });
+    html += '</table>';
+    div.innerHTML = html;
 }
 
 // Load initial tab
