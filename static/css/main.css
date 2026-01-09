@@ -134,6 +134,144 @@ body {
     color: #2c3e50;
 }
 
+/* Help page (scoped) */
+.help-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 16px;
+    align-items: start;
+}
+
+.help-sidebar {
+    position: sticky;
+    top: 84px; /* below menu bar */
+    align-self: start;
+}
+
+.help-sidebar .card {
+    padding: 14px;
+}
+
+.help-sidebar h3 {
+    font-size: 14px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin: 0 0 10px 0;
+}
+
+.help-nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.help-nav a {
+    display: block;
+    text-decoration: none;
+    color: #2c3e50;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+}
+
+.help-nav a:hover {
+    background: #f8f9fa;
+    border-color: #e5e7eb;
+}
+
+.help-content .card {
+    padding: 18px;
+}
+
+.help-content h2 {
+    margin: 0 0 6px 0;
+}
+
+.help-subtitle {
+    color: #6b7280;
+    margin: 0 0 14px 0;
+}
+
+.help-section {
+    margin-bottom: 14px;
+}
+
+.help-section:last-child {
+    margin-bottom: 0;
+}
+
+.help-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 10px 0;
+    font-size: 18px;
+}
+
+.help-kv {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.help-block {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 12px 12px;
+    background: #fff;
+}
+
+.help-block h4 {
+    margin: 0 0 6px 0;
+    font-size: 14px;
+    color: #2c3e50;
+}
+
+.help-block ul,
+.help-block ol {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.help-block li {
+    margin: 6px 0;
+}
+
+.help-tip {
+    background: #f8f9fa;
+    border-color: #e5e7eb;
+}
+
+.help-footer {
+    background: #f8f9fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.help-footer p {
+    margin: 0;
+    color: #4b5563;
+}
+
+@media (max-width: 980px) {
+    .help-layout {
+        grid-template-columns: 1fr;
+    }
+    .help-sidebar {
+        position: static;
+        top: auto;
+    }
+}
+
 /* Loading */
 .loading {
     text-align: center;
