@@ -17,11 +17,11 @@
     </div>
 </div>
 
-<div class="container">
-    <div class="card" style="padding: 16px;">
-        <h2 style="margin: 0 0 12px 0; font-size: 20px;">Find Tools</h2>
+<div class="container" style="height: calc(100vh - 60px); display: flex; flex-direction: column; overflow: hidden;">
+    <div class="card" style="padding: 16px; display: flex; flex-direction: column; height: 100%; overflow: hidden;">
+        <h2 style="margin: 0 0 12px 0; font-size: 20px; flex-shrink: 0;">Find Tools</h2>
         
-        <div class="tabs" style="border-bottom: 1px solid #ddd; margin-bottom: 12px;">
+        <div class="tabs" style="border-bottom: 1px solid #ddd; margin-bottom: 12px; flex-shrink: 0;">
             <button class="tab-btn active" onclick="showTab('code')">Code Blocks</button>
             <button class="tab-btn" onclick="showTab('links')">Links</button>
             <button class="tab-btn" onclick="showTab('todos')">TODOs</button>
@@ -32,7 +32,7 @@
         </div>
         
         <!-- Search and Filters (shown for all tabs) -->
-        <div id="find-tools-filters" style="margin-bottom: 16px; padding: 12px; background: #f8f9fa; border-radius: 4px;">
+        <div id="find-tools-filters" style="margin-bottom: 16px; padding: 12px; background: #f8f9fa; border-radius: 4px; flex-shrink: 0;">
             <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
                 <div style="flex: 1; min-width: 200px;">
                     <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: #7f8c8d;">Search</label>
@@ -75,7 +75,7 @@
             </div>
         </div>
         
-        <div id="tab-content" style="margin-top: 0;">
+        <div id="tab-content" style="flex: 1; min-height: 0; overflow-y: auto; margin-top: 0;">
             <div id="code-tab" class="tab-panel active">
                 <div id="code-data" class="loading">Loading...</div>
             </div>
@@ -144,8 +144,6 @@
 
 #tab-content {
     text-align: left;
-    max-height: calc(100vh - 250px);
-    overflow-y: auto;
 }
 
 /* Compact, IDE-style result cards */
@@ -221,7 +219,7 @@
     overflow-x: auto;
     font-size: 12px;
     line-height: 1.4;
-    max-height: 150px;
+    max-height: 300px;
     overflow-y: auto;
 }
 
