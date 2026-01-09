@@ -4,8 +4,12 @@ Run all tests in the project.
 import subprocess
 import sys
 import os
+from pathlib import Path
 
-# List of all test files
+# Get the tests directory (where this script is located)
+tests_dir = Path(__file__).parent
+
+# List of all test files (relative to tests directory)
 test_files = [
     'test_continue_feature.py',
     'test_redaction.py',
@@ -16,14 +20,16 @@ test_files = [
 
 def run_test(test_file):
     """Run a single test file."""
+    test_path = tests_dir / test_file
     print(f"\n{'='*60}")
     print(f"Running {test_file}")
     print('='*60)
     
     result = subprocess.run(
-        [sys.executable, test_file],
+        [sys.executable, str(test_path)],
         capture_output=True,
-        text=True
+        text=True,
+        cwd=str(tests_dir.parent)  # Run from project root
     )
     
     if result.returncode == 0:
@@ -46,7 +52,8 @@ if __name__ == '__main__':
     failed = 0
     
     for test_file in test_files:
-        if os.path.exists(test_file):
+        test_path = tests_dir / test_file
+        if test_path.exists():
             if run_test(test_file):
                 passed += 1
             else:

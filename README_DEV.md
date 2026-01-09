@@ -52,19 +52,42 @@ python app/launcher.py
 
 ```
 gptParse/
-├── backend/
-│   ├── main.py          # FastAPI app
-│   ├── db.py            # Database helpers
-│   └── jobs.py          # Job system
+├── backend/             # FastAPI backend
+│   ├── main.py          # FastAPI app entry point
+│   ├── db.py            # Database connection and initialization
+│   ├── jobs.py          # Job system
+│   ├── job_runner.py    # Background job execution
+│   ├── analytics_cache.py  # Analytics caching
+│   └── routes/          # API route modules
+├── database/            # Database schema creation scripts
+│   ├── create_database.py
+│   ├── create_metadata_tables.py
+│   ├── create_fts5_tables.py
+│   └── ...              # Other table creation scripts
+├── tests/               # Test files
+│   ├── test_*.py        # All test files
+│   ├── run_all_tests.py
+│   └── test_menubar.html
 ├── templates/           # Jinja2 HTML templates
 │   ├── base.html
 │   ├── main.html
+│   ├── help.html
+│   ├── about.html
 │   └── fragments/      # HTMX fragments
-├── static/              # Static files (CSS/JS)
+├── static/              # Static files (CSS/JS/images)
 │   ├── css/
-│   └── js/
+│   ├── js/
+│   └── img/            # Images (bitbrain.jpg)
+├── docs/                # Documentation
+│   ├── images/          # Application icons
+│   │   ├── lode.ico     # Window icon
+│   │   ├── master.png   # Windows taskbar icon
+│   │   └── lode.png
+│   └── ...             # Other docs
 ├── app/
-│   └── launcher.py      # Desktop launcher
+│   └── launcher.py      # Desktop launcher (pywebview)
+├── importers/           # Import modules
+├── tools/               # Utility scripts
 └── requirements.txt
 ```
 

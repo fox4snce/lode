@@ -20,6 +20,12 @@ def test_import_report_lifecycle():
         db_path = f.name
     
     try:
+        import sys
+        from pathlib import Path
+        project_root = Path(__file__).parent.parent
+        database_dir = project_root / "database"
+        if str(database_dir) not in sys.path:
+            sys.path.insert(0, str(database_dir))
         from create_import_report_tables import create_import_report_tables
         create_import_report_tables(db_path)
         

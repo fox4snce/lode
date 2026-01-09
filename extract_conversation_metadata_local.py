@@ -402,6 +402,12 @@ def main() -> int:
     conn.row_factory = sqlite3.Row
 
     # Ensure tables exist (re-use existing helper)
+    import sys
+    from pathlib import Path
+    project_root = Path(__file__).parent
+    database_dir = project_root / "database"
+    if str(database_dir) not in sys.path:
+        sys.path.insert(0, str(database_dir))
     from create_metadata_tables import create_metadata_tables
 
     create_metadata_tables(args.db)

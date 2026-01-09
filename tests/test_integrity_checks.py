@@ -18,6 +18,12 @@ def test_check_missing_timestamps():
         db_path = f.name
     
     try:
+        import sys
+        from pathlib import Path
+        project_root = Path(__file__).parent.parent
+        database_dir = project_root / "database"
+        if str(database_dir) not in sys.path:
+            sys.path.insert(0, str(database_dir))
         from create_database import create_database
         create_database(db_path)
         
@@ -56,6 +62,12 @@ def test_check_orphaned_messages():
         db_path = f.name
     
     try:
+        import sys
+        from pathlib import Path
+        project_root = Path(__file__).parent.parent
+        database_dir = project_root / "database"
+        if str(database_dir) not in sys.path:
+            sys.path.insert(0, str(database_dir))
         from create_database import create_database
         create_database(db_path)
         

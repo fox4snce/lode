@@ -48,6 +48,15 @@ def check_database_initialized() -> bool:
 
 def initialize_database():
     """Initialize all database tables."""
+    import sys
+    from pathlib import Path
+    
+    # Add database directory to path for imports
+    project_root = Path(__file__).parent.parent
+    database_dir = project_root / "database"
+    if str(database_dir) not in sys.path:
+        sys.path.insert(0, str(database_dir))
+    
     import create_database
     import create_metadata_tables
     import create_organization_tables

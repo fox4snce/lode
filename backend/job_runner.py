@@ -148,6 +148,10 @@ async def run_import_job(job_id: str, metadata: dict):
         
         # Build index if requested
         if build_index:
+            # Add database directory to path for imports
+            database_dir = project_root / "database"
+            if str(database_dir) not in sys.path:
+                sys.path.insert(0, str(database_dir))
             import create_fts5_tables
             # Ensure FTS5 tables exist
             create_fts5_tables.create_fts5_tables(str(db_path))
@@ -184,6 +188,12 @@ async def run_reindex_job(job_id: str):
         update_job(job_id, status=JobStatus.RUNNING.value, progress=0, message="Starting reindex...")
         
         db_path = get_db_path()
+        
+        # Add database directory to path for imports
+        project_root = Path(__file__).parent.parent
+        database_dir = project_root / "database"
+        if str(database_dir) not in sys.path:
+            sys.path.insert(0, str(database_dir))
         
         # Ensure FTS5 tables exist
         import create_fts5_tables

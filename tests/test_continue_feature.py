@@ -19,6 +19,12 @@ def test_save_and_get_last_conversation():
     
     try:
         # Create tables
+        import sys
+        from pathlib import Path
+        project_root = Path(__file__).parent.parent
+        database_dir = project_root / "database"
+        if str(database_dir) not in sys.path:
+            sys.path.insert(0, str(database_dir))
         from create_database import create_database
         from create_user_state_table import create_user_state_table
         

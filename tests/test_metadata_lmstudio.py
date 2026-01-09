@@ -10,6 +10,15 @@ from extract_conversation_metadata import (
     format_conversation_for_llm,
     _extract_metadata_via_lmstudio,
 )
+import sys
+from pathlib import Path
+
+# Add database directory to path for imports
+project_root = Path(__file__).parent.parent
+database_dir = project_root / "database"
+if str(database_dir) not in sys.path:
+    sys.path.insert(0, str(database_dir))
+
 from create_metadata_tables import create_metadata_tables
 
 DB_PATH = 'conversations.db'
