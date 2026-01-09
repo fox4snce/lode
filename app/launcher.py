@@ -3,6 +3,8 @@ Desktop launcher for Lode using pywebview.
 """
 import sys
 from pathlib import Path
+import ctypes
+import tempfile
 
 # Add project root to Python path so imports work
 project_root = Path(__file__).parent.parent
@@ -296,18 +298,99 @@ def main():
     
     # No browser test - just open webview directly
     
+    window_icon_ico = project_root / "docs" / "images" / "lode.ico"
+    taskbar_master_png = project_root / "docs" / "images" / "master.png"
+
     window = webview.create_window(
         title="Lode",
         url=frontend_url,
         width=1400,
         height=900,
         min_size=(1000, 700),
+        # On Windows, pywebview expects an .ico path here.
+        icon=str(window_icon_ico) if window_icon_ico.exists() else None,
         # Critical UX: allow selecting/copying text everywhere (default browser behavior).
         text_select=True,
     )
     print(f"=== Webview created, URL should be: {frontend_url} ===")
     print(f"=== Window object: {window} ===")
     
+    def _set_windows_taskbar_icon_from_master_png():
+        """
+        Windows-only:
+        - Keep the window/titlebar icon from `icon=...` (lode.ico)
+        - Override the BIG icon (taskbar) using master.png (converted to a temp .ico).
+        """
+        if platform.system() != "Windows":
+            return
+
+        if not taskbar_master_png.exists():
+            print(f"Taskbar icon not found: {taskbar_master_png}")
+            return
+
+        try:
+            from PIL import Image
+        except Exception as e:
+            print("Pillow is required to set taskbar icon from master.png. Install requirements.txt.")
+            print(f"Import error: {e}")
+            return
+
+        try:
+            # Convert master.png -> temp ico (Windows APIs expect .ico for setting HICON easily)
+            tmp_ico = Path(tempfile.gettempdir()) / "lode_taskbar_master.ico"
+            try:
+                if (not tmp_ico.exists()) or (tmp_ico.stat().st_mtime < taskbar_master_png.stat().st_mtime):
+                    img = Image.open(taskbar_master_png).convert("RGBA")
+                    img.save(
+                        tmp_ico,
+                        format="ICO",
+                        sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)],
+                    )
+            except Exception as e:
+                print(f"Failed converting {taskbar_master_png} to {tmp_ico}: {e}")
+                return
+
+            native = getattr(window, "native", None)
+            hwnd = None
+            if native is not None:
+                handle = getattr(native, "Handle", None)
+                if handle is not None:
+                    try:
+                        hwnd = int(handle)
+                    except Exception:
+                        try:
+                            hwnd = int(handle.ToInt64())
+                        except Exception:
+                            hwnd = None
+
+            if not hwnd:
+                print("Could not resolve native window handle (HWND); skipping taskbar icon override.")
+                return
+
+            user32 = ctypes.windll.user32
+            WM_SETICON = 0x0080
+            ICON_BIG = 1
+            IMAGE_ICON = 1
+            LR_LOADFROMFILE = 0x0010
+            LR_DEFAULTSIZE = 0x0040
+
+            hicon = user32.LoadImageW(
+                None,
+                str(tmp_ico),
+                IMAGE_ICON,
+                0,
+                0,
+                LR_LOADFROMFILE | LR_DEFAULTSIZE,
+            )
+            if not hicon:
+                print(f"LoadImageW failed for icon: {tmp_ico}")
+                return
+
+            user32.SendMessageW(hwnd, WM_SETICON, ICON_BIG, hicon)
+            print(f"Set Windows taskbar icon from {taskbar_master_png} (via {tmp_ico})")
+        except Exception as e:
+            print(f"Failed setting Windows taskbar icon: {e}")
+
     def on_closed():
         """Cleanup on window close."""
         print("=== CLEANUP STARTING ===")
@@ -325,7 +408,7 @@ def main():
     try:
         print("=== STARTING WEBVIEW ===")
         print("=== webview.start() will block until window is closed ===")
-        webview.start(debug=False)
+        webview.start(_set_windows_taskbar_icon_from_master_png, debug=False)
         print("=== webview.start() returned - window was closed ===")
     except KeyboardInterrupt:
         print("Keyboard interrupt received")
