@@ -22,6 +22,20 @@ from datetime import datetime, timedelta
 
 DB_PATH = 'conversations.db'
 
+# Common contractions / clitics we never want to show up as "top words".
+# Note: `docs/words.md` is plain wordlist without apostrophes, so we handle these here.
+BORING_CONTRACTIONS = {
+    "don't", "won't", "isn't", "aren't", "wasn't", "weren't",
+    "can't", "couldn't", "shouldn't", "wouldn't", "mustn't",
+    "didn't", "doesn't", "haven't", "hasn't", "hadn't",
+    "i'm", "you're", "we're", "they're",
+    "it's", "that's", "there's", "what's", "who's", "here's",
+    "i've", "you've", "we've", "they've",
+    "i'll", "you'll", "we'll", "they'll",
+    "i'd", "you'd", "we'd", "they'd",
+    "let's",
+}
+
 # Basic stopwords (can be expanded)
 STOPWORDS = {
     'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with',
@@ -65,18 +79,23 @@ def load_boring_words() -> Set[str]:
                 # Match extract_words() output space: keep only plain a-z tokens
                 if re.fullmatch(r"[a-z]+", w):
                     words.add(w)
-            # Always include the small built-in list too
+            # Always include the small built-in list too + contractions.
             words |= set(STOPWORDS)
+            words |= set(BORING_CONTRACTIONS)
             return words
         except Exception:
             continue
 
-    return set(STOPWORDS)
+    return set(STOPWORDS) | set(BORING_CONTRACTIONS)
 
 
 def extract_words(text: str) -> List[str]:
     """Extract words from text, lowercased."""
-    words = re.findall(r'\b[a-z]+\b', text.lower())
+    t = (text or "").lower()
+    # Normalize “smart quotes” apostrophes to ASCII apostrophe so contractions are kept intact.
+    t = t.replace("’", "'").replace("‘", "'")
+    # Keep contractions as a single token (e.g., "don't" instead of "don" + "t")
+    words = re.findall(r"\b[a-z]+(?:'[a-z]+)?\b", t)
     return [w for w in words if len(w) > 2]  # Filter very short words
 
 
