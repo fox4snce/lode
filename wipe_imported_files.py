@@ -54,16 +54,18 @@ def wipe_imported_files(
     db_path: str,
     import_batch_id: Optional[str] = None,
     verify: bool = True,
-    dry_run: bool = False
+    dry_run: bool = False,
+    wipe_database: bool = True
 ) -> Dict:
     """
-    Delete imported files after successful import.
+    Delete imported files and optionally wipe all data from database.
     
     Args:
         db_path: Database path
-        import_batch_id: Optional filter by batch ID
+        import_batch_id: Optional filter by batch ID (if None, wipes all)
         verify: If True, only delete if import was successful
         dry_run: If True, don't actually delete, just report
+        wipe_database: If True, also delete all conversations and messages from database
     
     Returns:
         Dict with deletion results
@@ -73,7 +75,12 @@ def wipe_imported_files(
     deleted = []
     skipped = []
     errors = []
+    db_deleted = {
+        'conversations': 0,
+        'messages': 0
+    }
     
+    # Delete source files
     for file_info in files:
         file_path = file_info['source_file']
         
@@ -111,11 +118,47 @@ def wipe_imported_files(
                     'error': str(e)
                 })
     
+    # Wipe database if requested
+    if wipe_database and not dry_run:
+        try:
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            
+            # Count before deletion
+            cursor.execute('SELECT COUNT(*) FROM conversations')
+            db_deleted['conversations'] = cursor.fetchone()[0]
+            
+            cursor.execute('SELECT COUNT(*) FROM messages')
+            db_deleted['messages'] = cursor.fetchone()[0]
+            
+            # Delete all messages first (foreign key constraint)
+            cursor.execute('DELETE FROM messages')
+            
+            # Delete all conversations
+            cursor.execute('DELETE FROM conversations')
+            
+            # Also clean up related tables
+            cursor.execute('DELETE FROM conversation_tags')
+            cursor.execute('DELETE FROM tags WHERE tag_id NOT IN (SELECT DISTINCT tag_id FROM conversation_tags)')
+            cursor.execute('DELETE FROM conversation_stats')
+            cursor.execute('DELETE FROM message_hashes')
+            cursor.execute('DELETE FROM conversation_hashes')
+            cursor.execute('DELETE FROM import_reports')
+            
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            errors.append({
+                'file': 'database',
+                'error': f"Failed to wipe database: {str(e)}"
+            })
+    
     return {
         'deleted': deleted,
         'skipped': skipped,
         'errors': errors,
-        'total': len(files)
+        'total': len(files),
+        'database_deleted': db_deleted if wipe_database else None
     }
 
 

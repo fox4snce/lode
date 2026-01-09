@@ -41,93 +41,71 @@ def create_fts5_tables(db_path='conversations.db'):
         )
     ''')
     
-    # Populate FTS5 tables with existing data
+    # Ensure triggers are correct (drop/recreate) and rebuild indexes.
+    #
+    # IMPORTANT: These are external-content FTS5 tables (content='messages'/'conversations').
+    # The correct maintenance pattern uses special "delete" inserts, NOT `DELETE FROM messages_fts`,
+    # otherwise the index can accumulate orphan rowids and produce false positives.
     print("Populating FTS5 tables with existing data...")
     
-    # Check if tables already have data and rebuild if needed
-    cursor.execute("SELECT COUNT(*) FROM messages_fts")
-    existing_messages = cursor.fetchone()[0]
-    
-    cursor.execute("SELECT COUNT(*) FROM messages WHERE content IS NOT NULL")
-    total_messages = cursor.fetchone()[0]
-    
-    # If counts don't match or table is empty, rebuild
-    if existing_messages != total_messages:
-        print(f"  Rebuilding messages_fts (existing: {existing_messages}, total: {total_messages})")
-        cursor.execute("DELETE FROM messages_fts")
-        cursor.execute('''
-            INSERT INTO messages_fts(conversation_id, message_id, role, content, create_time)
-            SELECT conversation_id, message_id, role, content, create_time
-            FROM messages
-            WHERE content IS NOT NULL
-        ''')
-        print(f"  Indexed {cursor.rowcount} messages")
-    else:
-        print(f"  messages_fts already populated ({existing_messages} messages)")
-    
-    cursor.execute("SELECT COUNT(*) FROM conversations_fts")
-    existing_convs = cursor.fetchone()[0]
-    
-    cursor.execute("SELECT COUNT(*) FROM conversations")
-    total_convs = cursor.fetchone()[0]
-    
-    # If counts don't match or table is empty, rebuild
-    if existing_convs != total_convs:
-        print(f"  Rebuilding conversations_fts (existing: {existing_convs}, total: {total_convs})")
-        cursor.execute("DELETE FROM conversations_fts")
-        cursor.execute('''
-            INSERT INTO conversations_fts(conversation_id, title, create_time)
-            SELECT conversation_id, COALESCE(title, ''), create_time
-            FROM conversations
-        ''')
-        print(f"  Indexed {cursor.rowcount} conversations")
-    else:
-        print(f"  conversations_fts already populated ({existing_convs} conversations)")
-    
-    # Create triggers to keep FTS5 in sync with main tables
-    # Messages trigger
+    # Drop old triggers (they may exist with incorrect definitions)
+    cursor.execute("DROP TRIGGER IF EXISTS messages_fts_insert")
+    cursor.execute("DROP TRIGGER IF EXISTS messages_fts_delete")
+    cursor.execute("DROP TRIGGER IF EXISTS messages_fts_update")
+    cursor.execute("DROP TRIGGER IF EXISTS conversations_fts_insert")
+    cursor.execute("DROP TRIGGER IF EXISTS conversations_fts_delete")
+    cursor.execute("DROP TRIGGER IF EXISTS conversations_fts_update")
+
+    # Create triggers to keep FTS5 in sync with main tables (external-content safe)
     cursor.execute('''
-        CREATE TRIGGER IF NOT EXISTS messages_fts_insert AFTER INSERT ON messages BEGIN
-            INSERT INTO messages_fts(conversation_id, message_id, role, content, create_time)
-            VALUES (new.conversation_id, new.message_id, new.role, new.content, new.create_time);
+        CREATE TRIGGER messages_fts_insert AFTER INSERT ON messages BEGIN
+            INSERT INTO messages_fts(rowid, conversation_id, message_id, role, content, create_time)
+            VALUES (new.id, new.conversation_id, new.message_id, new.role, new.content, new.create_time);
         END
     ''')
-    
+
     cursor.execute('''
-        CREATE TRIGGER IF NOT EXISTS messages_fts_delete AFTER DELETE ON messages BEGIN
-            DELETE FROM messages_fts WHERE message_id = old.message_id AND conversation_id = old.conversation_id;
+        CREATE TRIGGER messages_fts_delete AFTER DELETE ON messages BEGIN
+            INSERT INTO messages_fts(messages_fts, rowid, conversation_id, message_id, role, content, create_time)
+            VALUES ('delete', old.id, old.conversation_id, old.message_id, old.role, old.content, old.create_time);
         END
     ''')
-    
+
     cursor.execute('''
-        CREATE TRIGGER IF NOT EXISTS messages_fts_update AFTER UPDATE ON messages BEGIN
-            DELETE FROM messages_fts WHERE message_id = old.message_id AND conversation_id = old.conversation_id;
-            INSERT INTO messages_fts(conversation_id, message_id, role, content, create_time)
-            VALUES (new.conversation_id, new.message_id, new.role, new.content, new.create_time);
+        CREATE TRIGGER messages_fts_update AFTER UPDATE ON messages BEGIN
+            INSERT INTO messages_fts(messages_fts, rowid, conversation_id, message_id, role, content, create_time)
+            VALUES ('delete', old.id, old.conversation_id, old.message_id, old.role, old.content, old.create_time);
+            INSERT INTO messages_fts(rowid, conversation_id, message_id, role, content, create_time)
+            VALUES (new.id, new.conversation_id, new.message_id, new.role, new.content, new.create_time);
         END
     ''')
-    
-    # Conversations trigger
+
     cursor.execute('''
-        CREATE TRIGGER IF NOT EXISTS conversations_fts_insert AFTER INSERT ON conversations BEGIN
-            INSERT INTO conversations_fts(conversation_id, title, create_time)
-            VALUES (new.conversation_id, COALESCE(new.title, ''), new.create_time);
+        CREATE TRIGGER conversations_fts_insert AFTER INSERT ON conversations BEGIN
+            INSERT INTO conversations_fts(rowid, conversation_id, title, create_time)
+            VALUES (new.id, new.conversation_id, COALESCE(new.title, ''), new.create_time);
         END
     ''')
-    
+
     cursor.execute('''
-        CREATE TRIGGER IF NOT EXISTS conversations_fts_delete AFTER DELETE ON conversations BEGIN
-            DELETE FROM conversations_fts WHERE conversation_id = old.conversation_id;
+        CREATE TRIGGER conversations_fts_delete AFTER DELETE ON conversations BEGIN
+            INSERT INTO conversations_fts(conversations_fts, rowid, conversation_id, title, create_time)
+            VALUES ('delete', old.id, old.conversation_id, COALESCE(old.title, ''), old.create_time);
         END
     ''')
-    
+
     cursor.execute('''
-        CREATE TRIGGER IF NOT EXISTS conversations_fts_update AFTER UPDATE ON conversations BEGIN
-            DELETE FROM conversations_fts WHERE conversation_id = old.conversation_id;
-            INSERT INTO conversations_fts(conversation_id, title, create_time)
-            VALUES (new.conversation_id, COALESCE(new.title, ''), new.create_time);
+        CREATE TRIGGER conversations_fts_update AFTER UPDATE ON conversations BEGIN
+            INSERT INTO conversations_fts(conversations_fts, rowid, conversation_id, title, create_time)
+            VALUES ('delete', old.id, old.conversation_id, COALESCE(old.title, ''), old.create_time);
+            INSERT INTO conversations_fts(rowid, conversation_id, title, create_time)
+            VALUES (new.id, new.conversation_id, COALESCE(new.title, ''), new.create_time);
         END
     ''')
+
+    # Rebuild indexes from their external content tables (clears orphan rowids / stale tokens)
+    cursor.execute("INSERT INTO messages_fts(messages_fts) VALUES('rebuild')")
+    cursor.execute("INSERT INTO conversations_fts(conversations_fts) VALUES('rebuild')")
     
     conn.commit()
     conn.close()

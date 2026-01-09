@@ -30,6 +30,50 @@
             <button class="tab-btn" onclick="showTab('prompts')">Prompts</button>
         </div>
         
+        <!-- Search and Filters (shown for all tabs) -->
+        <div id="find-tools-filters" style="margin-bottom: 16px; padding: 12px; background: #f8f9fa; border-radius: 4px;">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
+                <div style="flex: 1; min-width: 200px;">
+                    <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: #7f8c8d;">Search</label>
+                    <input type="text" 
+                           id="find-search-input"
+                           placeholder="Search results..."
+                           style="width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"
+                           onkeyup="debounceFilter()">
+                </div>
+                <div style="min-width: 150px;">
+                    <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: #7f8c8d;">Sort By</label>
+                    <select id="find-sort-select" 
+                            style="width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"
+                            onchange="applyFilters()">
+                        <option value="recent">Most Recent</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="relevance">Relevance</option>
+                    </select>
+                </div>
+                <div style="min-width: 120px;">
+                    <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: #7f8c8d;">Date From</label>
+                    <input type="date" 
+                           id="find-date-from"
+                           style="width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"
+                           onchange="applyFilters()">
+                </div>
+                <div style="min-width: 120px;">
+                    <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: #7f8c8d;">Date To</label>
+                    <input type="date" 
+                           id="find-date-to"
+                           style="width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"
+                           onchange="applyFilters()">
+                </div>
+                <div>
+                    <button onclick="clearFilters()" 
+                            style="padding: 6px 12px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+        
         <div id="tab-content" style="margin-top: 0;">
             <div id="code-tab" class="tab-panel active">
                 <div id="code-data" class="loading">Loading...</div>
@@ -207,6 +251,19 @@
 </style>
 
 <script>
+// Store raw data for filtering
+let rawData = {
+    code: null,
+    links: null,
+    todos: null,
+    questions: null,
+    dates: null,
+    decisions: null,
+    prompts: null
+};
+
+let currentTab = 'code';
+
 function showTab(tabName) {
     document.querySelectorAll('.tab-panel').forEach(panel => {
         panel.classList.remove('active');
@@ -217,22 +274,230 @@ function showTab(tabName) {
     
     document.getElementById(`${tabName}-tab`).classList.add('active');
     event.target.classList.add('active');
+    currentTab = tabName;
     
+    // Reload if we don't have data, otherwise just apply filters
     if (tabName === 'code') {
-        loadCode();
+        if (rawData.code === null) loadCode();
+        else applyFilters();
     } else if (tabName === 'links') {
-        loadLinks();
+        if (rawData.links === null) loadLinks();
+        else applyFilters();
     } else if (tabName === 'todos') {
-        loadTodos();
+        if (rawData.todos === null) loadTodos();
+        else applyFilters();
     } else if (tabName === 'questions') {
-        loadQuestions();
+        if (rawData.questions === null) loadQuestions();
+        else applyFilters();
     } else if (tabName === 'dates') {
-        loadDates();
+        if (rawData.dates === null) loadDates();
+        else applyFilters();
     } else if (tabName === 'decisions') {
-        loadDecisions();
+        if (rawData.decisions === null) loadDecisions();
+        else applyFilters();
     } else if (tabName === 'prompts') {
-        loadPrompts();
+        if (rawData.prompts === null) loadPrompts();
+        else applyFilters();
     }
+}
+
+function getFilters() {
+    return {
+        search: document.getElementById('find-search-input').value.trim().toLowerCase(),
+        sort: document.getElementById('find-sort-select').value,
+        dateFrom: document.getElementById('find-date-from').value,
+        dateTo: document.getElementById('find-date-to').value
+    };
+}
+
+function filterAndSortData(data, type) {
+    const filters = getFilters();
+    let filtered = [...data];
+    
+    // Apply search filter
+    if (filters.search) {
+        filtered = filtered.filter(item => {
+            const searchableText = [
+                item.content || '',
+                item.text || '',
+                item.code || '',
+                item.link || item.url || '',
+                item.context || '',
+                item.title || item.conversation_title || '',
+                item.marker || '',
+                item.decision_marker || '',
+                item.question || '',
+                item.date || '',
+                item.prompt || ''
+            ].join(' ').toLowerCase();
+            return searchableText.includes(filters.search);
+        });
+    }
+    
+    // Apply date filter
+    if (filters.dateFrom || filters.dateTo) {
+        filtered = filtered.filter(item => {
+            if (!item.create_time) return false;
+            const itemDate = new Date(item.create_time * 1000).toISOString().split('T')[0];
+            if (filters.dateFrom && itemDate < filters.dateFrom) return false;
+            if (filters.dateTo && itemDate > filters.dateTo) return false;
+            return true;
+        });
+    }
+    
+    // Apply sorting
+    if (filters.sort === 'recent') {
+        filtered.sort((a, b) => {
+            const timeA = a.create_time || 0;
+            const timeB = b.create_time || 0;
+            return timeB - timeA;
+        });
+    } else if (filters.sort === 'oldest') {
+        filtered.sort((a, b) => {
+            const timeA = a.create_time || 0;
+            const timeB = b.create_time || 0;
+            return timeA - timeB;
+        });
+    } else if (filters.sort === 'relevance') {
+        // For relevance, prioritize items that match search query better
+        if (filters.search) {
+            filtered.sort((a, b) => {
+                const aText = [
+                    a.content || '',
+                    a.text || '',
+                    a.context || ''
+                ].join(' ').toLowerCase();
+                const bText = [
+                    b.content || '',
+                    b.text || '',
+                    b.context || ''
+                ].join(' ').toLowerCase();
+                const aIndex = aText.indexOf(filters.search);
+                const bIndex = bText.indexOf(filters.search);
+                if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+                if (aIndex !== -1) return -1;
+                if (bIndex !== -1) return 1;
+                return 0;
+            });
+        } else {
+            // Default to recent if no search
+            filtered.sort((a, b) => {
+                const timeA = a.create_time || 0;
+                const timeB = b.create_time || 0;
+                return timeB - timeA;
+            });
+        }
+    }
+    
+    return filtered;
+}
+
+let filterTimeout = null;
+function debounceFilter() {
+    if (filterTimeout) clearTimeout(filterTimeout);
+    filterTimeout = setTimeout(() => applyFilters(), 300);
+}
+
+function applyFilters() {
+    const tabName = currentTab;
+    let data = rawData[tabName];
+    if (!data) return;
+    
+    const filtered = filterAndSortData(data, tabName);
+    const div = document.getElementById(`${tabName}-data`);
+    
+    if (filtered.length === 0) {
+        div.innerHTML = `<div class="empty-state" style="padding: 40px; text-align: center; color: #7f8c8d;">No results found${getFilters().search ? ' matching your search' : ''}</div>`;
+        return;
+    }
+    
+    let html = `<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 8px; padding: 0 4px;">Found ${filtered.length} result${filtered.length !== 1 ? 's' : ''}${rawData[tabName].length !== filtered.length ? ` (filtered from ${rawData[tabName].length})` : ''}</div>`;
+    
+    // Helper function to format date/time
+    function formatDateTime(timestamp) {
+        if (!timestamp) return '';
+        const date = new Date(timestamp * 1000);
+        const dateStr = date.toLocaleDateString();
+        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return `${dateStr} ${timeStr}`;
+    }
+    
+    const typeMap = {
+        code: 'code',
+        links: 'link',
+        todos: 'todo',
+        questions: 'question',
+        dates: 'date',
+        decisions: 'decision',
+        prompts: 'prompt'
+    };
+    const resultType = typeMap[tabName] || tabName;
+
+    if (tabName === 'links') {
+        filtered.forEach(item => {
+            const link = item.link || item.url || '';
+            let linkText = link;
+            
+            if (item.context) {
+                const linkIndex = item.context.toLowerCase().indexOf(link.toLowerCase());
+                if (linkIndex !== -1) {
+                    const afterLink = item.context.substring(linkIndex);
+                    const lines = afterLink.split('\n');
+                    let firstLine = lines[0].trim();
+                    const linkRegex = new RegExp(`^(${link.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+)+`, 'i');
+                    firstLine = firstLine.replace(linkRegex, link + ' ').trim();
+                    linkText = firstLine;
+                    if (firstLine.length < 100 && lines.length > 1) {
+                        linkText = firstLine + ' ' + lines[1].trim();
+                    }
+                    if (linkText.length > 250) {
+                        linkText = linkText.substring(0, 247) + '...';
+                    }
+                } else {
+                    linkText = item.context.length > 250 ? item.context.substring(0, 247) + '...' : item.context;
+                }
+            }
+            
+            const title = item.title || item.conversation_title || '';
+            let resultHtml = `<div class="result-item">`;
+            resultHtml += `<div class="result-header">`;
+            resultHtml += `<div style="flex: 1; min-width: 0;">`;
+            resultHtml += `<div class="result-content" style="display: flex; align-items: center; gap: 8px;">`;
+            resultHtml += `<a href="${link}" target="_blank" class="external-link" style="color: #3498db; font-weight: 500;">${escapeHtml(linkText)}</a>`;
+            if (item.conversation_id && item.message_id) {
+                resultHtml += `<a href="/main?conversation=${item.conversation_id}&message=${item.message_id}" class="result-action" style="margin-left: auto;">View →</a>`;
+            }
+            resultHtml += `</div>`;
+            resultHtml += `<div class="result-meta">`;
+            if (title) {
+                resultHtml += `<span>${escapeHtml(title.substring(0, 50))}${title.length > 50 ? '...' : ''}</span>`;
+            }
+            if (item.create_time) {
+                resultHtml += `<span>•</span>`;
+                resultHtml += `<span>${formatDateTime(item.create_time)}</span>`;
+            }
+            resultHtml += `</div>`;
+            resultHtml += `</div>`;
+            resultHtml += `</div>`;
+            resultHtml += `</div>`;
+            html += resultHtml;
+        });
+    } else {
+        filtered.forEach(item => {
+            // Important: formatResult expects singular type names (todo/question/date/decision/prompt)
+            html += formatResult(item, resultType);
+        });
+    }
+    
+    div.innerHTML = html;
+}
+
+function clearFilters() {
+    document.getElementById('find-search-input').value = '';
+    document.getElementById('find-sort-select').value = 'recent';
+    document.getElementById('find-date-from').value = '';
+    document.getElementById('find-date-to').value = '';
+    applyFilters();
 }
 
 function formatResult(item, type) {
@@ -240,78 +505,65 @@ function formatResult(item, type) {
     const msgId = item.message_id || '';
     const title = item.title || item.conversation_title || '';
     
+    // Helper function to format date/time
+    function formatDateTime(timestamp) {
+        if (!timestamp) return '';
+        const date = new Date(timestamp * 1000);
+        const dateStr = date.toLocaleDateString();
+        const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        return `${dateStr} ${timeStr}`;
+    }
+    
     // Special handling for TODOs
     if (type === 'todo' && item.marker && item.context) {
         const marker = item.marker;
         let context = item.context;
         
-        // Clean up context - remove leading/trailing whitespace
         context = context.trim();
-        
-        // Find the marker in context (case-insensitive)
         const markerIndex = context.toLowerCase().indexOf(marker.toLowerCase());
         let todoText = '';
         
         if (markerIndex !== -1) {
-            // Extract from marker position to end of line or next 200 chars
             const afterMarker = context.substring(markerIndex);
             const lines = afterMarker.split('\n');
             let firstLine = lines[0].trim();
             
-            // Remove duplicate markers at the start
-            // Pattern: "review review scheduled" -> "review scheduled"
-            const markerLower = marker.toLowerCase();
             const markerRegex = new RegExp(`^(${marker}\\s+)+`, 'i');
             firstLine = firstLine.replace(markerRegex, marker + ' ').trim();
-            
-            // Remove any leading colon, dash, or extra spaces after marker
             firstLine = firstLine.replace(/^[:-\s]+/, '').trim();
             
-            // If first line is short, include next line too
             todoText = firstLine;
             if (firstLine.length < 100 && lines.length > 1) {
                 const nextLine = lines[1].trim();
                 todoText = firstLine + (nextLine ? ' ' + nextLine : '');
             }
             
-            // Limit to 250 chars
             if (todoText.length > 250) {
                 todoText = todoText.substring(0, 247) + '...';
             }
         } else {
-            // Fallback: just show context, limit to 250 chars
             todoText = context.length > 250 ? context.substring(0, 247) + '...' : context;
         }
         
         let html = `<div class="result-item">`;
         html += `<div class="result-header">`;
         html += `<div style="flex: 1; min-width: 0;">`;
-        
-        // Show entire TODO text in orange highlight color
-        html += `<div class="result-content">`;
+        html += `<div class="result-content" style="display: flex; align-items: center; gap: 8px;">`;
         html += `<span style="color: #e67e22; font-weight: 500;">${escapeHtml(todoText)}</span>`;
+        if (convId && msgId) {
+            html += `<a href="/main?conversation=${convId}&message=${msgId}" class="result-action" style="margin-left: auto;">View →</a>`;
+        }
         html += `</div>`;
-        
-        // Metadata line
         html += `<div class="result-meta">`;
         if (title) {
-            html += `<span>${escapeHtml(title.substring(0, 40))}${title.length > 40 ? '...' : ''}</span>`;
+            html += `<span>${escapeHtml(title.substring(0, 50))}${title.length > 50 ? '...' : ''}</span>`;
         }
-        if (convId) {
+        if (item.create_time) {
             html += `<span>•</span>`;
-            html += `<span>${convId.substring(0, 16)}${convId.length > 16 ? '...' : ''}</span>`;
-        }
-        if (msgId) {
-            html += `<span>•</span>`;
-            html += `<span>${msgId.substring(0, 12)}${msgId.length > 12 ? '...' : ''}</span>`;
+            html += `<span>${formatDateTime(item.create_time)}</span>`;
         }
         html += `</div>`;
         html += `</div>`;
-        
-        // Action link (right-aligned)
-        if (convId && msgId) {
-            html += `<a href="/main?conversation=${convId}&message=${msgId}" class="result-action">View →</a>`;
-        }
         html += `</div>`;
         html += `</div>`;
         return html;
@@ -331,8 +583,6 @@ function formatResult(item, type) {
             const lines = afterMarker.split('\n');
             let firstLine = lines[0].trim();
             
-            // Remove duplicate markers
-            const markerLower = marker.toLowerCase();
             const markerRegex = new RegExp(`^(${marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+)+`, 'i');
             firstLine = firstLine.replace(markerRegex, marker + ' ').trim();
             firstLine = firstLine.replace(/^[:-\s]+/, '').trim();
@@ -353,34 +603,46 @@ function formatResult(item, type) {
         let html = `<div class="result-item">`;
         html += `<div class="result-header">`;
         html += `<div style="flex: 1; min-width: 0;">`;
-        html += `<div class="result-content">`;
+        html += `<div class="result-content" style="display: flex; align-items: center; gap: 8px;">`;
         html += `<span style="color: #27ae60; font-weight: 500;">${escapeHtml(decisionText)}</span>`;
+        if (convId && msgId) {
+            html += `<a href="/main?conversation=${convId}&message=${msgId}" class="result-action" style="margin-left: auto;">View →</a>`;
+        }
         html += `</div>`;
         html += `<div class="result-meta">`;
         if (title) {
-            html += `<span>${escapeHtml(title.substring(0, 40))}${title.length > 40 ? '...' : ''}</span>`;
+            html += `<span>${escapeHtml(title.substring(0, 50))}${title.length > 50 ? '...' : ''}</span>`;
         }
-        if (convId) {
+        if (item.create_time) {
             html += `<span>•</span>`;
-            html += `<span>${convId.substring(0, 16)}${convId.length > 16 ? '...' : ''}</span>`;
-        }
-        if (msgId) {
-            html += `<span>•</span>`;
-            html += `<span>${msgId.substring(0, 12)}${msgId.length > 12 ? '...' : ''}</span>`;
+            html += `<span>${formatDateTime(item.create_time)}</span>`;
         }
         html += `</div>`;
         html += `</div>`;
-        if (convId && msgId) {
-            html += `<a href="/main?conversation=${convId}&message=${msgId}" class="result-action">View →</a>`;
-        }
         html += `</div>`;
         html += `</div>`;
         return html;
     }
     
     // Special handling for Questions
-    if (type === 'question' && item.question) {
-        let questionText = item.question.trim();
+    if (type === 'question') {
+        let questionText = '';
+        if (item.context) {
+            // Use context if available (full question text)
+            questionText = item.context.trim();
+        } else if (item.question) {
+            // Fallback to question field
+            questionText = item.question.trim();
+        } else if (item.content) {
+            // Extract question from content
+            const questions = item.content.match(/[^.!?]*\?[^.!?]*/g);
+            if (questions && questions.length > 0) {
+                questionText = questions[0].trim();
+            } else {
+                questionText = item.content.substring(0, 250).trim();
+            }
+        }
+        
         if (questionText.length > 250) {
             questionText = questionText.substring(0, 247) + '...';
         }
@@ -388,26 +650,22 @@ function formatResult(item, type) {
         let html = `<div class="result-item">`;
         html += `<div class="result-header">`;
         html += `<div style="flex: 1; min-width: 0;">`;
-        html += `<div class="result-content">`;
+        html += `<div class="result-content" style="display: flex; align-items: center; gap: 8px;">`;
         html += `<span style="color: #3498db; font-weight: 500;">${escapeHtml(questionText)}</span>`;
+        if (convId && msgId) {
+            html += `<a href="/main?conversation=${convId}&message=${msgId}" class="result-action" style="margin-left: auto;">View →</a>`;
+        }
         html += `</div>`;
         html += `<div class="result-meta">`;
         if (title) {
-            html += `<span>${escapeHtml(title.substring(0, 40))}${title.length > 40 ? '...' : ''}</span>`;
+            html += `<span>${escapeHtml(title.substring(0, 50))}${title.length > 50 ? '...' : ''}</span>`;
         }
-        if (convId) {
+        if (item.create_time) {
             html += `<span>•</span>`;
-            html += `<span>${convId.substring(0, 16)}${convId.length > 16 ? '...' : ''}</span>`;
-        }
-        if (msgId) {
-            html += `<span>•</span>`;
-            html += `<span>${msgId.substring(0, 12)}${msgId.length > 12 ? '...' : ''}</span>`;
+            html += `<span>${formatDateTime(item.create_time)}</span>`;
         }
         html += `</div>`;
         html += `</div>`;
-        if (convId && msgId) {
-            html += `<a href="/main?conversation=${convId}&message=${msgId}" class="result-action">View →</a>`;
-        }
         html += `</div>`;
         html += `</div>`;
         return html;
@@ -417,14 +675,12 @@ function formatResult(item, type) {
     if (type === 'date' && item.date) {
         let dateText = '';
         if (item.context) {
-            // Extract context around the date
             const dateIndex = item.context.toLowerCase().indexOf(item.date.toLowerCase());
             if (dateIndex !== -1) {
                 const afterDate = item.context.substring(dateIndex);
                 const lines = afterDate.split('\n');
                 let firstLine = lines[0].trim();
                 
-                // Remove duplicate dates at start
                 const dateRegex = new RegExp(`^(${item.date.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+)+`, 'i');
                 firstLine = firstLine.replace(dateRegex, item.date + ' ').trim();
                 firstLine = firstLine.replace(/^[:-\s]+/, '').trim();
@@ -448,34 +704,41 @@ function formatResult(item, type) {
         let html = `<div class="result-item">`;
         html += `<div class="result-header">`;
         html += `<div style="flex: 1; min-width: 0;">`;
-        html += `<div class="result-content">`;
+        html += `<div class="result-content" style="display: flex; align-items: center; gap: 8px;">`;
         html += `<span style="color: #9b59b6; font-weight: 500;">${escapeHtml(dateText)}</span>`;
+        if (convId && msgId) {
+            html += `<a href="/main?conversation=${convId}&message=${msgId}" class="result-action" style="margin-left: auto;">View →</a>`;
+        }
         html += `</div>`;
         html += `<div class="result-meta">`;
         if (title) {
-            html += `<span>${escapeHtml(title.substring(0, 40))}${title.length > 40 ? '...' : ''}</span>`;
+            html += `<span>${escapeHtml(title.substring(0, 50))}${title.length > 50 ? '...' : ''}</span>`;
         }
-        if (convId) {
+        if (item.create_time) {
             html += `<span>•</span>`;
-            html += `<span>${convId.substring(0, 16)}${convId.length > 16 ? '...' : ''}</span>`;
-        }
-        if (msgId) {
-            html += `<span>•</span>`;
-            html += `<span>${msgId.substring(0, 12)}${msgId.length > 12 ? '...' : ''}</span>`;
+            html += `<span>${formatDateTime(item.create_time)}</span>`;
         }
         html += `</div>`;
         html += `</div>`;
-        if (convId && msgId) {
-            html += `<a href="/main?conversation=${convId}&message=${msgId}" class="result-action">View →</a>`;
-        }
         html += `</div>`;
         html += `</div>`;
         return html;
     }
     
     // Special handling for Prompts
-    if (type === 'prompt' && item.prompt) {
-        let promptText = item.prompt.trim();
+    if (type === 'prompt') {
+        let promptText = '';
+        if (item.context) {
+            // Use context if available (full prompt text)
+            promptText = item.context.trim();
+        } else if (item.prompt) {
+            // Fallback to prompt field
+            promptText = item.prompt.trim();
+        } else if (item.content) {
+            // Use first line of content
+            promptText = item.content.split('\n')[0].trim();
+        }
+        
         if (promptText.length > 250) {
             promptText = promptText.substring(0, 247) + '...';
         }
@@ -483,26 +746,22 @@ function formatResult(item, type) {
         let html = `<div class="result-item">`;
         html += `<div class="result-header">`;
         html += `<div style="flex: 1; min-width: 0;">`;
-        html += `<div class="result-content">`;
+        html += `<div class="result-content" style="display: flex; align-items: center; gap: 8px;">`;
         html += `<span style="color: #8e44ad; font-weight: 500;">${escapeHtml(promptText)}</span>`;
+        if (convId && msgId) {
+            html += `<a href="/main?conversation=${convId}&message=${msgId}" class="result-action" style="margin-left: auto;">View →</a>`;
+        }
         html += `</div>`;
         html += `<div class="result-meta">`;
         if (title) {
-            html += `<span>${escapeHtml(title.substring(0, 40))}${title.length > 40 ? '...' : ''}</span>`;
+            html += `<span>${escapeHtml(title.substring(0, 50))}${title.length > 50 ? '...' : ''}</span>`;
         }
-        if (convId) {
+        if (item.create_time) {
             html += `<span>•</span>`;
-            html += `<span>${convId.substring(0, 16)}${convId.length > 16 ? '...' : ''}</span>`;
-        }
-        if (msgId) {
-            html += `<span>•</span>`;
-            html += `<span>${msgId.substring(0, 12)}${msgId.length > 12 ? '...' : ''}</span>`;
+            html += `<span>${formatDateTime(item.create_time)}</span>`;
         }
         html += `</div>`;
         html += `</div>`;
-        if (convId && msgId) {
-            html += `<a href="/main?conversation=${convId}&message=${msgId}" class="result-action">View →</a>`;
-        }
         html += `</div>`;
         html += `</div>`;
         return html;
@@ -562,19 +821,10 @@ async function loadCode() {
     div.innerHTML = '<div class="loading">Loading...</div>';
     
     try {
-        const response = await fetch('/api/find/code?limit=100');
+        const response = await fetch('/api/find/code?limit=500');
         const data = await response.json();
-        
-        if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: #7f8c8d;">No code blocks found</div>';
-            return;
-        }
-        
-        let html = `<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 8px; padding: 0 4px;">Found ${data.length} result${data.length !== 1 ? 's' : ''}</div>`;
-        data.forEach(item => {
-            html += formatResult(item, 'code');
-        });
-        div.innerHTML = html;
+        rawData.code = data;
+        applyFilters();
     } catch (error) {
         div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
     }
@@ -585,69 +835,10 @@ async function loadLinks() {
     div.innerHTML = '<div class="loading">Loading...</div>';
     
     try {
-        const response = await fetch('/api/find/links?limit=100');
+        const response = await fetch('/api/find/links?limit=500');
         const data = await response.json();
-        
-        if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: #7f8c8d;">No links found</div>';
-            return;
-        }
-        
-        let html = `<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 8px; padding: 0 4px;">Found ${data.length} result${data.length !== 1 ? 's' : ''}</div>`;
-        data.forEach(item => {
-            // Use formatResult for consistency, but handle links specially
-            const link = item.link || item.url || '';
-            let linkText = link;
-            
-            // If we have context, show it
-            if (item.context) {
-                const linkIndex = item.context.toLowerCase().indexOf(link.toLowerCase());
-                if (linkIndex !== -1) {
-                    const afterLink = item.context.substring(linkIndex);
-                    const lines = afterLink.split('\n');
-                    let firstLine = lines[0].trim();
-                    
-                    // Remove duplicate link at start
-                    const linkRegex = new RegExp(`^(${link.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s+)+`, 'i');
-                    firstLine = firstLine.replace(linkRegex, link + ' ').trim();
-                    
-                    linkText = firstLine;
-                    if (firstLine.length < 100 && lines.length > 1) {
-                        linkText = firstLine + ' ' + lines[1].trim();
-                    }
-                    if (linkText.length > 250) {
-                        linkText = linkText.substring(0, 247) + '...';
-                    }
-                } else {
-                    linkText = item.context.length > 250 ? item.context.substring(0, 247) + '...' : item.context;
-                }
-            }
-            
-            let resultHtml = `<div class="result-item">`;
-            resultHtml += `<div class="result-header">`;
-            resultHtml += `<div style="flex: 1; min-width: 0;">`;
-            resultHtml += `<div class="result-content">`;
-            resultHtml += `<a href="${link}" target="_blank" class="external-link" style="color: #3498db; font-weight: 500;">${escapeHtml(linkText)}</a>`;
-            resultHtml += `</div>`;
-            resultHtml += `<div class="result-meta">`;
-            if (item.title || item.conversation_title) {
-                const t = item.title || item.conversation_title || '';
-                resultHtml += `<span>${escapeHtml(t.substring(0, 40))}${t.length > 40 ? '...' : ''}</span>`;
-            }
-            if (item.conversation_id) {
-                resultHtml += `<span>•</span>`;
-                resultHtml += `<span>${item.conversation_id.substring(0, 16)}${item.conversation_id.length > 16 ? '...' : ''}</span>`;
-            }
-            resultHtml += `</div>`;
-            resultHtml += `</div>`;
-            if (item.conversation_id && item.message_id) {
-                resultHtml += `<a href="/main?conversation=${item.conversation_id}&message=${item.message_id}" class="result-action">View →</a>`;
-            }
-            resultHtml += `</div>`;
-            resultHtml += `</div>`;
-            html += resultHtml;
-        });
-        div.innerHTML = html;
+        rawData.links = data;
+        applyFilters();
     } catch (error) {
         div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
     }
@@ -658,19 +849,10 @@ async function loadTodos() {
     div.innerHTML = '<div class="loading">Loading...</div>';
     
     try {
-        const response = await fetch('/api/find/todos?limit=100');
+        const response = await fetch('/api/find/todos?limit=500');
         const data = await response.json();
-        
-        if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: #7f8c8d;">No TODOs found</div>';
-            return;
-        }
-        
-        let html = `<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 8px; padding: 0 4px;">Found ${data.length} result${data.length !== 1 ? 's' : ''}</div>`;
-        data.forEach(item => {
-            html += formatResult(item, 'todo');
-        });
-        div.innerHTML = html;
+        rawData.todos = data;
+        applyFilters();
     } catch (error) {
         div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
     }
@@ -681,19 +863,10 @@ async function loadQuestions() {
     div.innerHTML = '<div class="loading">Loading...</div>';
     
     try {
-        const response = await fetch('/api/find/questions?limit=100');
+        const response = await fetch('/api/find/questions?limit=500');
         const data = await response.json();
-        
-        if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: #7f8c8d;">No questions found</div>';
-            return;
-        }
-        
-        let html = `<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 8px; padding: 0 4px;">Found ${data.length} result${data.length !== 1 ? 's' : ''}</div>`;
-        data.forEach(item => {
-            html += formatResult(item, 'question');
-        });
-        div.innerHTML = html;
+        rawData.questions = data;
+        applyFilters();
     } catch (error) {
         div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
     }
@@ -704,19 +877,10 @@ async function loadDates() {
     div.innerHTML = '<div class="loading">Loading...</div>';
     
     try {
-        const response = await fetch('/api/find/dates?limit=100');
+        const response = await fetch('/api/find/dates?limit=500');
         const data = await response.json();
-        
-        if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: #7f8c8d;">No dates found</div>';
-            return;
-        }
-        
-        let html = `<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 8px; padding: 0 4px;">Found ${data.length} result${data.length !== 1 ? 's' : ''}</div>`;
-        data.forEach(item => {
-            html += formatResult(item, 'date');
-        });
-        div.innerHTML = html;
+        rawData.dates = data;
+        applyFilters();
     } catch (error) {
         div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
     }
@@ -727,19 +891,10 @@ async function loadDecisions() {
     div.innerHTML = '<div class="loading">Loading...</div>';
     
     try {
-        const response = await fetch('/api/find/decisions?limit=100');
+        const response = await fetch('/api/find/decisions?limit=500');
         const data = await response.json();
-        
-        if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: #7f8c8d;">No decisions found</div>';
-            return;
-        }
-        
-        let html = `<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 8px; padding: 0 4px;">Found ${data.length} result${data.length !== 1 ? 's' : ''}</div>`;
-        data.forEach(item => {
-            html += formatResult(item, 'decision');
-        });
-        div.innerHTML = html;
+        rawData.decisions = data;
+        applyFilters();
     } catch (error) {
         div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
     }
@@ -750,19 +905,10 @@ async function loadPrompts() {
     div.innerHTML = '<div class="loading">Loading...</div>';
     
     try {
-        const response = await fetch('/api/find/prompts?limit=100');
+        const response = await fetch('/api/find/prompts?limit=500');
         const data = await response.json();
-        
-        if (data.length === 0) {
-            div.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: #7f8c8d;">No prompts found</div>';
-            return;
-        }
-        
-        let html = `<div style="font-size: 12px; color: #7f8c8d; margin-bottom: 8px; padding: 0 4px;">Found ${data.length} result${data.length !== 1 ? 's' : ''}</div>`;
-        data.forEach(item => {
-            html += formatResult(item, 'prompt');
-        });
-        div.innerHTML = html;
+        rawData.prompts = data;
+        applyFilters();
     } catch (error) {
         div.innerHTML = `<div class="error">Error loading data: ${error.message}</div>`;
     }

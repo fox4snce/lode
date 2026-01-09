@@ -61,9 +61,13 @@
 </div>
 
 <script>
+let selectedFile = null;
+
 function handleFileSelect(event) {
     const file = event.target.files[0];
     if (file) {
+        selectedFile = file;
+        // In most webviews/browsers, full paths are not available. Prefer upload flow.
         document.getElementById('file-path').value = file.path || file.name;
     }
 }
@@ -84,14 +88,31 @@ async function handleImport(event) {
     statusDiv.innerHTML = '<div class="loading">Starting import...</div>';
     
     try {
-        const response = await fetch('/api/jobs/import', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(data)
-        });
+        let response;
+
+        // If a file was selected, upload it (more reliable than paths).
+        if (selectedFile) {
+            const uploadForm = new FormData();
+            uploadForm.append('source_type', data.source_type);
+            uploadForm.append('calculate_stats', String(data.calculate_stats));
+            uploadForm.append('build_index', String(data.build_index));
+            uploadForm.append('upload', selectedFile, selectedFile.name);
+
+            response = await fetch('/api/jobs/import-upload', {
+                method: 'POST',
+                body: uploadForm
+            });
+        } else {
+            response = await fetch('/api/jobs/import', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            });
+        }
         
         if (!response.ok) {
-            throw new Error('Import failed');
+            const errText = await response.text();
+            throw new Error(errText || 'Import failed');
         }
         
         const result = await response.json();
@@ -152,7 +173,8 @@ async function pollJobStatus(jobId) {
             
             const statusDiv = document.getElementById('import-status');
             if (job.status === 'completed') {
-                statusDiv.innerHTML = `<div class="success">Import completed successfully!</div>`;
+                const msg = job.message || 'Import completed successfully!';
+                statusDiv.innerHTML = `<div class="success">${msg}</div>`;
                 clearInterval(interval);
                 loadJobs();
             } else if (job.status === 'failed') {

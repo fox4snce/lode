@@ -2,7 +2,7 @@
     {% for msg in messages %}
     <div class="message {{ msg.role }}" data-message-id="{{ msg.message_id }}">
         <div class="message-header">{{ msg.role|title }} • {% if msg.create_time %}{{ msg.create_time|timestamp }}{% else %}Unknown{% endif %}</div>
-        <div class="message-content">{{ msg.content|replace('\n', '<br>')|safe }}</div>
+        <div class="message-content">{{ msg.content|highlight(search_query) }}</div>
     </div>
     {% endfor %}
 {% else %}

@@ -128,7 +128,7 @@ async function runIntegrityChecks() {
     resultDiv.innerHTML = '<div class="loading">Running integrity checks...</div>';
     
     try {
-        const response = await fetch('/api/integrity/check', { method: 'POST' });
+        const response = await fetch('/api/integrity/check', { method: 'GET' });
         const data = await response.json();
         
         if (!data || Object.keys(data).length === 0) {
@@ -136,16 +136,91 @@ async function runIntegrityChecks() {
             return;
         }
         
-        let html = '<div class="error">Integrity check found issues:</div><table><tr><th>Check</th><th>Status</th><th>Details</th></tr>';
-        Object.entries(data).forEach(([key, value]) => {
-            const status = value === true || value === 'ok' ? '✓ Pass' : '✗ Fail';
-            html += `<tr><td>${key.replace(/_/g, ' ')}</td><td>${status}</td><td>${JSON.stringify(value)}</td></tr>`;
+        // Extract summary if present
+        const summary = data.summary || {};
+        const hasIssues = summary.has_issues || false;
+        const totalIssues = summary.total_issues || 0;
+        
+        // Remove summary from display (it's metadata)
+        const checks = { ...data };
+        delete checks.summary;
+        
+        // Check if there are any real issues
+        let anyRealIssues = false;
+        Object.values(checks).forEach(value => {
+            if (Array.isArray(value) && value.length > 0) {
+                anyRealIssues = true;
+            } else if (typeof value === 'object' && value !== null) {
+                // Check for count fields or non-empty arrays
+                if (value.count > 0) anyRealIssues = true;
+                if (Array.isArray(value.conversations) && value.conversations.length > 0) anyRealIssues = true;
+                if (Array.isArray(value.messages) && value.messages.length > 0) anyRealIssues = true;
+            }
         });
+        
+        if (!anyRealIssues && !hasIssues) {
+            resultDiv.innerHTML = '<div class="success">All integrity checks passed!</div>';
+            return;
+        }
+        
+        let html = `<div class="error">Integrity check found ${totalIssues} issue${totalIssues !== 1 ? 's' : ''}:</div>`;
+        html += '<table><tr><th>Check</th><th>Status</th><th>Details</th></tr>';
+        
+        Object.entries(checks).forEach(([key, value]) => {
+            let hasIssues = false;
+            let details = '';
+            
+            if (Array.isArray(value)) {
+                hasIssues = value.length > 0;
+                if (hasIssues) {
+                    details = `${value.length} issue${value.length !== 1 ? 's' : ''} found`;
+                    if (value.length <= 5) {
+                        details += ': ' + value.map(v => {
+                            if (v.conversation_id && v.message_id) {
+                                return `${v.conversation_id}/${v.message_id}`;
+                            }
+                            return JSON.stringify(v);
+                        }).join(', ');
+                    }
+                } else {
+                    details = 'None';
+                }
+            } else if (typeof value === 'object' && value !== null) {
+                const count = value.count || 0;
+                const convCount = Array.isArray(value.conversations) ? value.conversations.length : 0;
+                const msgCount = Array.isArray(value.messages) ? value.messages.length : 0;
+                hasIssues = count > 0 || convCount > 0 || msgCount > 0;
+                
+                if (hasIssues) {
+                    const parts = [];
+                    if (count > 0) parts.push(`Total: ${count}`);
+                    if (convCount > 0) parts.push(`Conversations: ${convCount}`);
+                    if (msgCount > 0) parts.push(`Messages: ${msgCount}`);
+                    details = parts.join(', ');
+                } else {
+                    details = 'None';
+                }
+            } else {
+                hasIssues = !(value === true || value === 'ok');
+                details = JSON.stringify(value);
+            }
+            
+            const status = hasIssues ? '<span style="color: #e74c3c;">✗ Fail</span>' : '<span style="color: #27ae60;">✓ Pass</span>';
+            const checkName = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            html += `<tr><td>${checkName}</td><td>${status}</td><td>${details}</td></tr>`;
+        });
+        
         html += '</table>';
         resultDiv.innerHTML = html;
     } catch (error) {
         resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
     }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 async function findDuplicateMessages() {
@@ -161,11 +236,33 @@ async function findDuplicateMessages() {
             return;
         }
         
-        let html = `<div class="error">Found ${data.length} duplicate message groups:</div><table><tr><th>Message ID</th><th>Conversation ID</th><th>Content Preview</th></tr>`;
-        data.forEach(item => {
-            const content = (item.content || '').substring(0, 100);
-            html += `<tr><td>${item.message_id || ''}</td><td>${item.conversation_id || ''}</td><td>${content}...</td></tr>`;
+        let totalDuplicates = 0;
+        data.forEach(group => {
+            totalDuplicates += group.count || 0;
         });
+        
+        let html = `<div class="error">Found ${data.length} duplicate message group${data.length !== 1 ? 's' : ''} (${totalDuplicates} total duplicate messages):</div>`;
+        html += '<table><tr><th>Group</th><th>Count</th><th>Messages</th><th>Content Preview</th></tr>';
+        
+        data.forEach((group, groupIndex) => {
+            const messages = group.messages || [];
+            const firstMessage = messages[0] || {};
+            const content = (firstMessage.content || '').substring(0, 150);
+            const contentPreview = content.length > 150 ? content + '...' : content;
+            
+            // Show all messages in the group
+            const messageList = messages.map(msg => {
+                return `${msg.conversation_id || '?'}/${msg.message_id || '?'}`;
+            }).join(', ');
+            
+            html += `<tr>`;
+            html += `<td>Group ${groupIndex + 1}</td>`;
+            html += `<td>${group.count || messages.length}</td>`;
+            html += `<td style="font-size: 12px; color: #7f8c8d;">${messageList}</td>`;
+            html += `<td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(contentPreview)}</td>`;
+            html += `</tr>`;
+        });
+        
         html += '</table>';
         resultDiv.innerHTML = html;
     } catch (error) {
@@ -186,10 +283,22 @@ async function findDuplicateConversations() {
             return;
         }
         
-        let html = `<div class="error">Found ${data.length} duplicate conversation groups:</div><table><tr><th>Conversation IDs</th><th>Title</th></tr>`;
-        data.forEach(item => {
-            html += `<tr><td>${JSON.stringify(item.conversation_ids || [])}</td><td>${item.title || ''}</td></tr>`;
+        let html = `<div class="error">Found ${data.length} duplicate conversation group${data.length !== 1 ? 's' : ''}:</div>`;
+        html += '<table><tr><th>Group</th><th>Count</th><th>Conversation IDs</th><th>Titles</th></tr>';
+        
+        data.forEach((group, groupIndex) => {
+            const conversations = group.conversations || [];
+            const convIds = conversations.map(c => c.conversation_id || '?').join(', ');
+            const titles = conversations.map(c => c.title || '(no title)').join('; ');
+            
+            html += `<tr>`;
+            html += `<td>Group ${groupIndex + 1}</td>`;
+            html += `<td>${group.count || conversations.length}</td>`;
+            html += `<td style="font-size: 12px; color: #7f8c8d;">${convIds}</td>`;
+            html += `<td>${escapeHtml(titles)}</td>`;
+            html += `</tr>`;
         });
+        
         html += '</table>';
         resultDiv.innerHTML = html;
     } catch (error) {
@@ -215,7 +324,7 @@ async function wipeImportedFiles() {
                 ALL DATA WILL BE DELETED
             </p>
             <p style="margin: 0 0 20px 0; font-size: 14px; color: #7f8c8d;">
-                This action cannot be undone. All imported source files will be permanently deleted.
+                This action cannot be undone. All imported source files AND all data in the database (conversations, messages, etc.) will be permanently deleted.
             </p>
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
                 <button id="cancel-wipe" style="padding: 10px 20px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer;">Cancel</button>
@@ -253,10 +362,23 @@ async function wipeImportedFiles() {
     resultDiv.innerHTML = '<div class="loading">Wiping imported files...</div>';
     
     try {
-        const response = await fetch('/api/cleanup/wipe-files', { method: 'POST' });
+        const response = await fetch('/api/cleanup/wipe-files?wipe_database=true&verify=true&dry_run=false', { method: 'POST' });
         const data = await response.json();
         
-        resultDiv.innerHTML = `<div class="success">Imported files wiped successfully. ${data.deleted?.length || 0} files deleted.</div>`;
+        let message = `<div class="success">Wipe completed successfully!</div>`;
+        message += `<div style="margin-top: 10px;">`;
+        message += `<div>Files deleted: ${data.deleted?.length || 0}</div>`;
+        if (data.database_deleted) {
+            message += `<div>Conversations deleted: ${data.database_deleted.conversations || 0}</div>`;
+            message += `<div>Messages deleted: ${data.database_deleted.messages || 0}</div>`;
+        }
+        message += `</div>`;
+        
+        if (data.errors && data.errors.length > 0) {
+            message += `<div style="margin-top: 10px; color: #e74c3c;">Errors: ${data.errors.length}</div>`;
+        }
+        
+        resultDiv.innerHTML = message;
     } catch (error) {
         resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
     }

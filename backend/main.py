@@ -1,7 +1,7 @@
 """
 FastAPI backend for Lode.
 """
-from fastapi import FastAPI, HTTPException, Query, Path as PathParam, Request
+from fastapi import FastAPI, HTTPException, Query, Path as PathParam, Request, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, HTMLResponse
@@ -13,6 +13,8 @@ from pathlib import Path
 import sys
 import os
 import sqlite3
+import uuid
+import re
 
 # Add parent to path for imports
 parent_dir = Path(__file__).parent.parent
@@ -45,6 +47,36 @@ def timestamp_filter(value):
 
 jinja_env.filters['timestamp'] = timestamp_filter
 jinja_env.filters['date'] = timestamp_filter
+
+# Highlight filter for showing search matches inside messages
+def highlight_filter(value: str, query: str = ""):
+    """
+    Escape content then highlight occurrences of query (case-insensitive) using <mark>.
+    Returns Markup-safe HTML.
+    """
+    try:
+        from markupsafe import Markup, escape
+    except Exception:
+        # If MarkupSafe isn't available for some reason, fallback to plain text
+        return value
+
+    text = value or ""
+    q = (query or "").strip()
+    escaped = escape(text)
+
+    if not q:
+        return Markup(str(escaped).replace("\n", "<br>"))
+
+    # Avoid pathological regex sizes; this is UI-only highlighting
+    if len(q) > 200:
+        return Markup(str(escaped).replace("\n", "<br>"))
+
+    pattern = re.compile(re.escape(q), flags=re.IGNORECASE)
+    highlighted = pattern.sub(lambda m: f'<mark class="search-hit">{m.group(0)}</mark>', str(escaped))
+    highlighted = highlighted.replace("\n", "<br>")
+    return Markup(highlighted)
+
+jinja_env.filters["highlight"] = highlight_filter
 
 def render_template(template_name: str, **context):
     """Render a Jinja2 template."""
@@ -481,7 +513,10 @@ async def get_messages(
     conversation_id: str = PathParam(...),
     anchor_message_id: Optional[str] = Query(None),
     direction: str = Query("around", pattern="^(older|newer|around)$"),
-    limit: int = Query(200, ge=1, le=1000)
+    # NOTE: This is a local desktop-style app; UX expectation is often “load the whole chat”.
+    # Allow larger limits so the frontend can request full conversations.
+    limit: int = Query(200, ge=1, le=50000),
+    q: Optional[str] = Query(None),
 ):
     """Get messages with windowing support. Returns HTML fragment if HTMX request."""
     conn = get_db_connection()
@@ -562,7 +597,7 @@ async def get_messages(
     
     # Return HTML fragment if HTMX request
     if request.headers.get("HX-Request"):
-        return HTMLResponse(render_template("fragments/message_list.html", messages=messages))
+        return HTMLResponse(render_template("fragments/message_list.html", messages=messages, search_query=q or ""))
     return messages
 
 @app.get("/api/messages/{message_id}/context", response_model=List[Message])
@@ -696,6 +731,53 @@ async def create_import_job(request: ImportJobRequest):
         "build_index": request.build_index
     }))
     
+    return JobResponse(job_id=job_id)
+
+
+@app.post("/api/jobs/import-upload", response_model=JobResponse)
+async def create_import_upload_job(
+    source_type: str = Form(...),
+    calculate_stats: bool = Form(True),
+    build_index: bool = Form(True),
+    upload: UploadFile = File(...),
+):
+    """Create an import job from an uploaded file (recommended for webview/browser)."""
+    if source_type not in ("openai", "claude"):
+        raise HTTPException(status_code=400, detail="source_type must be 'openai' or 'claude'")
+
+    # Persist upload to a local file so the existing job runner/importers can consume it
+    uploads_dir = Path(__file__).parent.parent / "data" / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+
+    safe_name = (upload.filename or "upload.json").replace("\\", "_").replace("/", "_")
+    saved_name = f"{uuid.uuid4().hex}_{safe_name}"
+    saved_path = uploads_dir / saved_name
+
+    try:
+        contents = await upload.read()
+        saved_path.write_bytes(contents)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save upload: {e}")
+
+    # Create job
+    job_id = create_job(JobType.IMPORT.value, metadata={
+        "source_type": source_type,
+        "file_path": str(saved_path),
+        "original_filename": upload.filename,
+        "calculate_stats": calculate_stats,
+        "build_index": build_index,
+    })
+
+    # Start import in background
+    import asyncio
+    from backend.job_runner import run_import_job
+    asyncio.create_task(run_import_job(job_id, {
+        "source_type": source_type,
+        "file_path": str(saved_path),
+        "calculate_stats": calculate_stats,
+        "build_index": build_index,
+    }))
+
     return JobResponse(job_id=job_id)
 
 @app.post("/api/jobs/reindex", response_model=JobResponse)
@@ -1091,9 +1173,10 @@ async def list_imported_files(import_batch_id: Optional[str] = Query(None)):
 async def wipe_files(
     import_batch_id: Optional[str] = None,
     verify: bool = True,
-    dry_run: bool = False
+    dry_run: bool = False,
+    wipe_database: bool = True
 ):
-    """Wipe imported files."""
+    """Wipe imported files and optionally database data."""
     if not check_database_initialized():
         raise HTTPException(status_code=400, detail="Database not initialized")
     
@@ -1104,7 +1187,8 @@ async def wipe_files(
             str(get_db_path()),
             import_batch_id,
             verify=verify,
-            dry_run=dry_run
+            dry_run=dry_run,
+            wipe_database=wipe_database
         )
         return result
     except Exception as e:

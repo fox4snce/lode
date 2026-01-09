@@ -120,6 +120,25 @@ function loadConversations() {
 // Store target message ID for scrolling after load
 let targetMessageId = null;
 
+// If a search term is active, find a matching message_id in a conversation so we can
+// jump to the relevant spot (instead of always loading the first N messages).
+async function findFirstHitMessageId(conversationId, query) {
+    const q = (query || '').trim();
+    if (!q) return null;
+    try {
+        const url = `/api/search?q=${encodeURIComponent(q)}&conversation_id=${encodeURIComponent(conversationId)}&limit=1`;
+        const resp = await fetch(url);
+        if (!resp.ok) return null;
+        const results = await resp.json();
+        if (Array.isArray(results) && results.length > 0 && results[0].message_id) {
+            return results[0].message_id;
+        }
+    } catch (e) {
+        console.warn('Failed to find search hit:', e);
+    }
+    return null;
+}
+
 // Function to scroll to target message after messages load
 function scrollToTargetMessage() {
     if (targetMessageId) {
@@ -168,9 +187,12 @@ function loadConversationAndMessage(conversationId, messageId) {
         }
         
         // Load messages with anchor
-        const url = messageId 
-            ? `/api/conversations/${conversationId}/messages?anchor_message_id=${messageId}&direction=around&limit=200`
-            : `/api/conversations/${conversationId}/messages?limit=200`;
+        const searchInput = document.getElementById('search-input');
+        const q = (searchInput && searchInput.value) ? searchInput.value : '';
+        const qParam = q ? `&q=${encodeURIComponent(q)}` : '';
+
+        // Always load the full conversation; if a messageId is provided, we just scroll to it.
+        const url = `/api/conversations/${conversationId}/messages?limit=50000${qParam}`;
         
         htmx.ajax('GET', url, {
             target: '#message-view',
@@ -256,12 +278,37 @@ document.body.addEventListener('click', function(event) {
             item.classList.add('active');
             
             // Load messages
-            htmx.ajax('GET', `/api/conversations/${convId}/messages`, {
-                target: '#message-view',
-                swap: 'innerHTML',
-                headers: {'HX-Request': 'true'}
-            });
-            
+            const searchInput = document.getElementById('search-input');
+            const q = (searchInput && searchInput.value) ? searchInput.value : '';
+            // If we have an active search term, try to jump to a matching message
+            // so the user immediately sees why this conversation matched.
+            if (q) {
+                findFirstHitMessageId(convId, q).then((hitMessageId) => {
+                    if (hitMessageId) {
+                        targetMessageId = hitMessageId;
+                        // Load full conversation and scroll to the hit
+                        htmx.ajax('GET', `/api/conversations/${convId}/messages?limit=50000&q=${encodeURIComponent(q)}`, {
+                            target: '#message-view',
+                            swap: 'innerHTML',
+                            headers: {'HX-Request': 'true'}
+                        });
+                    } else {
+                        // Fallback: load normally (still include q for highlighting)
+                        htmx.ajax('GET', `/api/conversations/${convId}/messages?limit=50000&q=${encodeURIComponent(q)}`, {
+                            target: '#message-view',
+                            swap: 'innerHTML',
+                            headers: {'HX-Request': 'true'}
+                        });
+                    }
+                });
+            } else {
+                htmx.ajax('GET', `/api/conversations/${convId}/messages?limit=50000`, {
+                    target: '#message-view',
+                    swap: 'innerHTML',
+                    headers: {'HX-Request': 'true'}
+                });
+            }
+
             // Load details
             htmx.ajax('GET', `/api/conversations/${convId}`, {
                 target: '#conversation-details',

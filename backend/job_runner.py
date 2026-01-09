@@ -24,6 +24,46 @@ async def run_import_job(job_id: str, metadata: dict):
     
     try:
         update_job(job_id, status=JobStatus.RUNNING.value, progress=0, message="Starting import...")
+
+        # Resolve file path - allow bare filenames and common data/ locations
+        project_root = Path(__file__).parent.parent
+        input_path = Path(file_path)
+        candidate_paths = []
+
+        if input_path.is_absolute():
+            candidate_paths.append(input_path)
+        else:
+            candidate_paths.extend([
+                project_root / file_path,
+                project_root / "data" / file_path,
+                project_root / "data" / "example_corpus" / file_path,
+            ])
+
+        resolved_path = None
+        for p in candidate_paths:
+            try:
+                if p.exists() and p.is_file():
+                    resolved_path = p
+                    break
+            except OSError:
+                continue
+
+        if resolved_path is None:
+            tried = "\n".join([f"- {str(p)}" for p in candidate_paths]) if candidate_paths else f"- {file_path}"
+            update_job(
+                job_id,
+                status=JobStatus.FAILED.value,
+                error=(
+                    "File not found for import.\n"
+                    f"Provided: {file_path}\n"
+                    "Tried:\n"
+                    f"{tried}\n"
+                    "Tip: the in-app file picker may only provide a filename in some webviews; use the Upload option on the Import page."
+                ),
+            )
+            return
+
+        file_path = str(resolved_path.resolve())
         
         # Import based on source type
         if source_type == 'openai':
@@ -43,15 +83,61 @@ async def run_import_job(job_id: str, metadata: dict):
         loop = asyncio.get_event_loop()
         
         def do_import():
-            if source_type == 'openai':
-                importer.import_openai_conversations(file_path, str(db_path))
-            else:
-                importer.import_claude_conversations(file_path, str(db_path))
-            return True
+            try:
+                # Check conversation count before import
+                import sqlite3
+                conn_before = sqlite3.connect(str(db_path))
+                cursor_before = conn_before.cursor()
+                cursor_before.execute('SELECT COUNT(*) FROM conversations')
+                count_before = cursor_before.fetchone()[0]
+                cursor_before.execute('SELECT COUNT(*) FROM messages')
+                msg_count_before = cursor_before.fetchone()[0]
+                conn_before.close()
+                
+                if source_type == 'openai':
+                    importer.import_openai_conversations(file_path, str(db_path))
+                else:
+                    importer.import_claude_conversations(file_path, str(db_path))
+                
+                # Check conversation count after import
+                conn_after = sqlite3.connect(str(db_path))
+                cursor_after = conn_after.cursor()
+                cursor_after.execute('SELECT COUNT(*) FROM conversations')
+                count_after = cursor_after.fetchone()[0]
+                cursor_after.execute('SELECT COUNT(*) FROM messages')
+                msg_count_after = cursor_after.fetchone()[0]
+                conn_after.close()
+                
+                imported_count = count_after - count_before
+                imported_messages = msg_count_after - msg_count_before
+                if imported_count == 0 and imported_messages == 0:
+                    raise Exception(
+                        "No new conversations/messages were imported. "
+                        "The file may be empty, already imported, or in an invalid format."
+                    )
+                
+                return {
+                    "imported_conversations": imported_count,
+                    "imported_messages": imported_messages,
+                    "db_path": str(db_path),
+                    "import_file": file_path,
+                }
+            except FileNotFoundError as e:
+                raise Exception(f"File not found: {file_path}. {str(e)}")
+            except Exception as e:
+                raise Exception(f"Import failed: {str(e)}")
         
-        await loop.run_in_executor(None, do_import)
+        import_result = await loop.run_in_executor(None, do_import)
         
-        update_job(job_id, progress=50, message="Import completed, calculating statistics...")
+        update_job(
+            job_id,
+            progress=50,
+            message=(
+                f"Import completed ({import_result['imported_conversations']} conversations, "
+                f"{import_result['imported_messages']} messages), calculating statistics..."
+            ),
+            result=import_result,
+        )
         
         # Calculate stats if requested
         if calculate_stats:
@@ -70,12 +156,26 @@ async def run_import_job(job_id: str, metadata: dict):
             # TODO: Implement FTS5 population
             # For now, just mark as done
         
-        update_job(job_id, status=JobStatus.COMPLETED.value, progress=100, 
-                   message="Import completed successfully",
-                   result={"imported": "success"})
+        update_job(
+            job_id,
+            status=JobStatus.COMPLETED.value,
+            progress=100,
+            message=(
+                "Import completed successfully: "
+                f"{import_result['imported_conversations']} conversations, "
+                f"{import_result['imported_messages']} messages"
+            ),
+            result=import_result,
+        )
     
     except Exception as e:
-        update_job(job_id, status=JobStatus.FAILED.value, error=str(e))
+        import traceback
+        error_msg = str(e)
+        if not error_msg:
+            error_msg = f"Unknown error: {type(e).__name__}"
+        print(f"Import job {job_id} failed: {error_msg}")
+        traceback.print_exc()
+        update_job(job_id, status=JobStatus.FAILED.value, error=error_msg)
 
 
 async def run_reindex_job(job_id: str):

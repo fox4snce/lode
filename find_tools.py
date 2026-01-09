@@ -69,10 +69,11 @@ def find_links(db_path: str = DB_PATH, limit: int = 100) -> List[Dict]:
     conn.row_factory = sqlite3.Row
     
     cursor = conn.execute('''
-        SELECT conversation_id, message_id, role, content, create_time
-        FROM messages
-        WHERE content IS NOT NULL
-        ORDER BY create_time DESC
+        SELECT m.conversation_id, m.message_id, m.role, m.content, m.create_time, c.title as conversation_title
+        FROM messages m
+        JOIN conversations c ON c.conversation_id = m.conversation_id
+        WHERE m.content IS NOT NULL
+        ORDER BY m.create_time DESC
     ''')
     
     results = []
@@ -99,6 +100,7 @@ def find_links(db_path: str = DB_PATH, limit: int = 100) -> List[Dict]:
                     'conversation_id': row['conversation_id'],
                     'message_id': row['message_id'],
                     'role': row['role'],
+                    'conversation_title': row['conversation_title'],
                     'url': url,
                     'link': url,  # Alias for consistency
                     'domain': domain if 'domain' in locals() else '',
@@ -161,10 +163,11 @@ def find_todos(db_path: str = DB_PATH, limit: int = 100) -> List[Dict]:
     conn.row_factory = sqlite3.Row
     
     cursor = conn.execute('''
-        SELECT conversation_id, message_id, role, content, create_time
-        FROM messages
-        WHERE content IS NOT NULL
-        ORDER BY create_time DESC
+        SELECT m.conversation_id, m.message_id, m.role, m.content, m.create_time, c.title as conversation_title
+        FROM messages m
+        JOIN conversations c ON c.conversation_id = m.conversation_id
+        WHERE m.content IS NOT NULL
+        ORDER BY m.create_time DESC
     ''')
     
     results = []
@@ -183,6 +186,7 @@ def find_todos(db_path: str = DB_PATH, limit: int = 100) -> List[Dict]:
                     'conversation_id': row['conversation_id'],
                     'message_id': row['message_id'],
                     'role': row['role'],
+                    'conversation_title': row['conversation_title'],
                     'marker': match,
                     'context': context,
                     'create_time': row['create_time']
@@ -202,25 +206,36 @@ def find_questions(db_path: str = DB_PATH, limit: int = 100) -> List[Dict]:
     conn.row_factory = sqlite3.Row
     
     cursor = conn.execute('''
-        SELECT conversation_id, message_id, role, content, create_time
-        FROM messages
-        WHERE content LIKE '%?%'
-        ORDER BY create_time DESC
-        LIMIT ?
-    ''', (limit,))
+        SELECT m.conversation_id, m.message_id, m.role, m.content, m.create_time, c.title as conversation_title
+        FROM messages m
+        JOIN conversations c ON c.conversation_id = m.conversation_id
+        WHERE m.content LIKE '%?%'
+        ORDER BY m.create_time DESC
+    ''')
     
     results = []
     for row in cursor:
         # Extract question sentences
         questions = QUESTION_PATTERN.findall(row['content'])
         if questions:
+            question_text = questions[0]
+            # Get context around the question
+            idx = row['content'].find(question_text)
+            start = max(0, idx - 50)
+            end = min(len(row['content']), idx + len(question_text) + 100)
+            context = row['content'][start:end]
+            
             results.append({
                 'conversation_id': row['conversation_id'],
                 'message_id': row['message_id'],
                 'role': row['role'],
-                'question': questions[0][:200],  # First question, truncated
+                'conversation_title': row['conversation_title'],
+                'question': question_text[:200],  # First question, truncated
+                'context': context,  # Full context around question
                 'create_time': row['create_time']
             })
+            if len(results) >= limit:
+                break
     
     conn.close()
     return results
@@ -232,10 +247,11 @@ def find_dates(db_path: str = DB_PATH, limit: int = 100) -> List[Dict]:
     conn.row_factory = sqlite3.Row
     
     cursor = conn.execute('''
-        SELECT conversation_id, message_id, role, content, create_time
-        FROM messages
-        WHERE content IS NOT NULL
-        ORDER BY create_time DESC
+        SELECT m.conversation_id, m.message_id, m.role, m.content, m.create_time, c.title as conversation_title
+        FROM messages m
+        JOIN conversations c ON c.conversation_id = m.conversation_id
+        WHERE m.content IS NOT NULL
+        ORDER BY m.create_time DESC
     ''')
     
     results = []
@@ -257,6 +273,7 @@ def find_dates(db_path: str = DB_PATH, limit: int = 100) -> List[Dict]:
                         'conversation_id': row['conversation_id'],
                         'message_id': row['message_id'],
                         'role': row['role'],
+                        'conversation_title': row['conversation_title'],
                         'date': date_str,
                         'context': context,
                         'create_time': row['create_time']
@@ -276,10 +293,11 @@ def find_decisions(db_path: str = DB_PATH, limit: int = 100) -> List[Dict]:
     conn.row_factory = sqlite3.Row
     
     cursor = conn.execute('''
-        SELECT conversation_id, message_id, role, content, create_time
-        FROM messages
-        WHERE content IS NOT NULL
-        ORDER BY create_time DESC
+        SELECT m.conversation_id, m.message_id, m.role, m.content, m.create_time, c.title as conversation_title
+        FROM messages m
+        JOIN conversations c ON c.conversation_id = m.conversation_id
+        WHERE m.content IS NOT NULL
+        ORDER BY m.create_time DESC
     ''')
     
     results = []
@@ -298,6 +316,7 @@ def find_decisions(db_path: str = DB_PATH, limit: int = 100) -> List[Dict]:
                     'conversation_id': row['conversation_id'],
                     'message_id': row['message_id'],
                     'role': row['role'],
+                    'conversation_title': row['conversation_title'],
                     'decision_marker': match,
                     'context': context,
                     'create_time': row['create_time']
@@ -317,10 +336,11 @@ def find_prompts(db_path: str = DB_PATH, limit: int = 100) -> List[Dict]:
     conn.row_factory = sqlite3.Row
     
     cursor = conn.execute('''
-        SELECT conversation_id, message_id, role, content, create_time
-        FROM messages
-        WHERE content IS NOT NULL AND role = 'user'
-        ORDER BY create_time DESC
+        SELECT m.conversation_id, m.message_id, m.role, m.content, m.create_time, c.title as conversation_title
+        FROM messages m
+        JOIN conversations c ON c.conversation_id = m.conversation_id
+        WHERE m.content IS NOT NULL AND m.role = 'user'
+        ORDER BY m.create_time DESC
     ''')
     
     results = []
@@ -330,12 +350,16 @@ def find_prompts(db_path: str = DB_PATH, limit: int = 100) -> List[Dict]:
         if matches:
             # Get first line or first 200 chars
             first_line = row['content'].split('\n')[0][:200]
+            # Get context - first 250 chars of content
+            context = row['content'][:250].strip()
             
             results.append({
                 'conversation_id': row['conversation_id'],
                 'message_id': row['message_id'],
                 'role': row['role'],
+                'conversation_title': row['conversation_title'],
                 'prompt': first_line,
+                'context': context,  # Full context for display
                 'create_time': row['create_time']
             })
             if len(results) >= limit:

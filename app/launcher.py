@@ -301,7 +301,9 @@ def main():
         url=frontend_url,
         width=1400,
         height=900,
-        min_size=(1000, 700)
+        min_size=(1000, 700),
+        # Critical UX: allow selecting/copying text everywhere (default browser behavior).
+        text_select=True,
     )
     print(f"=== Webview created, URL should be: {frontend_url} ===")
     print(f"=== Window object: {window} ===")
