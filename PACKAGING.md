@@ -58,8 +58,36 @@ python tools/build_windows_exe.py --onefile
 python tools/build_windows_exe.py --console
 ```
 
+## Distribution
+
+With the default `--onedir` mode, PyInstaller creates a directory containing:
+
+- `Lode.exe` - The main executable
+- `_internal/` - Directory containing:
+  - Python runtime and DLLs
+  - All bundled Python packages
+  - Templates, static files, and images
+
+**You must distribute the entire `Lode/` directory**, not just the `.exe` file.
+
+To create a distributable zip:
+
+```bash
+# After building, zip the entire Lode directory
+cd dist/lode-1.0.0
+Compress-Archive -Path Lode -DestinationPath Lode-1.0.0-Windows.zip
+```
+
+Users should extract the zip and run `Lode.exe` from within the `Lode/` directory.
+
 ## Notes
 
 - The packaged app stores persistent data (DB, uploads, exports) in the per-user app data directory:
   - Windows: `%APPDATA%\\Lode\\`
+  
+- Alternative: Use `--onefile` to create a single executable (slower startup, larger file):
+  ```bash
+  python tools/build_windows_exe.py --onefile
+  ```
+  With `--onefile`, you only need to distribute the single `.exe` file, but startup is slower.
 
