@@ -1,6 +1,11 @@
 """
 Tests for redaction tool.
 """
+import sys
+from pathlib import Path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 import re
 from redaction_tool import redact_text, redact_emails, redact_phones, redact_names
 

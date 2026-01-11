@@ -473,64 +473,49 @@ async function exportConversationFromSidebar(conversationId) {
         
         const data = await response.json();
         
-        let content = '';
-        let contentType = '';
+        // File is now saved server-side in data/exports/
+        const filename = data.filename || 'exported_file';
+        const filePath = data.path || data.absolute_path || '';
+        const absolutePath = data.absolute_path || '';
         
-        if (format === 'markdown') {
-            content = data.content || '';
-            contentType = 'text/markdown';
-        } else if (format === 'csv') {
-            content = data.content || '';
-            contentType = 'text/csv';
-        } else {
-            content = JSON.stringify(data, null, 2);
-            contentType = 'application/json';
-        }
+        // Show success message with file path and open folder button
+        const openFolderBtn = absolutePath ? 
+            `<button onclick="openExportsFolder('${absolutePath.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" 
+                     style="margin-top: 8px; padding: 4px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                Open Exports Folder
+            </button>` : '';
         
-        // Store content for download
-        window.exportedContent = content;
-        window.exportedFormat = format;
+        statusDiv.innerHTML = `
+            <span style="color: #27ae60;">✓ Exported successfully!</span><br>
+            <small style="color: #7f8c8d; display: block; margin-top: 4px;">
+                Saved to: ${filePath}<br>
+                File: ${filename}
+            </small>
+            ${openFolderBtn}
+        `;
         
-        // Get conversation title for filename
-        const titleElement = document.querySelector('#conversation-details h3');
-        const conversationTitle = titleElement ? titleElement.textContent.trim() : 'conversation';
-        
-        // Determine file extension
-        let extension = '';
-        if (format === 'markdown') {
-            extension = '.md';
-        } else if (format === 'csv') {
-            extension = '.csv';
-        } else {
-            extension = '.json';
-        }
-        
-        // Sanitize filename
-        const sanitized = conversationTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const filename = `${sanitized}_${conversationId.substring(0, 8)}${extension}`;
-        
-        // Create blob and download
-        const blob = new Blob([content], { type: contentType });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        statusDiv.innerHTML = `<span style="color: #27ae60;">✓ Exported successfully!<br><small style="color: #7f8c8d;">Downloaded as: ${filename}</small></span>`;
-        
-        // Clear success message after 5 seconds
+        // Clear success message after 10 seconds (longer since we have the button)
         setTimeout(() => {
-            statusDiv.innerHTML = '';
-        }, 5000);
+            if (statusDiv.innerHTML.includes('✓ Exported successfully!')) {
+                statusDiv.innerHTML = '';
+            }
+        }, 10000);
         
     } catch (error) {
         statusDiv.innerHTML = `<span style="color: #e74c3c;">Error: ${error.message}</span>`;
         console.error('Export error:', error);
     }
+}
+
+function openExportsFolder(filePath) {
+    // Extract directory from file path
+    const pathParts = filePath.replace(/\\/g, '/').split('/');
+    pathParts.pop(); // Remove filename
+    const folderPath = pathParts.join('/');
+    
+    // Open folder using file:// URL (works in pywebview)
+    const fileUrl = 'file:///' + folderPath.replace(/\\/g, '/');
+    window.open(fileUrl, '_blank');
 }
 </script>
 {% endblock %}

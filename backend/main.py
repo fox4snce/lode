@@ -15,6 +15,7 @@ import os
 import sqlite3
 import uuid
 import re
+import io
 
 # Add parent to path for imports
 parent_dir = Path(__file__).parent.parent
@@ -183,6 +184,15 @@ async def setup_initialize():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# Favicon route
+@app.get("/favicon.ico")
+async def favicon():
+    """Serve favicon.ico"""
+    favicon_path = static_dir / "img" / "favicon.ico"
+    if favicon_path.exists():
+        return FileResponse(str(favicon_path))
+    raise HTTPException(status_code=404, detail="Favicon not found")
 
 # HTML Routes
 @app.get("/", response_class=HTMLResponse)
@@ -1395,28 +1405,66 @@ async def export_conversation(
     include_timestamps: bool = Query(True),
     include_metadata: bool = Query(True)
 ):
-    """Export a conversation."""
+    """Export a conversation to a file in data/exports/."""
     if not check_database_initialized():
         raise HTTPException(status_code=400, detail="Database not initialized")
     
     try:
         import export_tools
-        from backend.db import get_db_path
+        from backend.db import get_db_path, get_db_connection
+        from datetime import datetime
+        import json
+        import csv
         
+        # Create exports directory if it doesn't exist
+        exports_dir = parent_dir / "data" / "exports"
+        exports_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Get conversation title for filename
+        conn = get_db_connection()
+        cursor = conn.execute("SELECT title FROM conversations WHERE conversation_id = ?", (conversation_id,))
+        conv_row = cursor.fetchone()
+        if not conv_row:
+            conn.close()
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        # Get custom title if exists
+        cursor = conn.execute("SELECT custom_title FROM custom_titles WHERE conversation_id = ?", (conversation_id,))
+        custom_title_row = cursor.fetchone()
+        display_title = custom_title_row[0] if custom_title_row else conv_row[0] or 'conversation'
+        conn.close()
+        
+        # Sanitize filename
+        sanitized = re.sub(r'[^a-z0-9]', '_', display_title.lower())
+        sanitized = re.sub(r'_+', '_', sanitized).strip('_')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        # Determine file extension and generate content
         if format == "markdown":
+            extension = ".md"
             content = export_tools.export_conversation_to_markdown(
                 str(get_db_path()),
                 conversation_id,
                 include_timestamps=include_timestamps,
                 include_metadata=include_metadata
             )
-            return {"format": "markdown", "content": content}
-        else:
-            # For CSV/JSON, return structured data
-            from backend.db import get_db_connection
-            import csv
-            import io
-            
+        elif format == "json":
+            extension = ".json"
+            conn = get_db_connection()
+            cursor = conn.execute("SELECT * FROM conversations WHERE conversation_id = ?", (conversation_id,))
+            conv = dict(cursor.fetchone())
+            cursor = conn.execute("""
+                SELECT message_id, role, content, create_time, parent_id
+                FROM messages
+                WHERE conversation_id = ?
+                ORDER BY create_time ASC, id ASC
+            """, (conversation_id,))
+            msgs = [dict(row) for row in cursor.fetchall()]
+            conn.close()
+            data = {"conversation": dict(conv), "messages": [dict(m) for m in msgs]}
+            content = json.dumps(data, indent=2, ensure_ascii=False)
+        else:  # CSV
+            extension = ".csv"
             conn = get_db_connection()
             cursor = conn.execute("SELECT * FROM conversations WHERE conversation_id = ?", (conversation_id,))
             conv = dict(cursor.fetchone())
@@ -1429,39 +1477,76 @@ async def export_conversation(
             msgs = [dict(row) for row in cursor.fetchall()]
             conn.close()
             
-            if format == "json":
-                return {"conversation": dict(conv), "messages": [dict(m) for m in msgs]}
-            else:  # CSV
-                # Generate actual CSV content
-                output = io.StringIO()
-                writer = csv.writer(output)
-                
-                # Write conversation metadata as header rows if metadata included
-                if include_metadata:
-                    writer.writerow(["Field", "Value"])
-                    writer.writerow(["Conversation ID", conv.get('conversation_id', '')])
-                    writer.writerow(["Title", conv.get('title', '')])
-                    writer.writerow(["AI Source", conv.get('ai_source', '')])
-                    writer.writerow(["Create Time", conv.get('create_time', '')])
-                    writer.writerow(["Update Time", conv.get('update_time', '')])
-                    writer.writerow([])  # Empty row separator
-                
-                # Write messages
-                writer.writerow(["Message ID", "Role", "Content", "Create Time", "Parent ID"])
-                for msg in msgs:
-                    content = msg.get('content', '').replace('\n', ' ').replace('\r', ' ')
-                    create_time = msg.get('create_time', '') if include_timestamps else ''
-                    writer.writerow([
-                        msg.get('message_id', ''),
-                        msg.get('role', ''),
-                        content,
-                        create_time,
-                        msg.get('parent_id', '') or ''
-                    ])
-                
-                csv_content = output.getvalue()
-                output.close()
-                return {"format": "csv", "content": csv_content}
+            # Generate CSV content
+            output = io.StringIO()
+            writer = csv.writer(output)
+            
+            # Write conversation metadata as header rows if metadata included
+            if include_metadata:
+                writer.writerow(["Field", "Value"])
+                writer.writerow(["Conversation ID", conv.get('conversation_id', '')])
+                writer.writerow(["Title", conv.get('title', '')])
+                writer.writerow(["AI Source", conv.get('ai_source', '')])
+                writer.writerow(["Create Time", conv.get('create_time', '')])
+                writer.writerow(["Update Time", conv.get('update_time', '')])
+                writer.writerow([])  # Empty row separator
+            
+            # Write messages
+            writer.writerow(["Message ID", "Role", "Content", "Create Time", "Parent ID"])
+            for msg in msgs:
+                msg_content = msg.get('content', '').replace('\n', ' ').replace('\r', ' ')
+                create_time = msg.get('create_time', '') if include_timestamps else ''
+                writer.writerow([
+                    msg.get('message_id', ''),
+                    msg.get('role', ''),
+                    msg_content,
+                    create_time,
+                    msg.get('parent_id', '') or ''
+                ])
+            
+            content = output.getvalue()
+            output.close()
+        
+        # Write file to exports directory
+        filename = f"{sanitized}_{conversation_id[:8]}_{timestamp}{extension}"
+        file_path = exports_dir / filename
+        
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        
+        # Return file path (relative to project root for display)
+        relative_path = file_path.relative_to(parent_dir)
+        
+        return {
+            "format": format,
+            "filename": filename,
+            "path": str(relative_path),
+            "absolute_path": str(file_path)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/export/file/{file_path:path}")
+async def get_exported_file(file_path: str):
+    """Get exported file content for preview."""
+    try:
+        # Security: only allow files from data/exports/
+        if not file_path.startswith('data/exports/'):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        file_path_obj = parent_dir / file_path
+        if not file_path_obj.exists() or not file_path_obj.is_file():
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Read file content
+        with open(file_path_obj, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        return {"content": content}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
