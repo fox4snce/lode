@@ -15,7 +15,13 @@ A local-first desktop application for organizing, searching, and analyzing your 
 
 ## Installation
 
-### Prerequisites
+### Download Latest Release
+
+**Pre-built Windows executable:** [Download from GitHub Releases](https://github.com/fox4snce/lode/releases/latest)
+
+The latest release includes a Windows 64-bit executable with all dependencies included. Extract the ZIP file and run `Lode.exe`.
+
+### Prerequisites (for Development)
 
 - Python 3.8 or higher
 - Windows (primary platform), macOS/Linux (should work but not fully tested)
