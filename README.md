@@ -101,6 +101,10 @@ Run the test suite:
 python tests/run_all_tests.py
 ```
 
+## Packaging (Windows)
+
+See [PACKAGING.md](PACKAGING.md).
+
 ## Technology Stack
 
 - **Backend**: FastAPI, SQLite with FTS5

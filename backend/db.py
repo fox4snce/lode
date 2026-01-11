@@ -7,20 +7,31 @@ import sys
 import os
 
 
-def get_db_path() -> Path:
-    """Get the database path, using user data directory when packaged."""
-    if getattr(sys, 'frozen', False):
+def get_data_dir() -> Path:
+    """
+    Get the persistent data directory for Lode.
+
+    - When packaged (PyInstaller/`sys.frozen`): use per-user app data directory.
+    - When running from source: use the project root (repo directory).
+    """
+    if getattr(sys, "frozen", False):
         # Running as executable
-        if os.name == 'nt':  # Windows
-            data_dir = Path(os.getenv('APPDATA', Path.home())) / 'Lode'
+        if os.name == "nt":  # Windows
+            base = Path(os.getenv("APPDATA", str(Path.home())))
+            data_dir = base / "Lode"
         else:
-            data_dir = Path.home() / '.local' / 'share' / 'Lode'
+            data_dir = Path.home() / ".local" / "share" / "Lode"
     else:
         # Running as script
         data_dir = Path(__file__).parent.parent
-    
+
     data_dir.mkdir(parents=True, exist_ok=True)
-    return data_dir / 'conversations.db'
+    return data_dir
+
+
+def get_db_path() -> Path:
+    """Get the database path, using user data directory when packaged."""
+    return get_data_dir() / "conversations.db"
 
 
 def get_db_connection():

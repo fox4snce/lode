@@ -17,6 +17,8 @@ import uuid
 import re
 import io
 
+from lode_version import __version__ as LODE_VERSION
+
 # Add parent to path for imports
 parent_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(parent_dir))
@@ -24,7 +26,7 @@ sys.path.insert(0, str(parent_dir))
 # Also add current directory for table creation scripts
 sys.path.insert(0, str(parent_dir))
 
-from backend.db import check_database_initialized, initialize_database, get_db_connection
+from backend.db import check_database_initialized, initialize_database, get_db_connection, get_data_dir
 from backend.jobs import create_job, get_job, list_jobs, cancel_job, JobType, JobStatus
 from backend.routes import organization
 
@@ -84,7 +86,7 @@ def render_template(template_name: str, **context):
     template = jinja_env.get_template(template_name)
     return template.render(**context)
 
-app = FastAPI(title="Lode", version="1.0.0")
+app = FastAPI(title="Lode", version=LODE_VERSION)
 
 # Mount static files
 static_dir = Path(__file__).parent.parent / "static"
@@ -102,7 +104,7 @@ app.add_middleware(
 # Pydantic models
 class HealthResponse(BaseModel):
     status: str
-    version: str = "1.0.0"
+    version: str = LODE_VERSION
 
 class SetupCheckResponse(BaseModel):
     initialized: bool
@@ -776,8 +778,9 @@ async def create_import_upload_job(
     if source_type not in ("openai", "claude"):
         raise HTTPException(status_code=400, detail="source_type must be 'openai' or 'claude'")
 
-    # Persist upload to a local file so the existing job runner/importers can consume it
-    uploads_dir = Path(__file__).parent.parent / "data" / "uploads"
+    # Persist upload to a local file so the existing job runner/importers can consume it.
+    # IMPORTANT: when packaged, write to the persistent user data directory (not the temp extraction dir).
+    uploads_dir = get_data_dir() / "uploads"
     uploads_dir.mkdir(parents=True, exist_ok=True)
 
     safe_name = (upload.filename or "upload.json").replace("\\", "_").replace("/", "_")
@@ -1405,7 +1408,7 @@ async def export_conversation(
     include_timestamps: bool = Query(True),
     include_metadata: bool = Query(True)
 ):
-    """Export a conversation to a file in data/exports/."""
+    """Export a conversation to a file in the persistent exports directory."""
     if not check_database_initialized():
         raise HTTPException(status_code=400, detail="Database not initialized")
     
@@ -1416,8 +1419,9 @@ async def export_conversation(
         import json
         import csv
         
-        # Create exports directory if it doesn't exist
-        exports_dir = parent_dir / "data" / "exports"
+        # Create exports directory if it doesn't exist.
+        # IMPORTANT: when packaged, write to the persistent user data directory (not the temp extraction dir).
+        exports_dir = get_data_dir() / "exports"
         exports_dir.mkdir(parents=True, exist_ok=True)
         
         # Get conversation title for filename
@@ -1514,8 +1518,8 @@ async def export_conversation(
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(content)
         
-        # Return file path (relative to project root for display)
-        relative_path = file_path.relative_to(parent_dir)
+        # Return file path relative to the Lode data dir (safe to expose and stable across machines).
+        relative_path = file_path.relative_to(get_data_dir())
         
         return {
             "format": format,
@@ -1532,19 +1536,18 @@ async def export_conversation(
 async def get_exported_file(file_path: str):
     """Get exported file content for preview."""
     try:
-        # Security: only allow files from data/exports/
-        if not file_path.startswith('data/exports/'):
+        # Security: only allow files from exports/
+        if not file_path.startswith("exports/"):
             raise HTTPException(status_code=403, detail="Access denied")
         
-        file_path_obj = parent_dir / file_path
+        file_path_obj = get_data_dir() / file_path
         if not file_path_obj.exists() or not file_path_obj.is_file():
             raise HTTPException(status_code=404, detail="File not found")
         
-        # Read file content
-        with open(file_path_obj, 'r', encoding='utf-8') as f:
-            content = f.read()
-        
-        return {"content": content}
+        # Return file content as text (used by Export page preview)
+        from fastapi.responses import PlainTextResponse
+        content = file_path_obj.read_text(encoding="utf-8", errors="replace")
+        return PlainTextResponse(content)
     except HTTPException:
         raise
     except Exception as e:

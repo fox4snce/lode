@@ -473,7 +473,7 @@ async function exportConversationFromSidebar(conversationId) {
         
         const data = await response.json();
         
-        // File is now saved server-side in data/exports/
+        // File is now saved server-side in the persistent exports directory
         const filename = data.filename || 'exported_file';
         const filePath = data.path || data.absolute_path || '';
         const absolutePath = data.absolute_path || '';
