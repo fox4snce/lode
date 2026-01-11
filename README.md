@@ -65,8 +65,8 @@ This will:
 
 ### First Run
 
-1. **Initialize Database**: On first launch, click "Initialize Database" to set up the SQLite database
-2. **Import Conversations**: Go to the Import screen and select your OpenAI or Claude JSON export file
+1. **Initialize Database**: On first launch, you'll see the Welcome screen. Click "Initialize Database" to create the SQLite database and set up all necessary tables.
+2. **Import Conversations**: After initialization, go to the Import screen and select your OpenAI or Claude JSON export file. The import process will add your conversations to the database.
 3. **Explore**: Browse conversations, search, organize, and analyze your data
 
 ### Key Features
