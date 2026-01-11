@@ -170,6 +170,8 @@ git push origin v1.0.0
 
 ### 5.2 Create GitHub Release
 
+**Canonical releases URL:** https://github.com/fox4snce/lode/releases/latest
+
 1. **Go to GitHub:**
    - Navigate to: https://github.com/fox4snce/lode/releases
    - Click "Draft a new release"
