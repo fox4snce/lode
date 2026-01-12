@@ -80,6 +80,9 @@
                 <button id="find-close" class="find-btn-close" title="Close (Esc)">×</button>
             </div>
         </div>
+        <div id="find-toolbar" style="display: flex; justify-content: flex-end; padding: 10px 15px;">
+            <button id="find-open" class="btn btn-secondary" type="button" title="Find in conversation (Ctrl+F)">Find</button>
+        </div>
         <div class="message-view" id="message-view">
             <div class="empty-state">
                 <h3>Select a conversation</h3>
@@ -532,7 +535,7 @@ function openExportsFolder(filePath) {
 (function() {
     'use strict';
     
-    let findBar, findInput, findPrev, findNext, findClose, findCount;
+    let findBar, findInput, findPrev, findNext, findClose, findCount, findOpen, findToolbar;
     let matches = [];
     let currentMatchIndex = -1;
     let searchTerm = '';
@@ -666,12 +669,14 @@ function openExportsFolder(filePath) {
     
     function showFindBar() {
         findBar.style.display = 'flex';
+        if (findToolbar) findToolbar.style.display = 'none';
         findInput.focus();
         findInput.select();
     }
     
     function hideFindBar() {
         findBar.style.display = 'none';
+        if (findToolbar) findToolbar.style.display = 'flex';
         clearHighlights();
         searchTerm = '';
         matches = [];
@@ -680,6 +685,12 @@ function openExportsFolder(filePath) {
     }
     
     function setupEventListeners() {
+        if (findOpen) {
+            findOpen.addEventListener('click', function() {
+                showFindBar();
+            });
+        }
+
         findInput.addEventListener('input', function(e) {
             searchTerm = e.target.value;
             highlightMatches(searchTerm);
@@ -703,9 +714,20 @@ function openExportsFolder(filePath) {
             }
         });
         
-        // Ctrl+F to show find bar
+        // Keyboard shortcuts (note: some embedded webviews intercept Ctrl+F; provide fallbacks)
         document.addEventListener('keydown', function(e) {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+            const key = (e.key || '').toLowerCase();
+
+            // F3 / Shift+F3: next/prev match
+            if (key === 'f3') {
+                e.preventDefault();
+                if (findBar && findBar.style.display === 'none') showFindBar();
+                if (e.shiftKey) navigatePrev(); else navigateNext();
+                return;
+            }
+
+            // Ctrl+F / Cmd+F: open find (best effort)
+            if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && key === 'f') {
                 e.preventDefault();
                 if (findBar && findBar.style.display === 'none') {
                     showFindBar();
@@ -713,8 +735,26 @@ function openExportsFolder(filePath) {
                     findInput.focus();
                     findInput.select();
                 }
+                return;
             }
-        });
+
+            // Ctrl+Shift+F: explicit in-app find (fallback if Ctrl+F is swallowed by the host)
+            if ((e.ctrlKey || e.metaKey) && !e.altKey && e.shiftKey && key === 'f') {
+                e.preventDefault();
+                showFindBar();
+                return;
+            }
+
+            // "/" opens find when not typing in an input/textarea
+            if (!e.ctrlKey && !e.metaKey && !e.altKey && key === '/') {
+                const tag = (document.activeElement && document.activeElement.tagName) ? document.activeElement.tagName.toLowerCase() : '';
+                const isTyping = tag === 'input' || tag === 'textarea' || (document.activeElement && document.activeElement.isContentEditable);
+                if (!isTyping) {
+                    e.preventDefault();
+                    showFindBar();
+                }
+            }
+        }, true);
         
         // Re-run search when messages are loaded via HTMX
         document.body.addEventListener('htmx:afterSwap', function(event) {
@@ -723,6 +763,29 @@ function openExportsFolder(filePath) {
                 setTimeout(() => highlightMatches(searchTerm), 100);
             }
         });
+    }
+
+    function initFindBar() {
+        findBar = document.getElementById('find-bar');
+        findToolbar = document.getElementById('find-toolbar');
+        findOpen = document.getElementById('find-open');
+        findInput = document.getElementById('find-input');
+        findPrev = document.getElementById('find-prev');
+        findNext = document.getElementById('find-next');
+        findClose = document.getElementById('find-close');
+        findCount = document.getElementById('find-count');
+
+        // If DOM isn’t ready yet, retry shortly.
+        if (!findBar || !findToolbar || !findInput || !findPrev || !findNext || !findClose || !findCount) {
+            setTimeout(initFindBar, 50);
+            return;
+        }
+
+        // Start with toolbar visible (find bar hidden)
+        findBar.style.display = 'none';
+        findToolbar.style.display = 'flex';
+
+        setupEventListeners();
     }
     
     // Initialize on DOM ready
