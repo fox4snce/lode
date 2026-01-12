@@ -70,19 +70,6 @@
     
     <!-- Center Panel: Messages -->
     <div class="panel panel-center">
-        <!-- Find Bar -->
-        <div id="find-bar" class="find-bar" style="display: none;">
-            <input type="text" id="find-input" placeholder="Find in conversation..." autocomplete="off">
-            <div class="find-controls">
-                <button id="find-prev" class="find-btn" title="Previous (Shift+Enter)">↑</button>
-                <button id="find-next" class="find-btn" title="Next (Enter)">↓</button>
-                <span id="find-count" class="find-count"></span>
-                <button id="find-close" class="find-btn-close" title="Close (Esc)">×</button>
-            </div>
-        </div>
-        <div id="find-toolbar" style="display: flex; justify-content: flex-end; padding: 10px 15px;">
-            <button id="find-open" class="btn btn-secondary" type="button" title="Find in conversation (Ctrl+F)">Find</button>
-        </div>
         <div class="message-view" id="message-view">
             <div class="empty-state">
                 <h3>Select a conversation</h3>
@@ -95,6 +82,23 @@
     <div class="panel panel-right">
         <div class="card">
             <h2>Conversation Details</h2>
+            <div class="conv-find" id="conv-find">
+                <div class="conv-find-header">
+                    <span class="conv-find-title">Find in conversation</span>
+                    <span class="conv-find-hint">Ctrl+F</span>
+                </div>
+                <div class="conv-find-row">
+                    <input type="text" id="conv-find-input" placeholder="Search in this conversation…" autocomplete="off">
+                    <div class="conv-find-actions">
+                        <button id="conv-find-prev" class="conv-find-btn" type="button" title="Previous (Shift+Enter)">↑</button>
+                        <button id="conv-find-next" class="conv-find-btn" type="button" title="Next (Enter)">↓</button>
+                        <button id="conv-find-clear" class="conv-find-btn conv-find-btn-clear" type="button" title="Clear">×</button>
+                    </div>
+                </div>
+                <div class="conv-find-footer">
+                    <span id="conv-find-count" class="conv-find-count"></span>
+                </div>
+            </div>
             <div id="conversation-details">
                 <p class="empty-state">No conversation selected</p>
             </div>
@@ -535,7 +539,7 @@ function openExportsFolder(filePath) {
 (function() {
     'use strict';
     
-    let findBar, findInput, findPrev, findNext, findClose, findCount, findOpen, findToolbar;
+    let findInput, findPrev, findNext, findClear, findCount;
     let matches = [];
     let currentMatchIndex = -1;
     let searchTerm = '';
@@ -551,13 +555,32 @@ function openExportsFolder(filePath) {
             parent.normalize();
         });
     }
+
+    function updateControls() {
+        const hasTerm = !!searchTerm.trim();
+        const hasMatches = matches.length > 0;
+
+        if (findPrev) findPrev.disabled = !hasMatches;
+        if (findNext) findNext.disabled = !hasMatches;
+        if (findClear) findClear.disabled = !hasTerm && !hasMatches;
+
+        if (!findCount) return;
+        if (!hasTerm) {
+            findCount.textContent = '';
+        } else if (!hasMatches) {
+            findCount.textContent = 'No matches';
+        } else {
+            findCount.textContent = `${currentMatchIndex + 1} of ${matches.length}`;
+        }
+    }
     
     function highlightMatches(term) {
         clearHighlights();
         matches = [];
         
         if (!term.trim()) {
-            updateFindCount();
+            currentMatchIndex = -1;
+            updateControls();
             return;
         }
         
@@ -622,13 +645,14 @@ function openExportsFolder(filePath) {
             });
         });
         
-        updateFindCount();
+        updateControls();
         if (matches.length > 0) {
             currentMatchIndex = 0;
             scrollToMatch(0);
         } else {
             currentMatchIndex = -1;
         }
+        updateControls();
     }
     
     function scrollToMatch(index) {
@@ -645,52 +669,38 @@ function openExportsFolder(filePath) {
         currentMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
     
-    function updateFindCount() {
-        if (matches.length === 0) {
-            findCount.textContent = searchTerm.trim() ? 'No matches' : '';
-        } else {
-            findCount.textContent = `${currentMatchIndex + 1} of ${matches.length}`;
-        }
-    }
-    
     function navigateNext() {
         if (matches.length === 0) return;
         currentMatchIndex = (currentMatchIndex + 1) % matches.length;
         scrollToMatch(currentMatchIndex);
-        updateFindCount();
+        updateControls();
     }
     
     function navigatePrev() {
         if (matches.length === 0) return;
         currentMatchIndex = (currentMatchIndex - 1 + matches.length) % matches.length;
         scrollToMatch(currentMatchIndex);
-        updateFindCount();
+        updateControls();
     }
-    
-    function showFindBar() {
-        findBar.style.display = 'flex';
-        if (findToolbar) findToolbar.style.display = 'none';
+
+    function focusFind() {
+        if (!findInput) return;
         findInput.focus();
         findInput.select();
     }
-    
-    function hideFindBar() {
-        findBar.style.display = 'none';
-        if (findToolbar) findToolbar.style.display = 'flex';
-        clearHighlights();
+
+    function clearFind() {
+        if (!findInput) return;
+        findInput.value = '';
         searchTerm = '';
         matches = [];
         currentMatchIndex = -1;
-        findInput.value = '';
+        clearHighlights();
+        updateControls();
+        focusFind();
     }
     
     function setupEventListeners() {
-        if (findOpen) {
-            findOpen.addEventListener('click', function() {
-                showFindBar();
-            });
-        }
-
         findInput.addEventListener('input', function(e) {
             searchTerm = e.target.value;
             highlightMatches(searchTerm);
@@ -698,7 +708,7 @@ function openExportsFolder(filePath) {
         
         findNext.addEventListener('click', navigateNext);
         findPrev.addEventListener('click', navigatePrev);
-        findClose.addEventListener('click', hideFindBar);
+        findClear.addEventListener('click', clearFind);
         
         findInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
@@ -710,7 +720,7 @@ function openExportsFolder(filePath) {
                 }
             } else if (e.key === 'Escape') {
                 e.preventDefault();
-                hideFindBar();
+                clearFind();
             }
         });
         
@@ -721,7 +731,7 @@ function openExportsFolder(filePath) {
             // F3 / Shift+F3: next/prev match
             if (key === 'f3') {
                 e.preventDefault();
-                if (findBar && findBar.style.display === 'none') showFindBar();
+                focusFind();
                 if (e.shiftKey) navigatePrev(); else navigateNext();
                 return;
             }
@@ -729,19 +739,14 @@ function openExportsFolder(filePath) {
             // Ctrl+F / Cmd+F: open find (best effort)
             if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && key === 'f') {
                 e.preventDefault();
-                if (findBar && findBar.style.display === 'none') {
-                    showFindBar();
-                } else if (findInput) {
-                    findInput.focus();
-                    findInput.select();
-                }
+                focusFind();
                 return;
             }
 
             // Ctrl+Shift+F: explicit in-app find (fallback if Ctrl+F is swallowed by the host)
             if ((e.ctrlKey || e.metaKey) && !e.altKey && e.shiftKey && key === 'f') {
                 e.preventDefault();
-                showFindBar();
+                focusFind();
                 return;
             }
 
@@ -751,7 +756,7 @@ function openExportsFolder(filePath) {
                 const isTyping = tag === 'input' || tag === 'textarea' || (document.activeElement && document.activeElement.isContentEditable);
                 if (!isTyping) {
                     e.preventDefault();
-                    showFindBar();
+                    focusFind();
                 }
             }
         }, true);
@@ -766,26 +771,20 @@ function openExportsFolder(filePath) {
     }
 
     function initFindBar() {
-        findBar = document.getElementById('find-bar');
-        findToolbar = document.getElementById('find-toolbar');
-        findOpen = document.getElementById('find-open');
-        findInput = document.getElementById('find-input');
-        findPrev = document.getElementById('find-prev');
-        findNext = document.getElementById('find-next');
-        findClose = document.getElementById('find-close');
-        findCount = document.getElementById('find-count');
+        findInput = document.getElementById('conv-find-input');
+        findPrev = document.getElementById('conv-find-prev');
+        findNext = document.getElementById('conv-find-next');
+        findClear = document.getElementById('conv-find-clear');
+        findCount = document.getElementById('conv-find-count');
 
         // If DOM isn’t ready yet, retry shortly.
-        if (!findBar || !findToolbar || !findInput || !findPrev || !findNext || !findClose || !findCount) {
+        if (!findInput || !findPrev || !findNext || !findClear || !findCount) {
             setTimeout(initFindBar, 50);
             return;
         }
 
-        // Start with toolbar visible (find bar hidden)
-        findBar.style.display = 'none';
-        findToolbar.style.display = 'flex';
-
         setupEventListeners();
+        updateControls();
     }
     
     // Initialize on DOM ready

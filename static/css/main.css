@@ -514,4 +514,108 @@ mark.search-hit {
 .hidden {
     display: none;
 }
+/* Find (sidebar) */
+.conv-find {
+    margin: 10px 0 14px 0;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #f8f9fa;
+}
 
+.conv-find-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.conv-find-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.conv-find-hint {
+    font-size: 11px;
+    color: #6b7280;
+}
+
+.conv-find-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.conv-find-row input {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 13px;
+    background: white;
+}
+
+.conv-find-row input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52,152,219,0.15);
+}
+
+.conv-find-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.conv-find-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    background: white;
+    color: #2c3e50;
+    cursor: pointer;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.conv-find-btn:hover {
+    background: #eef2f7;
+    border-color: #cbd5e1;
+}
+
+.conv-find-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.conv-find-btn-clear {
+    color: #e74c3c;
+}
+
+.conv-find-footer {
+    margin-top: 6px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.conv-find-count {
+    font-size: 12px;
+    color: #6b7280;
+    min-height: 16px;
+}
+/* Find matches highlighting (in-message) */
+.find-match {
+    background: #ffe08a;
+    color: inherit;
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+.find-match.active {
+    background: #f39c12;
+    color: white;
+}
