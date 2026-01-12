@@ -521,6 +521,7 @@ mark.search-hit {
     border: 1px solid #e5e7eb;
     border-radius: 10px;
     background: #f8f9fa;
+    overflow: hidden;
 }
 
 .conv-find-header {
@@ -549,6 +550,7 @@ mark.search-hit {
 
 .conv-find-row input {
     flex: 1;
+    min-width: 0; /* allow input to shrink so buttons stay inside the box */
     padding: 8px 10px;
     border: 1px solid #d1d5db;
     border-radius: 8px;
@@ -565,6 +567,7 @@ mark.search-hit {
 .conv-find-actions {
     display: flex;
     gap: 6px;
+    flex-shrink: 0;
 }
 
 .conv-find-btn {
