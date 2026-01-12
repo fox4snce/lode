@@ -537,27 +537,6 @@ function openExportsFolder(filePath) {
     let currentMatchIndex = -1;
     let searchTerm = '';
     
-    // Wait for DOM to be ready
-    function initFindBar() {
-        findBar = document.getElementById('find-bar');
-        findInput = document.getElementById('find-input');
-        findPrev = document.getElementById('find-prev');
-        findNext = document.getElementById('find-next');
-        findClose = document.getElementById('find-close');
-        findCount = document.getElementById('find-count');
-        
-        if (!findBar || !findInput || !findPrev || !findNext || !findClose || !findCount) {
-            console.warn('Find bar elements not found, retrying...');
-            setTimeout(initFindBar, 100);
-            return;
-        }
-        
-        // Set up event listeners
-        setupEventListeners();
-    }
-    
-    function setupEventListeners() {
-    
     function escapeRegex(str) {
         return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
