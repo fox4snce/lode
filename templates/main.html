@@ -70,6 +70,16 @@
     
     <!-- Center Panel: Messages -->
     <div class="panel panel-center">
+        <!-- Find Bar -->
+        <div id="find-bar" class="find-bar" style="display: none;">
+            <input type="text" id="find-input" placeholder="Find in conversation..." autocomplete="off">
+            <div class="find-controls">
+                <button id="find-prev" class="find-btn" title="Previous (Shift+Enter)">↑</button>
+                <button id="find-next" class="find-btn" title="Next (Enter)">↓</button>
+                <span id="find-count" class="find-count"></span>
+                <button id="find-close" class="find-btn-close" title="Close (Esc)">×</button>
+            </div>
+        </div>
         <div class="message-view" id="message-view">
             <div class="empty-state">
                 <h3>Select a conversation</h3>
@@ -517,6 +527,209 @@ function openExportsFolder(filePath) {
     const fileUrl = 'file:///' + folderPath.replace(/\\/g, '/');
     window.open(fileUrl, '_blank');
 }
+
+// Find functionality for conversation messages
+(function() {
+    'use strict';
+    
+    let findBar = document.getElementById('find-bar');
+    let findInput = document.getElementById('find-input');
+    let findPrev = document.getElementById('find-prev');
+    let findNext = document.getElementById('find-next');
+    let findClose = document.getElementById('find-close');
+    let findCount = document.getElementById('find-count');
+    
+    let matches = [];
+    let currentMatchIndex = -1;
+    let searchTerm = '';
+    
+    function escapeRegex(str) {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+    
+    function clearHighlights() {
+        document.querySelectorAll('.find-match').forEach(el => {
+            const parent = el.parentNode;
+            parent.replaceChild(document.createTextNode(el.textContent), el);
+            parent.normalize();
+        });
+    }
+    
+    function highlightMatches(term) {
+        clearHighlights();
+        matches = [];
+        
+        if (!term.trim()) {
+            updateFindCount();
+            return;
+        }
+        
+        const regex = new RegExp(escapeRegex(term), 'gi');
+        const messageContents = document.querySelectorAll('#message-view .message-content');
+        
+        messageContents.forEach(messageEl => {
+            // Get all text nodes (walk the tree)
+            const textNodes = [];
+            const walker = document.createTreeWalker(
+                messageEl,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+            
+            let node;
+            while (node = walker.nextNode()) {
+                if (node.textContent.trim() && node.parentNode && !node.parentNode.classList.contains('find-match')) {
+                    textNodes.push(node);
+                }
+            }
+            
+            // Process each text node
+            textNodes.forEach(textNode => {
+                const text = textNode.textContent;
+                const matchIndices = [];
+                const localRegex = new RegExp(escapeRegex(term), 'gi');
+                let match;
+                while ((match = localRegex.exec(text)) !== null) {
+                    matchIndices.push({
+                        start: match.index,
+                        end: match.index + match[0].length
+                    });
+                }
+                
+                if (matchIndices.length > 0 && textNode.parentNode) {
+                    // Work backwards to preserve indices
+                    const fragment = document.createDocumentFragment();
+                    let lastIndex = 0;
+                    
+                    matchIndices.forEach(({start, end}) => {
+                        if (lastIndex < start) {
+                            fragment.appendChild(document.createTextNode(text.substring(lastIndex, start)));
+                        }
+                        
+                        const mark = document.createElement('mark');
+                        mark.className = 'find-match';
+                        mark.textContent = text.substring(start, end);
+                        matches.push(mark);
+                        fragment.appendChild(mark);
+                        
+                        lastIndex = end;
+                    });
+                    
+                    if (lastIndex < text.length) {
+                        fragment.appendChild(document.createTextNode(text.substring(lastIndex)));
+                    }
+                    
+                    textNode.parentNode.replaceChild(fragment, textNode);
+                }
+            });
+        });
+        
+        updateFindCount();
+        if (matches.length > 0) {
+            currentMatchIndex = 0;
+            scrollToMatch(0);
+        } else {
+            currentMatchIndex = -1;
+        }
+    }
+    
+    function scrollToMatch(index) {
+        if (index < 0 || index >= matches.length) return;
+        
+        // Remove active class from all matches
+        matches.forEach(m => m.classList.remove('active'));
+        
+        // Add active class to current match
+        const currentMatch = matches[index];
+        currentMatch.classList.add('active');
+        
+        // Scroll to match
+        currentMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    
+    function updateFindCount() {
+        if (matches.length === 0) {
+            findCount.textContent = searchTerm.trim() ? 'No matches' : '';
+        } else {
+            findCount.textContent = `${currentMatchIndex + 1} of ${matches.length}`;
+        }
+    }
+    
+    function navigateNext() {
+        if (matches.length === 0) return;
+        currentMatchIndex = (currentMatchIndex + 1) % matches.length;
+        scrollToMatch(currentMatchIndex);
+        updateFindCount();
+    }
+    
+    function navigatePrev() {
+        if (matches.length === 0) return;
+        currentMatchIndex = (currentMatchIndex - 1 + matches.length) % matches.length;
+        scrollToMatch(currentMatchIndex);
+        updateFindCount();
+    }
+    
+    function showFindBar() {
+        findBar.style.display = 'flex';
+        findInput.focus();
+        findInput.select();
+    }
+    
+    function hideFindBar() {
+        findBar.style.display = 'none';
+        clearHighlights();
+        searchTerm = '';
+        matches = [];
+        currentMatchIndex = -1;
+        findInput.value = '';
+    }
+    
+    // Event listeners
+    findInput.addEventListener('input', function(e) {
+        searchTerm = e.target.value;
+        highlightMatches(searchTerm);
+    });
+    
+    findNext.addEventListener('click', navigateNext);
+    findPrev.addEventListener('click', navigatePrev);
+    findClose.addEventListener('click', hideFindBar);
+    
+    findInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                navigatePrev();
+            } else {
+                navigateNext();
+            }
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            hideFindBar();
+        }
+    });
+    
+    // Ctrl+F to show find bar
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+            e.preventDefault();
+            if (findBar.style.display === 'none') {
+                showFindBar();
+            } else {
+                findInput.focus();
+                findInput.select();
+            }
+        }
+    });
+    
+    // Re-run search when messages are loaded via HTMX
+    document.body.addEventListener('htmx:afterSwap', function(event) {
+        if (event.detail.target.id === 'message-view' && searchTerm) {
+            // Re-highlight after new messages are loaded
+            setTimeout(() => highlightMatches(searchTerm), 100);
+        }
+    });
+})();
 </script>
 {% endblock %}
 
