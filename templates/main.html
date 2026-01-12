@@ -532,16 +532,31 @@ function openExportsFolder(filePath) {
 (function() {
     'use strict';
     
-    let findBar = document.getElementById('find-bar');
-    let findInput = document.getElementById('find-input');
-    let findPrev = document.getElementById('find-prev');
-    let findNext = document.getElementById('find-next');
-    let findClose = document.getElementById('find-close');
-    let findCount = document.getElementById('find-count');
-    
+    let findBar, findInput, findPrev, findNext, findClose, findCount;
     let matches = [];
     let currentMatchIndex = -1;
     let searchTerm = '';
+    
+    // Wait for DOM to be ready
+    function initFindBar() {
+        findBar = document.getElementById('find-bar');
+        findInput = document.getElementById('find-input');
+        findPrev = document.getElementById('find-prev');
+        findNext = document.getElementById('find-next');
+        findClose = document.getElementById('find-close');
+        findCount = document.getElementById('find-count');
+        
+        if (!findBar || !findInput || !findPrev || !findNext || !findClose || !findCount) {
+            console.warn('Find bar elements not found, retrying...');
+            setTimeout(initFindBar, 100);
+            return;
+        }
+        
+        // Set up event listeners
+        setupEventListeners();
+    }
+    
+    function setupEventListeners() {
     
     function escapeRegex(str) {
         return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -685,50 +700,58 @@ function openExportsFolder(filePath) {
         findInput.value = '';
     }
     
-    // Event listeners
-    findInput.addEventListener('input', function(e) {
-        searchTerm = e.target.value;
-        highlightMatches(searchTerm);
-    });
-    
-    findNext.addEventListener('click', navigateNext);
-    findPrev.addEventListener('click', navigatePrev);
-    findClose.addEventListener('click', hideFindBar);
-    
-    findInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            if (e.shiftKey) {
-                navigatePrev();
-            } else {
-                navigateNext();
+    function setupEventListeners() {
+        findInput.addEventListener('input', function(e) {
+            searchTerm = e.target.value;
+            highlightMatches(searchTerm);
+        });
+        
+        findNext.addEventListener('click', navigateNext);
+        findPrev.addEventListener('click', navigatePrev);
+        findClose.addEventListener('click', hideFindBar);
+        
+        findInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    navigatePrev();
+                } else {
+                    navigateNext();
+                }
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                hideFindBar();
             }
-        } else if (e.key === 'Escape') {
-            e.preventDefault();
-            hideFindBar();
-        }
-    });
-    
-    // Ctrl+F to show find bar
-    document.addEventListener('keydown', function(e) {
-        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-            e.preventDefault();
-            if (findBar.style.display === 'none') {
-                showFindBar();
-            } else {
-                findInput.focus();
-                findInput.select();
+        });
+        
+        // Ctrl+F to show find bar
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                if (findBar && findBar.style.display === 'none') {
+                    showFindBar();
+                } else if (findInput) {
+                    findInput.focus();
+                    findInput.select();
+                }
             }
-        }
-    });
+        });
+        
+        // Re-run search when messages are loaded via HTMX
+        document.body.addEventListener('htmx:afterSwap', function(event) {
+            if (event.detail.target.id === 'message-view' && searchTerm) {
+                // Re-highlight after new messages are loaded
+                setTimeout(() => highlightMatches(searchTerm), 100);
+            }
+        });
+    }
     
-    // Re-run search when messages are loaded via HTMX
-    document.body.addEventListener('htmx:afterSwap', function(event) {
-        if (event.detail.target.id === 'message-view' && searchTerm) {
-            // Re-highlight after new messages are loaded
-            setTimeout(() => highlightMatches(searchTerm), 100);
-        }
-    });
+    // Initialize on DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initFindBar);
+    } else {
+        initFindBar();
+    }
 })();
 </script>
 {% endblock %}
