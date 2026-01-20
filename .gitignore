@@ -54,8 +54,10 @@ htmlcov/
 # Frontend directory (React/Vite - no longer used, but keep in gitignore in case)
 frontend/
 
-# Documentation (internal development docs)
-docs/
+# Documentation
+# - Keep docs tracked by default
+# - Put local / me-only notes under docs/ignored (gitignored)
+docs/ignored/
 
 # ONNX model files (large, should be downloaded separately)
 vendor/
