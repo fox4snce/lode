@@ -65,6 +65,8 @@ class SQLiteVectorDB:
             )
             conn.execute("CREATE INDEX IF NOT EXISTS idx_vectors_file_id ON vectors(file_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_vectors_created_at ON vectors(created_at)")
+            # Ensure idempotent upserts by file_id (NULLs are allowed multiple times in UNIQUE)
+            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_vectors_file_id_unique ON vectors(file_id)")
 
     def insert(
         self,
@@ -76,7 +78,8 @@ class SQLiteVectorDB:
     ) -> int:
         with self._connect() as conn:
             cur = conn.execute(
-                "INSERT INTO vectors (content, vector, metadata, file_id) VALUES (?, ?, ?, ?)",
+                # REPLACE is safe due to UNIQUE(file_id); re-index runs won't create duplicates.
+                "INSERT OR REPLACE INTO vectors (content, vector, metadata, file_id) VALUES (?, ?, ?, ?)",
                 (content, json.dumps(list(vector)), json.dumps(metadata) if metadata is not None else None, file_id),
             )
             return int(cur.lastrowid)
@@ -89,7 +92,7 @@ class SQLiteVectorDB:
             try:
                 for item in items:
                     cur.execute(
-                        "INSERT INTO vectors (content, vector, metadata, file_id) VALUES (?, ?, ?, ?)",
+                        "INSERT OR REPLACE INTO vectors (content, vector, metadata, file_id) VALUES (?, ?, ?, ?)",
                         (
                             item["content"],
                             json.dumps(list(item["vector"])),

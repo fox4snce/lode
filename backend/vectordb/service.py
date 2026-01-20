@@ -75,11 +75,16 @@ def search_phrases(
     for phrase, emb in zip(phrases, embs):
         rows = vectordb.search_fast(emb.tolist(), top_n=top_k, filters=filters)
         results: List[Dict[str, Any]] = []
+        seen_keys = set()
         for r in rows:
             if min_similarity is not None and r.similarity < float(min_similarity):
                 continue
 
             md = r.metadata or {}
+            dedupe_key = (md.get("conversation_id"), md.get("chunk_index"), md.get("type"), r.content)
+            if dedupe_key in seen_keys:
+                continue
+            seen_keys.add(dedupe_key)
             source = {
                 "conversation_id": md.get("conversation_id"),
                 "message_ids": md.get("message_ids"),
