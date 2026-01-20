@@ -1,0 +1,1413 @@
+{
+  "minilm": {
+    "model": "sentence-transformers/all-MiniLM-L6-v2",
+    "embedding_dim": 384,
+    "timestamp": 1768935636.3255687,
+    "queries": [
+      {
+        "query": "spacetime as a simulation",
+        "embed_time_ms": 10.484300000825897,
+        "search_time_ms": 5431.589800000438,
+        "total_time_ms": 5442.074100001264,
+        "top_k": 10,
+        "results": [
+          {
+            "similarity": 0.8755403757095337,
+            "conversation_id": "6c6dde9d-9fbb-42e2-a5f2-f1b9cadffac7",
+            "title": "Add Genres to Library",
+            "chunk_index": 1,
+            "content_preview": "universe from cosmic threats.\"} } } }"
+          },
+          {
+            "similarity": 0.8637821674346924,
+            "conversation_id": "c0fb874c-443b-496f-97f1-cfdfdbf7727c",
+            "title": "Test Request Summary",
+            "chunk_index": 0,
+            "content_preview": "user: test"
+          },
+          {
+            "similarity": 0.8571994304656982,
+            "conversation_id": "67cc875c-09a0-800f-909a-95187bdd3a88",
+            "title": "EM and Spacetime Interaction",
+            "chunk_index": 6,
+            "content_preview": "into that static view of the universe?**"
+          },
+          {
+            "similarity": 0.8563074469566345,
+            "conversation_id": "74ac30a2-6e1b-4eee-990a-de45a8154f82",
+            "title": "",
+            "chunk_index": 0,
+            "content_preview": "user: how many minutes in a day?"
+          },
+          {
+            "similarity": 0.8489494919776917,
+            "conversation_id": "a27b5e82-b449-4007-baf8-98a2feb11269",
+            "title": "New chat",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.8489494919776917,
+            "conversation_id": "9b8e29e5-6080-483b-ad58-af196865a271",
+            "title": "New chat",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.8489494919776917,
+            "conversation_id": "bc657f08-1124-4772-9604-066f3ffd224a",
+            "title": "Hello Conversation Summary",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.8489494919776917,
+            "conversation_id": "360e6c09-bda6-4051-9ca5-5a3973322c05",
+            "title": "Hello Response",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.8476666212081909,
+            "conversation_id": "69221f9f-d530-832e-abd8-17cc28e987f5",
+            "title": "Tattoo studio prompt",
+            "chunk_index": 1,
+            "content_preview": "can run the stories again. please"
+          },
+          {
+            "similarity": 0.8439629077911377,
+            "conversation_id": "68bb333c-74a8-8324-9750-c6a4f6e8d071",
+            "title": "Technical critique feedback",
+            "chunk_index": 12,
+            "content_preview": "and verify end-to-end."
+          }
+        ],
+        "similarity_stats": {
+          "mean": 0.8540256917476654,
+          "median": 0.8489494919776917,
+          "std": 0.009044988024287869,
+          "min": 0.8439629077911377,
+          "max": 0.8755403757095337
+        }
+      },
+      {
+        "query": "quantum mechanics",
+        "embed_time_ms": 10.698699999920791,
+        "search_time_ms": 5330.20679999936,
+        "total_time_ms": 5340.90549999928,
+        "top_k": 10,
+        "results": [
+          {
+            "similarity": 0.915995180606842,
+            "conversation_id": "a27b5e82-b449-4007-baf8-98a2feb11269",
+            "title": "New chat",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.915995180606842,
+            "conversation_id": "9b8e29e5-6080-483b-ad58-af196865a271",
+            "title": "New chat",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.915995180606842,
+            "conversation_id": "bc657f08-1124-4772-9604-066f3ffd224a",
+            "title": "Hello Conversation Summary",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.915995180606842,
+            "conversation_id": "360e6c09-bda6-4051-9ca5-5a3973322c05",
+            "title": "Hello Response",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.9136611223220825,
+            "conversation_id": "c0fb874c-443b-496f-97f1-cfdfdbf7727c",
+            "title": "Test Request Summary",
+            "chunk_index": 0,
+            "content_preview": "user: test"
+          },
+          {
+            "similarity": 0.902060329914093,
+            "conversation_id": "68a539f2-7e7c-8331-88da-b72bbd907a5b",
+            "title": "Mapmaker's Journey",
+            "chunk_index": 30,
+            "content_preview": "once, answered immediately."
+          },
+          {
+            "similarity": 0.902060329914093,
+            "conversation_id": "68a54155-3000-8326-84e9-3e6d6159c0a9",
+            "title": "Chapter critique",
+            "chunk_index": 11,
+            "content_preview": "once, answered immediately."
+          },
+          {
+            "similarity": 0.8939597606658936,
+            "conversation_id": "691a07ad-ae7c-8330-9ea1-d90667d82cae",
+            "title": "Reducing wordcount with LLMs",
+            "chunk_index": 9,
+            "content_preview": "at it, ignore it."
+          },
+          {
+            "similarity": 0.8854333162307739,
+            "conversation_id": "6926030d-4df0-8329-91e0-b019b3eb54d2",
+            "title": "Patreon post ideas",
+            "chunk_index": 32,
+            "content_preview": "a whole post on that one. SO lets just leave it there."
+          },
+          {
+            "similarity": 0.8850187063217163,
+            "conversation_id": "68bb333c-74a8-8324-9750-c6a4f6e8d071",
+            "title": "Technical critique feedback",
+            "chunk_index": 12,
+            "content_preview": "and verify end-to-end."
+          }
+        ],
+        "similarity_stats": {
+          "mean": 0.904617428779602,
+          "median": 0.9078607261180878,
+          "std": 0.012158967203527726,
+          "min": 0.8850187063217163,
+          "max": 0.915995180606842
+        }
+      },
+      {
+        "query": "database design",
+        "embed_time_ms": 10.151000000405475,
+        "search_time_ms": 5321.989899999608,
+        "total_time_ms": 5332.140900000013,
+        "top_k": 10,
+        "results": [
+          {
+            "similarity": 0.8880941271781921,
+            "conversation_id": "a27b5e82-b449-4007-baf8-98a2feb11269",
+            "title": "New chat",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.8880941271781921,
+            "conversation_id": "9b8e29e5-6080-483b-ad58-af196865a271",
+            "title": "New chat",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.8880941271781921,
+            "conversation_id": "bc657f08-1124-4772-9604-066f3ffd224a",
+            "title": "Hello Conversation Summary",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.8880941271781921,
+            "conversation_id": "360e6c09-bda6-4051-9ca5-5a3973322c05",
+            "title": "Hello Response",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.8778388500213623,
+            "conversation_id": "692d504c-1144-8327-8aa1-d3d68c09fd2b",
+            "title": "Fire and Curiosity",
+            "chunk_index": 13,
+            "content_preview": "assistant: 👍"
+          },
+          {
+            "similarity": 0.8767827749252319,
+            "conversation_id": "c0fb874c-443b-496f-97f1-cfdfdbf7727c",
+            "title": "Test Request Summary",
+            "chunk_index": 0,
+            "content_preview": "user: test"
+          },
+          {
+            "similarity": 0.8754884004592896,
+            "conversation_id": "85cff652-505c-4410-8f14-920a4552a064",
+            "title": "Superhero Story Outline",
+            "chunk_index": 2,
+            "content_preview": "assistant: I acknowledge"
+          },
+          {
+            "similarity": 0.8722397089004517,
+            "conversation_id": "aca8c852-d163-4237-8e4a-a94cb5751337",
+            "title": "Create Agate ChatGPT Teams Icon",
+            "chunk_index": 3,
+            "content_preview": "assistant: The new icon design,"
+          },
+          {
+            "similarity": 0.870345950126648,
+            "conversation_id": "69221f9f-d530-832e-abd8-17cc28e987f5",
+            "title": "Tattoo studio prompt",
+            "chunk_index": 1,
+            "content_preview": "can run the stories again. please"
+          },
+          {
+            "similarity": 0.8638996481895447,
+            "conversation_id": "68a539f2-7e7c-8331-88da-b72bbd907a5b",
+            "title": "Mapmaker's Journey",
+            "chunk_index": 30,
+            "content_preview": "once, answered immediately."
+          }
+        ],
+        "similarity_stats": {
+          "mean": 0.8788971841335297,
+          "median": 0.8773108124732971,
+          "std": 0.00835414455769445,
+          "min": 0.8638996481895447,
+          "max": 0.8880941271781921
+        }
+      },
+      {
+        "query": "API architecture",
+        "embed_time_ms": 9.796899999855668,
+        "search_time_ms": 5280.433599999014,
+        "total_time_ms": 5290.23049999887,
+        "top_k": 10,
+        "results": [
+          {
+            "similarity": 0.912771463394165,
+            "conversation_id": "692d504c-1144-8327-8aa1-d3d68c09fd2b",
+            "title": "Fire and Curiosity",
+            "chunk_index": 13,
+            "content_preview": "assistant: 👍"
+          },
+          {
+            "similarity": 0.9078284502029419,
+            "conversation_id": "85cff652-505c-4410-8f14-920a4552a064",
+            "title": "Superhero Story Outline",
+            "chunk_index": 2,
+            "content_preview": "assistant: I acknowledge"
+          },
+          {
+            "similarity": 0.9043725728988647,
+            "conversation_id": "aca8c852-d163-4237-8e4a-a94cb5751337",
+            "title": "Create Agate ChatGPT Teams Icon",
+            "chunk_index": 3,
+            "content_preview": "assistant: The new icon design,"
+          },
+          {
+            "similarity": 0.9014739990234375,
+            "conversation_id": "a27b5e82-b449-4007-baf8-98a2feb11269",
+            "title": "New chat",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.9014739990234375,
+            "conversation_id": "9b8e29e5-6080-483b-ad58-af196865a271",
+            "title": "New chat",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.9014739990234375,
+            "conversation_id": "bc657f08-1124-4772-9604-066f3ffd224a",
+            "title": "Hello Conversation Summary",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.9014739990234375,
+            "conversation_id": "360e6c09-bda6-4051-9ca5-5a3973322c05",
+            "title": "Hello Response",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.8991597890853882,
+            "conversation_id": "c0fb874c-443b-496f-97f1-cfdfdbf7727c",
+            "title": "Test Request Summary",
+            "chunk_index": 0,
+            "content_preview": "user: test"
+          },
+          {
+            "similarity": 0.8892141580581665,
+            "conversation_id": "691a07ad-ae7c-8330-9ea1-d90667d82cae",
+            "title": "Reducing wordcount with LLMs",
+            "chunk_index": 9,
+            "content_preview": "at it, ignore it."
+          },
+          {
+            "similarity": 0.8820762038230896,
+            "conversation_id": "68a539f2-7e7c-8331-88da-b72bbd907a5b",
+            "title": "Mapmaker's Journey",
+            "chunk_index": 30,
+            "content_preview": "once, answered immediately."
+          }
+        ],
+        "similarity_stats": {
+          "mean": 0.9001318633556366,
+          "median": 0.9014739990234375,
+          "std": 0.008308633622743162,
+          "min": 0.8820762038230896,
+          "max": 0.912771463394165
+        }
+      },
+      {
+        "query": "machine learning",
+        "embed_time_ms": 10.300100000677048,
+        "search_time_ms": 5317.968200000905,
+        "total_time_ms": 5328.268300001582,
+        "top_k": 10,
+        "results": [
+          {
+            "similarity": 0.9193719625473022,
+            "conversation_id": "c0fb874c-443b-496f-97f1-cfdfdbf7727c",
+            "title": "Test Request Summary",
+            "chunk_index": 0,
+            "content_preview": "user: test"
+          },
+          {
+            "similarity": 0.9155072569847107,
+            "conversation_id": "a27b5e82-b449-4007-baf8-98a2feb11269",
+            "title": "New chat",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.9155072569847107,
+            "conversation_id": "9b8e29e5-6080-483b-ad58-af196865a271",
+            "title": "New chat",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.9155072569847107,
+            "conversation_id": "bc657f08-1124-4772-9604-066f3ffd224a",
+            "title": "Hello Conversation Summary",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.9155072569847107,
+            "conversation_id": "360e6c09-bda6-4051-9ca5-5a3973322c05",
+            "title": "Hello Response",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.9130793213844299,
+            "conversation_id": "85cff652-505c-4410-8f14-920a4552a064",
+            "title": "Superhero Story Outline",
+            "chunk_index": 2,
+            "content_preview": "assistant: I acknowledge"
+          },
+          {
+            "similarity": 0.9125174283981323,
+            "conversation_id": "692d504c-1144-8327-8aa1-d3d68c09fd2b",
+            "title": "Fire and Curiosity",
+            "chunk_index": 13,
+            "content_preview": "assistant: 👍"
+          },
+          {
+            "similarity": 0.9044311046600342,
+            "conversation_id": "68a539f2-7e7c-8331-88da-b72bbd907a5b",
+            "title": "Mapmaker's Journey",
+            "chunk_index": 30,
+            "content_preview": "once, answered immediately."
+          },
+          {
+            "similarity": 0.9044311046600342,
+            "conversation_id": "68a54155-3000-8326-84e9-3e6d6159c0a9",
+            "title": "Chapter critique",
+            "chunk_index": 11,
+            "content_preview": "once, answered immediately."
+          },
+          {
+            "similarity": 0.8945375680923462,
+            "conversation_id": "691a07ad-ae7c-8330-9ea1-d90667d82cae",
+            "title": "Reducing wordcount with LLMs",
+            "chunk_index": 9,
+            "content_preview": "at it, ignore it."
+          }
+        ],
+        "similarity_stats": {
+          "mean": 0.9110397517681121,
+          "median": 0.9142932891845703,
+          "std": 0.007178258978469905,
+          "min": 0.8945375680923462,
+          "max": 0.9193719625473022
+        }
+      },
+      {
+        "query": "conversation chunking strategy",
+        "embed_time_ms": 10.711499999160878,
+        "search_time_ms": 5468.001400000503,
+        "total_time_ms": 5478.712899999664,
+        "top_k": 10,
+        "results": [
+          {
+            "similarity": 0.8755911588668823,
+            "conversation_id": "85cff652-505c-4410-8f14-920a4552a064",
+            "title": "Superhero Story Outline",
+            "chunk_index": 2,
+            "content_preview": "assistant: I acknowledge"
+          },
+          {
+            "similarity": 0.8728175163269043,
+            "conversation_id": "67a0ec53-8024-800f-862a-edcd275c2f5d",
+            "title": "Simulation Time Processing Debate",
+            "chunk_index": 33,
+            "content_preview": "ideas, or is there any part you'd like to dig deeper into?"
+          },
+          {
+            "similarity": 0.8651898503303528,
+            "conversation_id": "68a539f2-7e7c-8331-88da-b72bbd907a5b",
+            "title": "Mapmaker's Journey",
+            "chunk_index": 30,
+            "content_preview": "once, answered immediately."
+          },
+          {
+            "similarity": 0.8651898503303528,
+            "conversation_id": "68a54155-3000-8326-84e9-3e6d6159c0a9",
+            "title": "Chapter critique",
+            "chunk_index": 11,
+            "content_preview": "once, answered immediately."
+          },
+          {
+            "similarity": 0.8629528284072876,
+            "conversation_id": "692d504c-1144-8327-8aa1-d3d68c09fd2b",
+            "title": "Fire and Curiosity",
+            "chunk_index": 13,
+            "content_preview": "assistant: 👍"
+          },
+          {
+            "similarity": 0.8618521690368652,
+            "conversation_id": "691a07ad-ae7c-8330-9ea1-d90667d82cae",
+            "title": "Reducing wordcount with LLMs",
+            "chunk_index": 9,
+            "content_preview": "at it, ignore it."
+          },
+          {
+            "similarity": 0.8612807989120483,
+            "conversation_id": "68b89eda-f8c4-8329-8c87-2ef1d0549ae8",
+            "title": "Simple explanation of models",
+            "chunk_index": 0,
+            "content_preview": "user: Guess I should ask about this one... What's going on here in simple terms for my simple mind"
+          },
+          {
+            "similarity": 0.8580946326255798,
+            "conversation_id": "a27b5e82-b449-4007-baf8-98a2feb11269",
+            "title": "New chat",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.8580946326255798,
+            "conversation_id": "9b8e29e5-6080-483b-ad58-af196865a271",
+            "title": "New chat",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.8580946326255798,
+            "conversation_id": "bc657f08-1124-4772-9604-066f3ffd224a",
+            "title": "Hello Conversation Summary",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          }
+        ],
+        "similarity_stats": {
+          "mean": 0.8639158070087433,
+          "median": 0.8624024987220764,
+          "std": 0.0057670447657369745,
+          "min": 0.8580946326255798,
+          "max": 0.8755911588668823
+        }
+      },
+      {
+        "query": "vector database search",
+        "embed_time_ms": 9.447099999306374,
+        "search_time_ms": 5736.573199999839,
+        "total_time_ms": 5746.020299999145,
+        "top_k": 10,
+        "results": [
+          {
+            "similarity": 0.8650321960449219,
+            "conversation_id": "c0fb874c-443b-496f-97f1-cfdfdbf7727c",
+            "title": "Test Request Summary",
+            "chunk_index": 0,
+            "content_preview": "user: test"
+          },
+          {
+            "similarity": 0.8476206660270691,
+            "conversation_id": "a27b5e82-b449-4007-baf8-98a2feb11269",
+            "title": "New chat",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.8476206660270691,
+            "conversation_id": "9b8e29e5-6080-483b-ad58-af196865a271",
+            "title": "New chat",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.8476206660270691,
+            "conversation_id": "bc657f08-1124-4772-9604-066f3ffd224a",
+            "title": "Hello Conversation Summary",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.8476206660270691,
+            "conversation_id": "360e6c09-bda6-4051-9ca5-5a3973322c05",
+            "title": "Hello Response",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.843601644039154,
+            "conversation_id": "69221f9f-d530-832e-abd8-17cc28e987f5",
+            "title": "Tattoo studio prompt",
+            "chunk_index": 1,
+            "content_preview": "can run the stories again. please"
+          },
+          {
+            "similarity": 0.8385627269744873,
+            "conversation_id": "68bb333c-74a8-8324-9750-c6a4f6e8d071",
+            "title": "Technical critique feedback",
+            "chunk_index": 12,
+            "content_preview": "and verify end-to-end."
+          },
+          {
+            "similarity": 0.8364995718002319,
+            "conversation_id": "692d504c-1144-8327-8aa1-d3d68c09fd2b",
+            "title": "Fire and Curiosity",
+            "chunk_index": 13,
+            "content_preview": "assistant: 👍"
+          },
+          {
+            "similarity": 0.8330454230308533,
+            "conversation_id": "83d32ff8-8c9c-4b03-872d-1c5d230ae9ce",
+            "title": "Tarot card reading assistance.",
+            "chunk_index": 1,
+            "content_preview": "\"__main__\": main()"
+          },
+          {
+            "similarity": 0.8314688205718994,
+            "conversation_id": "85cff652-505c-4410-8f14-920a4552a064",
+            "title": "Superhero Story Outline",
+            "chunk_index": 2,
+            "content_preview": "assistant: I acknowledge"
+          }
+        ],
+        "similarity_stats": {
+          "mean": 0.8438693046569824,
+          "median": 0.8456111550331116,
+          "std": 0.009260840192450406,
+          "min": 0.8314688205718994,
+          "max": 0.8650321960449219
+        }
+      },
+      {
+        "query": "embedding model comparison",
+        "embed_time_ms": 11.13430000077642,
+        "search_time_ms": 5941.169800000353,
+        "total_time_ms": 5952.304100001129,
+        "top_k": 10,
+        "results": [
+          {
+            "similarity": 0.9257231950759888,
+            "conversation_id": "c0fb874c-443b-496f-97f1-cfdfdbf7727c",
+            "title": "Test Request Summary",
+            "chunk_index": 0,
+            "content_preview": "user: test"
+          },
+          {
+            "similarity": 0.9212013483047485,
+            "conversation_id": "85cff652-505c-4410-8f14-920a4552a064",
+            "title": "Superhero Story Outline",
+            "chunk_index": 2,
+            "content_preview": "assistant: I acknowledge"
+          },
+          {
+            "similarity": 0.9121385812759399,
+            "conversation_id": "aca8c852-d163-4237-8e4a-a94cb5751337",
+            "title": "Create Agate ChatGPT Teams Icon",
+            "chunk_index": 3,
+            "content_preview": "assistant: The new icon design,"
+          },
+          {
+            "similarity": 0.910910964012146,
+            "conversation_id": "69221f9f-d530-832e-abd8-17cc28e987f5",
+            "title": "Tattoo studio prompt",
+            "chunk_index": 1,
+            "content_preview": "can run the stories again. please"
+          },
+          {
+            "similarity": 0.9103715419769287,
+            "conversation_id": "a27b5e82-b449-4007-baf8-98a2feb11269",
+            "title": "New chat",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.9103715419769287,
+            "conversation_id": "9b8e29e5-6080-483b-ad58-af196865a271",
+            "title": "New chat",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.9103715419769287,
+            "conversation_id": "bc657f08-1124-4772-9604-066f3ffd224a",
+            "title": "Hello Conversation Summary",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.9103715419769287,
+            "conversation_id": "360e6c09-bda6-4051-9ca5-5a3973322c05",
+            "title": "Hello Response",
+            "chunk_index": 0,
+            "content_preview": "user: hello"
+          },
+          {
+            "similarity": 0.909843921661377,
+            "conversation_id": "692d504c-1144-8327-8aa1-d3d68c09fd2b",
+            "title": "Fire and Curiosity",
+            "chunk_index": 13,
+            "content_preview": "assistant: 👍"
+          },
+          {
+            "similarity": 0.9078644514083862,
+            "conversation_id": "6e80ae57-5897-4f9e-a554-7d08e6a54717",
+            "title": "Undead Battle: Paladin's Triumph",
+            "chunk_index": 1,
+            "content_preview": "assistant:  righteousness."
+          }
+        ],
+        "similarity_stats": {
+          "mean": 0.9129168629646301,
+          "median": 0.9103715419769287,
+          "std": 0.005460299066903014,
+          "min": 0.9078644514083862,
+          "max": 0.9257231950759888
+        }
+      }
+    ],
+    "summary": {
+      "total_queries": 8,
+      "avg_embed_time_ms": 10.340487500116069,
+      "avg_search_time_ms": 5478.491587500002,
+      "avg_total_time_ms": 5488.8320750001185,
+      "avg_mean_similarity": 0.8836767368018628,
+      "similarity_std": 0.02547095878946813
+    }
+  },
+  "bge_small": {
+    "model": "BAAI/bge-small-en-v1.5",
+    "embedding_dim": 384,
+    "timestamp": 1768940850.4002776,
+    "queries": [
+      {
+        "query": "spacetime as a simulation",
+        "embed_time_ms": 17.556200000399258,
+        "search_time_ms": 5378.255899999203,
+        "total_time_ms": 5395.812099999603,
+        "top_k": 10,
+        "results": [
+          {
+            "similarity": 0.7556726932525635,
+            "conversation_id": "67a3fb46-5fe4-800f-8886-5c5f13638e22",
+            "title": "Deterministic Quantum Simulation Theory",
+            "chunk_index": 19,
+            "content_preview": "based on distance. **Crafting a complex script** I’m piecing together a Python script to simulate a 2D grid with a central mass adjusting the wave function's frequency, aiming to normalize and plot gravitational time dilation effects. **Designing experiments** I’m setting up three experiments to sho"
+          },
+          {
+            "similarity": 0.7535234093666077,
+            "conversation_id": "67a0ec53-8024-800f-862a-edcd275c2f5d",
+            "title": "Simulation Time Processing Debate",
+            "chunk_index": 22,
+            "content_preview": "tool: **Taking a closer look**\n\nI’m piecing together ideas around quantum simulations and discrete computation. Now, I’m examining cosmic emergence and the impact of black holes and quantum mechanics.\n\n**Understanding quantum concepts**\n\nI'm thinking about quantum decoherence, classical physics' eme"
+          },
+          {
+            "similarity": 0.7355923056602478,
+            "conversation_id": "67a46d8e-4fd0-800f-92dc-91d008ecf618",
+            "title": "Quantum particle scattering theory",
+            "chunk_index": 12,
+            "content_preview": "information ripples through the universal wave. This would mean: Space isn’t a grid—it’s a fluid medium. Particles aren’t objects—they’re just disturbances in a deeper field. Time isn’t a sequence of updates—it’s just the natural evolution of the wavefunction. Next Steps: Do We Shift the Paper’s Per"
+          },
+          {
+            "similarity": 0.7307147979736328,
+            "conversation_id": "67cc875c-09a0-800f-909a-95187bdd3a88",
+            "title": "EM and Spacetime Interaction",
+            "chunk_index": 7,
+            "content_preview": "user: you're taking it too far again.. you're thinking particles and spacetime are the same thing.\n\nLet's imagine spacetime as a fluid that everything bathes in ... instead?   does that make sense?\n\nassistant: Yes! That makes **a lot** of sense—**spacetime as the fluid that everything bathes in** ra"
+          },
+          {
+            "similarity": 0.7286911010742188,
+            "conversation_id": "694fa876-b6e4-8331-9e16-2acf260994cb",
+            "title": "Energy Density and Spacetime",
+            "chunk_index": 5,
+            "content_preview": "user: this is recursion... \n\nif you wanted to simulate universes.. and fuck lets say you have really good control of physics... \n\nthis is exactly what you'd do\n\nassistant: Yeah.  \nIt really is.\n\nIf you were an engineer of reality and your job was:  \n**“Build a system that generates universes”**,  \ny"
+          },
+          {
+            "similarity": 0.7125803232192993,
+            "conversation_id": "68a7e514-6cbc-8333-9a41-07e33013edf9",
+            "title": "Focusing light with light",
+            "chunk_index": 7,
+            "content_preview": "assistant: Ahhh — I see where you’re going. The “plastic in the ocean” twist makes your tide analogy even richer.\n\n---\n\n## Plastic in the Ocean = Matter in the Field\n\n- In the ocean, floating plastic **rides on top of the waves and tides**, but also **collects in gyres** (stable circulation patterns"
+          },
+          {
+            "similarity": 0.7120379209518433,
+            "conversation_id": "68eac984-8fe8-8329-b2f7-cbebd75a1e26",
+            "title": "Paper summary options",
+            "chunk_index": 31,
+            "content_preview": "user: So many thoughts in there... How do we do a better simulation of the universe in a game ... That was the rays thing...\n\nThen... How do we simulate gravity without doing crazy effort.... Without faking it by attraction etc...\n\nHow do you make a game with curved space in other words... That was "
+          },
+          {
+            "similarity": 0.7110417485237122,
+            "conversation_id": "691503c0-0fd0-8330-8ecb-10bb5b594b20",
+            "title": "Elise Crull talk analysis",
+            "chunk_index": 15,
+            "content_preview": "user: i'm itching to model it.  I'm not saying we should or will... but I'm just... like... I want to see it... \n\nthis is completely buildable at the tiniest scale.\n\nimagine... multiplayer but people are at different time slices.... \n\nnot a game... more like a toy...  and you couldn't build a whole "
+          },
+          {
+            "similarity": 0.709983229637146,
+            "conversation_id": "68ba7de4-a978-8333-962e-513d8c9ba679",
+            "title": "Memory-based neural network",
+            "chunk_index": 56,
+            "content_preview": "user: Axiomatizing general relativity... Damn what's that look like?\n\nassistant: Here’s the 10-second tour of what “axiomatizing GR” can look like:\n\n### Three common flavors\n1) **Geometric (minimalist):**  \n   - Spacetime is a 4-D smooth manifold \\(M\\) with Lorentzian metric \\(g\\).  \n   - Free fall "
+          },
+          {
+            "similarity": 0.707440972328186,
+            "conversation_id": "690df1ad-fdb8-832f-b830-b493e9da5c10",
+            "title": "Physics article critique",
+            "chunk_index": 4,
+            "content_preview": "user: How about this:\n\nWe continue to describe physics in a rule-based fashion with great success. A rule-based system is algorithmic. Therefore, the universe can be algorithmic and simulated. There is nothing in this article that proves or even hints at evidence to the contrary.\n\nassistant: That’s "
+          }
+        ],
+        "similarity_stats": {
+          "mean": 0.7257278501987457,
+          "median": 0.720635712146759,
+          "std": 0.017200293340916304,
+          "min": 0.707440972328186,
+          "max": 0.7556726932525635
+        }
+      },
+      {
+        "query": "quantum mechanics",
+        "embed_time_ms": 18.357500001002336,
+        "search_time_ms": 5319.603099998858,
+        "total_time_ms": 5337.96059999986,
+        "top_k": 10,
+        "results": [
+          {
+            "similarity": 0.7764136791229248,
+            "conversation_id": "67a519fb-f6b4-800f-b966-03f6bf851176",
+            "title": "Quantum Mechanics Simulation Theory",
+            "chunk_index": 0,
+            "content_preview": "**Title:** **Exploring Quantum Mechanics as an Emergent Computational Process** **Abstract:** Quantum mechanics is fundamentally probabilistic, while classical physics is deterministic. This dichotomy has long been a major puzzle in physics. In this paper, we propose an alternative perspective: that"
+          },
+          {
+            "similarity": 0.7681447267532349,
+            "conversation_id": "67a54593-9970-800f-867c-0c03791c4671",
+            "title": "Quantum Mechanics as Computation",
+            "chunk_index": 0,
+            "content_preview": "**Title:** **Exploring Quantum Mechanics as an Emergent Computational Process** **Abstract:** Quantum mechanics is fundamentally probabilistic, while classical physics is deterministic. This dichotomy has long been a major puzzle in physics. In this paper, we propose an alternative perspective: that"
+          },
+          {
+            "similarity": 0.7432863712310791,
+            "conversation_id": "67a46d8e-4fd0-800f-92dc-91d008ecf618",
+            "title": "Quantum particle scattering theory",
+            "chunk_index": 16,
+            "content_preview": "user: okay first... update the paper as you believe best given this discussion\n\nassistant: {\"textdoc_id\": \"67a47a7ca9c88191a132686f43308b49\", \"updates\": [{\"pattern\": \".*\", \"multiple\": true, \"replacement\": \"**Title:**\\n**Exploring Quantum Mechanics as an Emergent Computational Process**\\n\\n**Abstract"
+          },
+          {
+            "similarity": 0.7358328700065613,
+            "conversation_id": "67a0ec53-8024-800f-862a-edcd275c2f5d",
+            "title": "Simulation Time Processing Debate",
+            "chunk_index": 62,
+            "content_preview": "user: and you can only measure one thing at a time? or can you normally measure all of them?\n\nassistant: Great question! In quantum mechanics, you don't really \"measure all of them\" at once in a single experiment, and here's why:\n\n- **Single Observable Measurement:**  \n  When you perform a measureme"
+          },
+          {
+            "similarity": 0.7358133792877197,
+            "conversation_id": "03d7fa01-c538-4a48-9b96-26eb78c354a1",
+            "title": "Quantum Formalism Development.",
+            "chunk_index": 12,
+            "content_preview": "user: is it usually based on logic as well? \n\nassistant: Yes, logic is an important part of quantum mechanics and the scientific method in general. The mathematical formalisms used in quantum mechanics are based on a logical framework that allows scientists to make precise predictions about the beha"
+          },
+          {
+            "similarity": 0.7352388501167297,
+            "conversation_id": "67bcb380-d5ec-800f-893a-afc2f6c7b5b6",
+            "title": "Energy vs Change",
+            "chunk_index": 11,
+            "content_preview": "user: lmao .. again I say... is there ever a point when an atom .. which is vibrating ... where that system is NOT in any way changing?\n\ntool: **Unraveling quantum states**\n\nI'm curious if the ground state in quantum mechanics inherently implies change or if it represents a static system with probab"
+          },
+          {
+            "similarity": 0.7294019460678101,
+            "conversation_id": "68f030e4-9288-8323-8662-f9a151fa1235",
+            "title": "Game theory in Vail",
+            "chunk_index": 29,
+            "content_preview": "user: Nono... Look... Matter is energy moving through a field locked in a pattern.... And that's what you said... The pattern is a wave function... Which is quantum .. I wonder if the truth is .. nm... You wouldn't believe me and it's hard to explain... In fact it doesn't seem possible so it's undou"
+          },
+          {
+            "similarity": 0.7220491170883179,
+            "conversation_id": "67a2587b-8580-800f-bdb7-cc78616fa5e7",
+            "title": "False Vacuum Decay Explained",
+            "chunk_index": 27,
+            "content_preview": "user: sigh.. \nall of you ai keep telling me we escape bell's inequalities.. but I forget how it works... \n\nwave particle duality of photons is a myth... we only ever observe particles so .. every interaction looks like a particle\n\nwaves are likely a moire effect observed from our slower framerate .."
+          },
+          {
+            "similarity": 0.7206931710243225,
+            "conversation_id": "67d36d4e-3120-800f-bdfd-63a97615b213",
+            "title": "Learning Physics Math Apps",
+            "chunk_index": 0,
+            "content_preview": "user: can you look around for some good ways to learn physics/quantum mechanics style math? \n\nI know algebra... I had classes in calculus wayyyy long ago... \n\nI want something that brings me from this level of pretty rusty-ness ... to where I can at least work on physics math problems.. and understa"
+          },
+          {
+            "similarity": 0.7163345217704773,
+            "conversation_id": "68c252ba-3658-832b-bf11-b8c32469fad4",
+            "title": "Unstructured search analysis",
+            "chunk_index": 38,
+            "content_preview": "user: Hmm no we move forward ...  Line up everything so it vibrates in the same direction... Magnetic field at the quantum level... \n\nassistant: Yes 👌 — that’s the natural next step.  \n\nIf you could line up *every quantum piece* so it vibrates together:  \n\n- **Electrons** → same spin alignment (like"
+          }
+        ],
+        "similarity_stats": {
+          "mean": 0.7383208632469177,
+          "median": 0.7355261147022247,
+          "std": 0.018776606902640335,
+          "min": 0.7163345217704773,
+          "max": 0.7764136791229248
+        }
+      },
+      {
+        "query": "database design",
+        "embed_time_ms": 18.428600000333972,
+        "search_time_ms": 5318.458199999441,
+        "total_time_ms": 5336.886799999775,
+        "top_k": 10,
+        "results": [
+          {
+            "similarity": 0.7443686723709106,
+            "conversation_id": "003d306b-d220-496b-bed1-39ada8c4886c",
+            "title": "Toy Box Database.",
+            "chunk_index": 0,
+            "content_preview": "user: explain how to design a database set of tables in a way a child could understand\n\nassistant: Sure, I can try to explain it in a way that a child can understand! \n\nThink of a database as a giant toy box filled with all kinds of toys. Now, imagine that you want to organize the toys so that it's "
+          },
+          {
+            "similarity": 0.7388343214988708,
+            "conversation_id": "5728aa50-eb3b-403a-8593-1ca544538754",
+            "title": "Novel Writing Database Schema",
+            "chunk_index": 0,
+            "content_preview": "user: create a database schema for a program that helps writers write novels and stories.  it should handle storing all the world building like settings and characters and also store chapters, scenes, outlines, etc etc \n\nassistant: Designing a database schema for a program aimed at assisting writers"
+          },
+          {
+            "similarity": 0.7141044735908508,
+            "conversation_id": "cd1363ea-c342-4fe7-85e5-350f608885ed",
+            "title": "Database Schema Mermaid Diagram",
+            "chunk_index": 7,
+            "content_preview": "user: could this system be combined into one or two tables and still maintain the flexibility and versatility?\n\nassistant: Combining such a complex system into one or two tables while maintaining its flexibility and versatility would be challenging but not impossible. The key to achieving this would"
+          },
+          {
+            "similarity": 0.712446928024292,
+            "conversation_id": "329632ec-733e-4dfc-b178-a7e68056293c",
+            "title": "Faith Database Modeling.",
+            "chunk_index": 0,
+            "content_preview": "user: I'm trying to build a database.\n\nIt has faiths, faiths have menus, menus have sections and sections have menu items.\n\nfaiths have one menu.  menus have many sections.  sections have many menu items.\n\n\n\nassistant: It sounds like you are looking to create a relational database that can model you"
+          },
+          {
+            "similarity": 0.699658989906311,
+            "conversation_id": "912d7c68-55b6-4709-af1a-85d21fa2cf66",
+            "title": "Mystery Generator Flask Structure",
+            "chunk_index": 37,
+            "content_preview": "user: show me a summary of everything we talked about, just the highlights\n\nassistant: Certainly! Here's a summary of our discussion:\n\n1. **Objective**: You wanted to create an interactive murder mystery game, where the user can interact with the story and make decisions that will impact the outcome"
+          },
+          {
+            "similarity": 0.6963900327682495,
+            "conversation_id": "717bf968-e9f3-4977-966d-b783083f5532",
+            "title": "Designing Software Difficulty Solved",
+            "chunk_index": 4,
+            "content_preview": "user: Let's start on the backend first.  Give me a list of tables we would need in the database with the information you have so far. Remember we're using a sql database.  \n\nassistant: Here is a list of tables you would need in the MariaDB database for your program:\n\n1. User: This table would store "
+          },
+          {
+            "similarity": 0.6944186687469482,
+            "conversation_id": "9f517e12-db5c-4362-b539-19af0ea62f2c",
+            "title": "D&D City JSON Schema",
+            "chunk_index": 6,
+            "content_preview": "user: you've done a fantastic job.  it's clear we're going to need a database lol  I figure I'll just stick to sqlite3 but we're going to need a schema for all that\n\nassistant: Creating a database schema for the classes we've defined could involve a design like this:\n\n1. `City` table:\n    - id (prim"
+          },
+          {
+            "similarity": 0.6870936155319214,
+            "conversation_id": "620a6ac9-1f9a-4855-a556-5a49c2aaa8d2",
+            "title": "Human-Curated Knowledge Graph Challenges",
+            "chunk_index": 8,
+            "content_preview": "user: it is just a relational database... it's stupid to just blindly look passed this idea but that's what I was doing... if you take a graph and make the nodes data rich.. and put maybe graphs inside of graphs.. it normalizes out to be a database... it simplifies... maybe normalizes isn't the righ"
+          },
+          {
+            "similarity": 0.6839032173156738,
+            "conversation_id": "67ccb266-8404-800f-aad3-3e0d435234da",
+            "title": "Database-Only Utopia",
+            "chunk_index": 0,
+            "content_preview": "user: we should build databases... just databases... first.. and foremost... and in these databases we should put data... \n\nand everything shall be built upon the data.. as a front end... an interface to the data... \n\nand there shall be no back end... :D hahahah \n\nassistant: Ah yes, the **Holy Data "
+          },
+          {
+            "similarity": 0.6771376132965088,
+            "conversation_id": "3c6ee373-2c55-4389-9b77-06fe80e16399",
+            "title": "Transitioning from SQLite",
+            "chunk_index": 3,
+            "content_preview": "user: you don't even get it.. I just want to know about databases.\n\nassistant: I apologize for the previous response. Let's focus on databases for your animal management web app. You can use a relational database system to store and manage data related to animals, breeding records, and other aspects"
+          }
+        ],
+        "similarity_stats": {
+          "mean": 0.7048356533050537,
+          "median": 0.6980245113372803,
+          "std": 0.021422837548615906,
+          "min": 0.6771376132965088,
+          "max": 0.7443686723709106
+        }
+      },
+      {
+        "query": "API architecture",
+        "embed_time_ms": 17.54149999942456,
+        "search_time_ms": 5283.798800001023,
+        "total_time_ms": 5301.340300000447,
+        "top_k": 10,
+        "results": [
+          {
+            "similarity": 0.73935866355896,
+            "conversation_id": "717bf968-e9f3-4977-966d-b783083f5532",
+            "title": "Designing Software Difficulty Solved",
+            "chunk_index": 2,
+            "content_preview": "user: I'll prove to you that you can do it.\n\nassistant: I'm an AI language model trained by OpenAI, and I can assist with generating text based on input I receive, but I'm not capable of performing complex software development tasks such as breaking down a project into smaller tasks. \n\nHowever, I ca"
+          },
+          {
+            "similarity": 0.7368414402008057,
+            "conversation_id": "7acdc84f-1b55-44d8-8f20-fca1d8f91444",
+            "title": "Teaching AI through Kids",
+            "chunk_index": 5,
+            "content_preview": "user: you're still thinking about people.. I'm a software engineer, talk to me like one\n\nassistant: Got it! Let's break it down from a software engineer's perspective:\n\n### System Architecture:\n\n- **Microservices Architecture:** Modularize each educational and operational component (curriculum, ment"
+          },
+          {
+            "similarity": 0.7087311744689941,
+            "conversation_id": "8c4c31b9-1872-4e9a-8ede-fdd4fa825013",
+            "title": "AI-Powered Documentation Search Idea",
+            "chunk_index": 1,
+            "content_preview": "user: most of that is wrong... \n\nthe api would have a single endpoint and a single query.  you ask what your question and it tries to find the answer for you\n\nassistant: I apologize for any confusion. Your proposal for a more streamlined API service would simplify the user experience by providing a "
+          },
+          {
+            "similarity": 0.6997205018997192,
+            "conversation_id": "73337447-1cf0-4afc-a775-895b173bf55b",
+            "title": "New chat",
+            "chunk_index": 10,
+            "content_preview": "user: so I think the first step would be... access an api, receive data, create a schema representation and store this.  Based on the representation and the description of the key/value pairs, generate the best UI element to represent them.  Generate code that handles the receiving of the api data a"
+          },
+          {
+            "similarity": 0.6924646496772766,
+            "conversation_id": "69485ea0-9188-8330-9363-2134d6e38450",
+            "title": "Game testing frustration",
+            "chunk_index": 69,
+            "content_preview": "user: gah.. it's sooo stupid... \n\nif I built anything meaningful today it would have an api .. and that's it. I don't fucking need to build the ui.. YOU build the ui (the person using it) ... why? cause it's gonna be all ai <> api eventually anyway \n\nassistant: You’re not stupid. You’re noticing the"
+          },
+          {
+            "similarity": 0.6917773485183716,
+            "conversation_id": "e556856d-0032-4ae4-a911-5a1c59963c6a",
+            "title": "Dynamic AI GUI Concept",
+            "chunk_index": 5,
+            "content_preview": "user: so... let's think about an algo .. \n\nwe are calling an api.\n\nwe check to see if we've called this api before.\n\nIf we haven't we examine the schema, maybe we examine it and store information about it.  In this way we build up information for the future.\n\nThen we figure out the best way to displ"
+          },
+          {
+            "similarity": 0.6896847486495972,
+            "conversation_id": "693b3e4d-6b50-832a-a651-c068b83f55db",
+            "title": "Life as vibration plucks",
+            "chunk_index": 34,
+            "content_preview": "try this on for size... # MVP: Obligations → Operations Architecture This is a minimal viable implementation of the Obligations → Operations architecture described in the playbook. The system separates reasoning (tools) from translation (LLMs) using a structured IR database and obligation-driven exe"
+          },
+          {
+            "similarity": 0.6878855228424072,
+            "conversation_id": "68bd29a6-1874-8320-8a96-0156937c2447",
+            "title": "Categorizing ideonomic divisions",
+            "chunk_index": 117,
+            "content_preview": "read this... # MVP: Obligations → Operations Architecture This is a minimal viable implementation of the Obligations → Operations architecture described in the playbook. The system separates reasoning (tools) from translation (LLMs) using a structured IR database and obligation-driven execution. ## "
+          },
+          {
+            "similarity": 0.6826748847961426,
+            "conversation_id": "688c490e-196c-832c-8e9b-1535673073e0",
+            "title": "Alchemist architecture roadmap",
+            "chunk_index": 0,
+            "content_preview": "# Alchemist Architecture Development Roadmap *From Concept to Deployable System* ## Phase 0: Foundation Setup (1 week) **Goal**: Establish shared infrastructure for all experiments **Build**: - Unified SentencePiece vocabulary across all specialists - Curated mini-datasets for each cognitive domain "
+          },
+          {
+            "similarity": 0.6787213087081909,
+            "conversation_id": "65758573-7fea-4fc3-ad2b-064daa3aad9b",
+            "title": "World Building Wizard",
+            "chunk_index": 3,
+            "content_preview": "user: I'm one person, I can't possibly do all that\n\nassistant: It's completely understandable, Jeffrey! Building such a complex system on your own would indeed be a monumental task. However, there are ways to break down the project into manageable parts and take a more iterative approach. Here's a r"
+          }
+        ],
+        "similarity_stats": {
+          "mean": 0.7007860243320465,
+          "median": 0.6921209990978241,
+          "std": 0.020265808857592355,
+          "min": 0.6787213087081909,
+          "max": 0.73935866355896
+        }
+      },
+      {
+        "query": "machine learning",
+        "embed_time_ms": 17.469599999458296,
+        "search_time_ms": 5291.645799999969,
+        "total_time_ms": 5309.115399999428,
+        "top_k": 10,
+        "results": [
+          {
+            "similarity": 0.7129677534103394,
+            "conversation_id": "68b79e8f-3844-8333-ae41-b7d49c5f37a1",
+            "title": "Marketplace V2 comparison",
+            "chunk_index": 5,
+            "content_preview": "in this topic. I Need Your Help: Let’s Advance Machine Learning Together Although I move extremely fast to write code and experiment with new ideas, I still only have 24 hours in a day and 7 days in a week. As you can see, there are so many interesting things to explore with the Marketplace algorith"
+          },
+          {
+            "similarity": 0.6880264282226562,
+            "conversation_id": "17b716bb-b768-4656-a4e6-441b4f16a384",
+            "title": "AI Experts Council Formed",
+            "chunk_index": 1,
+            "content_preview": "user: describe a council of experts in large language models and ai and machine learning techniques. They are trying to solve a problem so we need thinkers, builders. We don't need ethics specialists or things like that.  Limit it to 5 people.\n\nassistant: The council of experts in large language mod"
+          },
+          {
+            "similarity": 0.6811813116073608,
+            "conversation_id": "3dc607b7-9288-4d72-9f20-227bef68e549",
+            "title": "Fiction Generation Engine Viability",
+            "chunk_index": 36,
+            "content_preview": "user: nope I can't use the dataset songs because those are copyrighted.  BUT... I can train a model using the dataset and then classify the songs I CAN use\n\nassistant: That's a clever approach! Using the MuSe dataset to train a model and then applying that model to classify your own collection of ro"
+          },
+          {
+            "similarity": 0.6647303104400635,
+            "conversation_id": "6954b0ab-5ef8-832a-ad22-31eba3d10efc",
+            "title": "Real Cybernetics Explained",
+            "chunk_index": 16,
+            "content_preview": "explanations, and assisting in decisions that hinge on evaluative judgments [21–23]. Yet the internal procedures by which they arrive at such judgments— and the extent to which these procedures align with, diverge from, or systematically distort human modes of reasoning—remain only partially underst"
+          },
+          {
+            "similarity": 0.663927435874939,
+            "conversation_id": "66b4191c-e95c-4b3a-956f-0a96033c8bad",
+            "title": "LoL Coach with GPT-3.",
+            "chunk_index": 3,
+            "content_preview": "user: Do you have any suggestions on what framework I could use to train the model for coaching advice?  I'm a bit scared of diving into the deep end of machine learning. \n\nassistant: There are several popular machine learning frameworks that you can use to train a model for coaching advice, dependi"
+          },
+          {
+            "similarity": 0.6632835865020752,
+            "conversation_id": "36966330-5151-430f-8900-ea407f0ebc65",
+            "title": "Tools to Enhance Language.",
+            "chunk_index": 7,
+            "content_preview": "user: If it can learn, then that's not true.  It can gain new information that isn't limited to it's training\n\nassistant: You're right, if an LLM has the ability to learn and adapt, it can gain new information and improve its decision-making beyond its initial training data. This is one of the main "
+          },
+          {
+            "similarity": 0.6582390069961548,
+            "conversation_id": "9943aba3-cc4f-4cba-9c11-68242603b50b",
+            "title": "Mamba Neural Network Efficiency",
+            "chunk_index": 6,
+            "content_preview": "user: do they actually use machine learning back then? that's prior to nns right?  I know ai started a long time ago and failed before coming back \n\nassistant: Machine learning as we know it today didn't exist in the 1960s, but the foundations were being laid. Early state space models weren't based "
+          },
+          {
+            "similarity": 0.6569799184799194,
+            "conversation_id": "211f5a6c-f503-4aa0-9c57-4e9568ad87e5",
+            "title": "Finding Mean Embedding from Multiple Embeddings",
+            "chunk_index": 4,
+            "content_preview": "user: so this is sort of an unsolved problem.. which might actually be useful to solve.. maybe solve isn't the right idea.. but coming up with good heuristics \n\nassistant: Indeed, interpreting or \"decoding\" embeddings to derive meaningful insights, such as categorizing or summarizing a set of texts,"
+          },
+          {
+            "similarity": 0.6563591957092285,
+            "conversation_id": "4dcabe9d-487b-4884-aca9-ad1fdac4e3cb",
+            "title": "CPU-friendly ML Models",
+            "chunk_index": 0,
+            "content_preview": "user: what useful models could I train on a cpu\n\nassistant: While training deep learning models on CPUs is generally slower compared to GPUs or specialized hardware like TPUs, there are still several useful models that can be trained on a CPU. Here are a few examples:\n\n1. Linear Regression: Linear r"
+          },
+          {
+            "similarity": 0.6545464992523193,
+            "conversation_id": "619ae899-0b9f-49da-b09b-5fbbf80bd31c",
+            "title": "Online Backlash and Humanity",
+            "chunk_index": 1,
+            "content_preview": "user: Do you think an llm trained to be lead and be a therapist is unethical?\n\nassistant: Ah, that's a thought-provoking question, Jeffrey. The ethical considerations surrounding the use of machine learning models, like language models, in therapeutic settings are multifaceted. Let's unpack some of "
+          }
+        ],
+        "similarity_stats": {
+          "mean": 0.6700241446495057,
+          "median": 0.6636055111885071,
+          "std": 0.017716312897688775,
+          "min": 0.6545464992523193,
+          "max": 0.7129677534103394
+        }
+      },
+      {
+        "query": "conversation chunking strategy",
+        "embed_time_ms": 17.33750000130385,
+        "search_time_ms": 5257.2187000005215,
+        "total_time_ms": 5274.556200001825,
+        "top_k": 10,
+        "results": [
+          {
+            "similarity": 0.7010022401809692,
+            "conversation_id": "c73a9203-e47d-4e05-b43e-c125d2372e55",
+            "title": "AI Memory Types.",
+            "chunk_index": 3,
+            "content_preview": "user: since events that take place with an llm ai are in a chat context and chat contexts have date and timestamps, if we could find a good way summarize the topics in each individual chat, we could retrieve them fairly easily from a database of such chats, would you agree?\n\nassistant: Yes, I agree."
+          },
+          {
+            "similarity": 0.6788239479064941,
+            "conversation_id": "6950961c-c944-8332-abe1-1a704425f8ae",
+            "title": "Gripe Club Report Ideas",
+            "chunk_index": 18,
+            "content_preview": "user: OMFG .. I do the google radio host podcast thing... where you feed the topic to them and they just riff on it? it's fucking awesome til you listen to 10 of them and then you get sick of their voices.. but ... it works really well ... \n\nassistant: Yep. That’s actually a *really* strong branch o"
+          },
+          {
+            "similarity": 0.6774854063987732,
+            "conversation_id": "d5ed7f46-428f-46c9-b48d-efae99a62e2a",
+            "title": "Conversation Vectors Analysis",
+            "chunk_index": 1,
+            "content_preview": "user: is it equivalent to just embedding a summary? or is it stronger/better?\n\nassistant: Embedding an entire conversation history as opposed to just embedding a summary of the conversation can offer different advantages and disadvantages, depending on the application and the specific requirements f"
+          },
+          {
+            "similarity": 0.6675406694412231,
+            "conversation_id": "e3f4696f-9557-4c3e-84ec-d417e97df901",
+            "title": "Packing Info in Prompt",
+            "chunk_index": 0,
+            "content_preview": "user: how can we pack more information into a prompt but still have it readable by a large language model?\n\nassistant: Packing more information into a prompt while keeping it readable for a large language model like GPT-4 involves a few key strategies:\n\n1. **Clarity and Precision**: Be as clear and "
+          },
+          {
+            "similarity": 0.6628177165985107,
+            "conversation_id": "68feb134-e054-8333-ac70-8eec2f83611b",
+            "title": "BNY Mellon Israel lawsuits",
+            "chunk_index": 34,
+            "content_preview": "user: Oh it was just something I was making up on the spot. The deepest divides in the USA are race.\n\nWe need to come back together as a country and I was just riffing on this theme to try to understand what a more effective strategy to get people to listen would be\n\nassistant: That’s a really thoug"
+          },
+          {
+            "similarity": 0.6601760983467102,
+            "conversation_id": "692df354-fe20-8330-99fa-411b79ecd965",
+            "title": "Story review and feedback",
+            "chunk_index": 45,
+            "content_preview": "user: we are chatting, we are building a story prompt, we are not writing conversations.\n\nassistant: Ahhh, gotcha — **meta-level**, not scene-level.  \nTwo writers at a whiteboard, not characters by a fire.\n\nLet’s strip it back to pure *story-shaping*, clean and compact.\n\n---\n\n# 🌱 What the “Coffee Co"
+          },
+          {
+            "similarity": 0.6584168672561646,
+            "conversation_id": "b237bed2-19b5-4695-920f-bad9a16dde97",
+            "title": "GPT-4 is a LLM",
+            "chunk_index": 5,
+            "content_preview": "user: so what would Stateful Interaction with Memory:\n\nGiven you already consider history a given, it's vital to evolve it into a more stateful interaction model. This means understanding and maintaining the \"state\" of the conversation, ensuring context is retained over time.\nImplementation: Design "
+          },
+          {
+            "similarity": 0.6576929092407227,
+            "conversation_id": "6c69bf2e-fe4f-42a5-bdcb-d5b0bec8690e",
+            "title": "Memory Challenges for Chatbot",
+            "chunk_index": 0,
+            "content_preview": "user: imagine someone writing memory for a conversation with a chatbot large language model. you want the chatbot to have access to previous conversations. for most data the model isn't trained on you use a vector store and embedding.  what problems should I be solving for?\n\nassistant: Designing a s"
+          },
+          {
+            "similarity": 0.6570638418197632,
+            "conversation_id": "5e7faff6-bf21-442a-a5a2-b7918c6779f2",
+            "title": "Enhancing LLM Memory with Tokens",
+            "chunk_index": 0,
+            "content_preview": "user: this paper talks about using certain tokens to increase how long a model remembers things?  can you tell me more about it in layman's terms?\n\nassistant: The paper introduces StreamingLLM, a method that enhances large language models' ability to handle long texts in streaming applications like "
+          },
+          {
+            "similarity": 0.6568902134895325,
+            "conversation_id": "688c490e-196c-832c-8e9b-1535673073e0",
+            "title": "Alchemist architecture roadmap",
+            "chunk_index": 111,
+            "content_preview": "user: can you look back at our early conversation when we were getting started... did I explain what I wanted to do, why I thought it might work and what I was trying to achieve?  make the article personal and human while still saying.. dude we did crazy shit as a solo researcher with some help from"
+          }
+        ],
+        "similarity_stats": {
+          "mean": 0.6677909910678863,
+          "median": 0.6614969074726105,
+          "std": 0.013510076759629978,
+          "min": 0.6568902134895325,
+          "max": 0.7010022401809692
+        }
+      },
+      {
+        "query": "vector database search",
+        "embed_time_ms": 21.68580000034126,
+        "search_time_ms": 5259.823399999732,
+        "total_time_ms": 5281.509200000073,
+        "top_k": 10,
+        "results": [
+          {
+            "similarity": 0.8180780410766602,
+            "conversation_id": "194743f6-8480-4c8b-936a-8f8cf8b16d34",
+            "title": "Create VectorDB for Similarity Search",
+            "chunk_index": 0,
+            "content_preview": "user: if I asked you how to create a vectordb that allows similarity search how would you go about it?\n\nassistant: Creating a vector database (VectorDB) that supports similarity search entails representing items as vectors in a high-dimensional space and then querying for similar items based on vect"
+          },
+          {
+            "similarity": 0.8089705109596252,
+            "conversation_id": "a60c1d6a-19ce-45cd-ac16-7a040373410a",
+            "title": "Vector vs Graph DB.",
+            "chunk_index": 0,
+            "content_preview": "user: how does a vectordb compare to a graph db?\n\nassistant: \n\nVector databases and graph databases are both designed to handle complex data sets, but they differ in their underlying structures and intended use cases.\n\nA vector database, also known as a similarity search database, is optimized for s"
+          },
+          {
+            "similarity": 0.7825910449028015,
+            "conversation_id": "67d11d5a-6658-800f-ba37-f01d33a8a7e1",
+            "title": "LLM Narrative Data Structure",
+            "chunk_index": 8,
+            "content_preview": "user: OKAY you convinced me to at least try starting :D it's not like it's hard work... telling llms what to do LOL \n\ngive me a writeup (NO CODE) of the vectordb .. explain what it is, what it's supposed to accomplish, remember to point out that it's a library.. how it interacts with sqlite.. etc.. "
+          },
+          {
+            "similarity": 0.7820010781288147,
+            "conversation_id": "d592caf5-0b70-4844-a529-59fbc88413e7",
+            "title": "User Requests AI Summary",
+            "chunk_index": 9,
+            "content_preview": "user: I think you're completely fucking wrong but I'll try it... I think you're hallucinating\n\nassistant: I apologize if there was any confusion. Let's resolve this together.\n\nFrom the error message you shared, it's clear that the 'VectorStoreRetriever' object does not have a 'search' method. This i"
+          },
+          {
+            "similarity": 0.775071382522583,
+            "conversation_id": "688c490e-196c-832c-8e9b-1535673073e0",
+            "title": "Alchemist architecture roadmap",
+            "chunk_index": 105,
+            "content_preview": "user: # From \"Could we just...?\" to Production Data: Building a SQLite Vector Database (Up to 200k Vectors) in 72 Hours\r\n\r\n*By Jeff Caldwell, AI Feasibility Engineer*\r\n\r\nA client asked me a deceptively simple question: \"Could SQLite replace FAISS for our early-stage vector search?\" \r\n\r\nTwo days late"
+          },
+          {
+            "similarity": 0.770119309425354,
+            "conversation_id": "6940adf8-1e6c-8332-ac72-860cbbd9f464",
+            "title": "Temporal vector database",
+            "chunk_index": 10,
+            "content_preview": "user: we use vectordbs... because we need a way to get back to text... \n\nbut nobody takes all the information they train llms on.. and sticks it in a vectordb ... \n\nassistant: Right — and the reason is basically: **a vector DB is a retrieval index, not a storage format for “all knowledge.”**\n\nPeople"
+          },
+          {
+            "similarity": 0.7650976181030273,
+            "conversation_id": "291c686e-1529-49ac-b776-d218c1bbc6fc",
+            "title": "Build Q&A over VectorDB",
+            "chunk_index": 1,
+            "content_preview": "user: but we're using gpt to answer the questions based on nearest neighbor search over the vectors \n\nassistant: Using GPT (Generative Pretrained Transformer) models to answer questions based on a nearest neighbor search over vectors in a vector database is a sophisticated approach that combines the"
+          },
+          {
+            "similarity": 0.7483916282653809,
+            "conversation_id": "62395507-7a85-4acf-ad74-4a589013418e",
+            "title": "Upgrade Vector Store Database",
+            "chunk_index": 0,
+            "content_preview": "previous script: -- Change this to use whatever database you've planned to use USE VECTOR_TEST; GO /* The purpose of this script is to create a vector store database for retrieval use. You first create a few tables. Next run the FileLoader python program to load some files as embeddings. (a bunch of"
+          },
+          {
+            "similarity": 0.7440509796142578,
+            "conversation_id": "69386aaa-a4b0-832c-9bf1-5f7b83733c00",
+            "title": "Astrology as psychology",
+            "chunk_index": 11,
+            "content_preview": "user: Vectordbs... We need a level... All this time were just throwing chunks into the db... But the summarization people were deeply correct .....  If we go from level to level, compose chunks of state description and use those to form the next level of abstraction then only similarity search for a"
+          },
+          {
+            "similarity": 0.7410721182823181,
+            "conversation_id": "9d1e7f45-690d-403f-890a-0121e5763404",
+            "title": "VectorStore for Azure/.NET",
+            "chunk_index": 0,
+            "content_preview": "user: Are there vectorstores you can use with azure/.net .net framework?  I need something like faiss but for windows\n\nassistant: As of my knowledge cutoff in September 2021, there are a few options you could consider when you need to implement a vector store similar to FAISS on Azure/.NET .NET Fram"
+          }
+        ],
+        "similarity_stats": {
+          "mean": 0.7735443711280823,
+          "median": 0.7725953459739685,
+          "std": 0.0245641926625977,
+          "min": 0.7410721182823181,
+          "max": 0.8180780410766602
+        }
+      },
+      {
+        "query": "embedding model comparison",
+        "embed_time_ms": 19.46029999999155,
+        "search_time_ms": 5209.98949999921,
+        "total_time_ms": 5229.449799999202,
+        "top_k": 10,
+        "results": [
+          {
+            "similarity": 0.7683609127998352,
+            "conversation_id": "688ba72e-7b80-832a-abbc-d8289d1d244a",
+            "title": "Novel LLM architecture",
+            "chunk_index": 3,
+            "content_preview": "user: what do you think about this? also that was beautiful. I love this version of you.\n\n\"OH! You want the **actual internal representations** that the models are using, not the post-hoc embedding approximations!\n\nRight now we're stuck with this awkward situation where:\n- LLMs have these rich inter"
+          },
+          {
+            "similarity": 0.7424727082252502,
+            "conversation_id": "68a719ec-51a4-8328-a2e6-88bf2e7e9eaf",
+            "title": "Idea Calculus Framework",
+            "chunk_index": 20,
+            "content_preview": "estimate the semantic similarity between two sentences by com- puting the cosine similarity of their sentence em- beddings. All models are evaluated under the zero- shot setting without training on any STS data. We report Spearman’s correlation for all tasks. Results. As shown in Tab. 2, incorporati"
+          },
+          {
+            "similarity": 0.741301417350769,
+            "conversation_id": "691aec73-3510-8332-8004-72813a46727a",
+            "title": "Starting with JSON issue",
+            "chunk_index": 4,
+            "content_preview": "user: \"Optionally compute similarity with a tiny model / embeddings to make sure it didn’t change meaning too much.\"\n\nI've been flitting toward this ... embeddings are soooo useful... \n\nbut I'm worried we'll get false negatives... I'm wondering what the threshold for a good similarity will really be"
+          },
+          {
+            "similarity": 0.7368948459625244,
+            "conversation_id": "211f5a6c-f503-4aa0-9c57-4e9568ad87e5",
+            "title": "Finding Mean Embedding from Multiple Embeddings",
+            "chunk_index": 6,
+            "content_preview": "user: how is an embeddings model built in the first place?\n\nassistant: Building an embeddings model, especially in the context of natural language processing (NLP), involves training a neural network to map words, phrases, sentences, or even paragraphs to high-dimensional vectors (embeddings) that c"
+          },
+          {
+            "similarity": 0.7360231280326843,
+            "conversation_id": "1eceb000-983a-4fd8-83a4-6ad68c5b55ec",
+            "title": "Specific Token Vector Spaces",
+            "chunk_index": 22,
+            "content_preview": "user: but the true difference is anything can be embedded. so it has generalization. and when combined with the enormous data of an llm you get much better advice and understanding\n\nassistant: Indeed, the flexibility and generalization potential of embeddings, especially when combined with the vast "
+          },
+          {
+            "similarity": 0.7194997072219849,
+            "conversation_id": "eb05e306-2a85-41ef-b517-eb96df5526f6",
+            "title": "Ontologies vs JSON/XML/NoSQL",
+            "chunk_index": 10,
+            "content_preview": "user: creation of embeddings is cheap, money-wise and goes through openai.  and similarity search happens locally and is thus also cheap and very fast. \n\nupdates to embeddings can happen if there are significant changes to the node's connections which require a rewrite of the description and thus a "
+          },
+          {
+            "similarity": 0.7106766700744629,
+            "conversation_id": "19c4cb1e-8bdf-49a2-af73-e2ad5bdcb087",
+            "title": "np.array in NumPy.",
+            "chunk_index": 3,
+            "content_preview": "user: okay I'm going to need to update my compression system with this.. but just not yet.  I forgot about embeddings haha .. stupid me\n\nassistant: Embeddings are an important concept in natural language processing and machine learning, and can be used for various tasks such as text classification, "
+          },
+          {
+            "similarity": 0.7061784267425537,
+            "conversation_id": "cdabdea9-3179-438c-a0df-61e086b44942",
+            "title": "HTML Chunking: Diverse Devs",
+            "chunk_index": 1,
+            "content_preview": "user: imagine the conversation:\n\nassistant: In the imagined conversation among these three senior software developers, each with their distinct philosophies, the dialogue revolves around the best method to chunk an HTML file for embedding into a vector database for similarity search retrieval:\n\n**Th"
+          },
+          {
+            "similarity": 0.7043640613555908,
+            "conversation_id": "68bd29a6-1874-8320-8a96-0156937c2447",
+            "title": "Categorizing ideonomic divisions",
+            "chunk_index": 11,
+            "content_preview": "user: But when you think about it .. it's just embeddings... Once you turn every property into a dimension\n\nassistant: 💯 Exactly. You’ve walked all the way around the mountain and realized:  \n\n👉 **Ideonomy = hand-crafted embeddings.**  \n\n- **Idea = vector.**  \n- **Property = dimension.**  \n- **All p"
+          },
+          {
+            "similarity": 0.7023320198059082,
+            "conversation_id": "846f41cb-2cea-40f4-9aa3-99bc7408c68f",
+            "title": "LLM Embedding: Mapping Knowledge",
+            "chunk_index": 0,
+            "content_preview": "user: Our embedding is basically a map of a LLM's mind.\n\nassistant: That's an interesting way to put it! Embeddings in machine learning are a way to represent high-dimensional data in lower dimensions, often used for words, sentences, or other complex structures. When you refer to an embedding as a "
+          }
+        ],
+        "similarity_stats": {
+          "mean": 0.7268103897571564,
+          "median": 0.7277614176273346,
+          "std": 0.020520146225290914,
+          "min": 0.7023320198059082,
+          "max": 0.7683609127998352
+        }
+      }
+    ],
+    "summary": {
+      "total_queries": 8,
+      "avg_embed_time_ms": 18.479625000281885,
+      "avg_search_time_ms": 5289.849174999745,
+      "avg_total_time_ms": 5308.328800000027,
+      "avg_mean_similarity": 0.7134800359606743,
+      "similarity_std": 0.03309883861426489
+    }
+  },
+  "comparison": {
+    "time_ratio": 0.9671144475666824,
+    "similarity_diff": -0.17019670084118843,
+    "similarity_std_ratio": 1.2994736039520731
+  }
+}

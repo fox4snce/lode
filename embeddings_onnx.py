@@ -64,7 +64,7 @@ class OfflineEmbedder:
     max_length: int = 256
     
     @staticmethod
-    def load(model_dir: str = "vendor/embedder_minilm_l6_v2") -> "OfflineEmbedder":
+    def load(model_dir: str = "vendor/embedder_bge_small_v1_5") -> "OfflineEmbedder":
         """
         Load the ONNX model and tokenizer.
         

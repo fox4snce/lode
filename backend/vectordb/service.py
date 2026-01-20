@@ -37,14 +37,11 @@ def get_vectordb() -> SQLiteVectorDB:
 
 @lru_cache(maxsize=1)
 def get_embedder():
-    # Default embedder: local ONNX
-    # Can be configured via environment variable EMBEDDING_MODEL_DIR
-    # Options: "vendor/embedder_minilm_l6_v2" (default) or "vendor/embedder_bge_small_v1_5"
+    # Default embedder: BGE-small-en-v1.5 (better quality than MiniLM)
+    # TODO: Add user-configurable embedding provider support
     from embeddings_onnx import OfflineEmbedder
-    import os
 
-    model_dir = os.getenv("EMBEDDING_MODEL_DIR", "vendor/embedder_minilm_l6_v2")
-    return OfflineEmbedder.load(model_dir=model_dir)
+    return OfflineEmbedder.load(model_dir="vendor/embedder_bge_small_v1_5")
 
 
 def _ensure_2d(a: np.ndarray) -> np.ndarray:

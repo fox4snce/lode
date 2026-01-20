@@ -202,7 +202,7 @@ def main():
     print("\n[Loading] ONNX embedder...")
     try:
         embedder = OfflineEmbedder.load()
-        print(f"  [SUCCESS] Loaded model from vendor/embedder_minilm_l6_v2")
+        print(f"  [SUCCESS] Loaded model from vendor/embedder_bge_small_v1_5 (BGE-small-en-v1.5)")
         print(f"  Max sequence length: {embedder.max_length} tokens")
     except Exception as e:
         print(f"  [ERROR] Failed to load: {e}")
