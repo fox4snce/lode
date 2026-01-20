@@ -227,20 +227,70 @@ After publishing:
 
 ---
 
+## Build Types: Core vs Pro
+
+Lode has two build types:
+
+### Core Build
+- **Features**: Basic conversation management, import, search, analytics, export
+- **Build Flag**: `LODE_BUILD_TYPE=core` (default)
+- **Target**: Free/open-source users
+
+### Pro Build
+- **Features**: All core features + VectorDB search + Chat (RAG)
+- **Build Flag**: `LODE_BUILD_TYPE=pro`
+- **Target**: Users who need advanced semantic search and AI chat
+
+### Feature Gating
+
+Features are gated via `backend/feature_flags.py`:
+- VectorDB routes only included in Pro builds
+- Chat routes only included in Pro builds
+- Menu items conditionally rendered based on build type
+
+### Building Different Versions
+
+**Core Build:**
+```powershell
+$env:LODE_BUILD_TYPE = "core"
+python tools/build_windows_exe.py
+```
+
+**Pro Build:**
+```powershell
+$env:LODE_BUILD_TYPE = "pro"
+python tools/build_windows_exe.py
+```
+
+The build script should:
+1. Check `LODE_BUILD_TYPE` environment variable
+2. Set feature flags accordingly
+3. Include/exclude Pro features in the build
+4. Name output appropriately (e.g., `Lode-Pro-<version>-win64.zip`)
+
+### Release Considerations
+
+- **Core releases**: Standard release process, free distribution
+- **Pro releases**: May require separate distribution channel, licensing considerations
+- **Versioning**: Can use same version numbers, or use suffixes (e.g., `1.0.0-core`, `1.0.0-pro`)
+
 ## Complete Checklist
 
 Before publishing a release, verify:
 
 - [ ] Version number updated in `lode_version.py`
+- [ ] Build type determined (core vs pro)
+- [ ] Feature flags set correctly for build type
 - [ ] Version change committed and pushed to `main`
 - [ ] Build completed successfully (`dist/lode-<version>/Lode/Lode.exe` exists)
 - [ ] Executable tested (launches and works correctly)
-- [ ] ZIP file created (`Lode-<version>-win64.zip`)
+- [ ] Pro features tested (if Pro build)
+- [ ] ZIP file created (`Lode-<version>-win64.zip` or `Lode-Pro-<version>-win64.zip`)
 - [ ] Checksum file generated (`Lode-<version>-win64.zip.sha256`)
 - [ ] README.txt created/updated and in distribution directory
 - [ ] Git tag created and pushed (`v<version>`)
 - [ ] GitHub release created with all files attached
-- [ ] Release notes written and published
+- [ ] Release notes written and published (note build type)
 
 ---
 
