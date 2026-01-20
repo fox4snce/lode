@@ -262,6 +262,14 @@ def index_conversations(
             chunks = chunk_conversation_messages(messages, min_words=300, max_words=800)
             if not chunks:
                 continue
+
+            # Filter out extremely small chunks (these tend to be noisy matches like "hello")
+            # Keep at least one chunk if everything is small by choosing the largest.
+            chunk_with_wc = [(c, len((c.get("content", "") or "").split())) for c in chunks]
+            kept = [(c, wc) for (c, wc) in chunk_with_wc if wc >= 30]
+            if not kept and chunk_with_wc:
+                kept = [max(chunk_with_wc, key=lambda t: t[1])]
+            chunks = [c for (c, _wc) in kept]
             
             total_chunks += len(chunks)
             
@@ -277,6 +285,7 @@ def index_conversations(
             batch_items = []
             chunk_vectors = []
             for chunk, embedding in zip(chunks, chunk_embeddings):
+                chunk_word_count = len((chunk.get("content", "") or "").split())
                 batch_items.append({
                     'content': chunk['content'],
                     'vector': embedding.tolist(),
@@ -288,6 +297,7 @@ def index_conversations(
                         'chunk_index': chunk['chunk_index'],
                         'total_chunks': chunk['total_chunks'],
                         'message_ids': chunk['message_ids'],
+                        'chunk_word_count': chunk_word_count,
                     },
                     'file_id': f"{conv_id}_chunk_{chunk['chunk_index']}",
                 })

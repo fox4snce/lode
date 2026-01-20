@@ -73,10 +73,31 @@ def search_phrases(
 
     out: List[Dict[str, Any]] = []
     for phrase, emb in zip(phrases, embs):
-        rows = vectordb.search_fast(emb.tolist(), top_n=top_k, filters=filters)
+        # Pull more candidates than requested so we can do "best per conversation" (reduces noisy spammy results)
+        candidate_k = min(max(top_k * 20, top_k), 500)
+        rows = vectordb.search_fast(emb.tolist(), top_n=candidate_k, filters=filters)
+
+        # Best-per-conversation selection
+        best_by_conv: Dict[str, Any] = {}
+        for r in rows:
+            md = r.metadata or {}
+            conv_id = md.get("conversation_id") or r.file_id or ""
+
+            # Optional: skip tiny chunks if we have word_count metadata
+            wc = md.get("chunk_word_count")
+            if isinstance(wc, int) and wc > 0 and wc < 30:
+                continue
+
+            prev = best_by_conv.get(conv_id)
+            if prev is None or r.similarity > prev.similarity:
+                best_by_conv[conv_id] = r
+
+        # Order by similarity and take top_k
+        picked = sorted(best_by_conv.values(), key=lambda x: x.similarity, reverse=True)[:top_k]
+
         results: List[Dict[str, Any]] = []
         seen_keys = set()
-        for r in rows:
+        for r in picked:
             if min_similarity is not None and r.similarity < float(min_similarity):
                 continue
 
@@ -85,6 +106,7 @@ def search_phrases(
             if dedupe_key in seen_keys:
                 continue
             seen_keys.add(dedupe_key)
+
             source = {
                 "conversation_id": md.get("conversation_id"),
                 "message_ids": md.get("message_ids"),
@@ -92,13 +114,9 @@ def search_phrases(
                 "vectordb_row_id": r.id,
             }
 
-            item: Dict[str, Any] = {
-                "similarity": r.similarity,
-                "source": source,
-            }
+            item: Dict[str, Any] = {"similarity": r.similarity, "source": source}
             if include_content:
                 item["content"] = r.content
-            # optional passthrough metadata
             item["metadata"] = md
             if include_debug:
                 item["file_id"] = r.file_id
