@@ -190,11 +190,22 @@ def compare_models():
     
     print(f"\nInterpretation:")
     if bg_sim_std > ml_sim_std:
-        print(f"  ✓ BGE-small has higher variance in scores (better discrimination)")
+        print(f"  [OK] BGE-small has higher variance in scores (better discrimination)")
     if bg_avg_sim < ml_avg_sim:
-        print(f"  ✓ BGE-small has lower average similarity (less 'blurry' embeddings)")
+        print(f"  [OK] BGE-small has lower average similarity (less 'blurry' embeddings)")
     if bg_avg_time < ml_avg_time * 3:
-        print(f"  ✓ BGE-small is within 3x speed of MiniLM (acceptable)")
+        print(f"  [OK] BGE-small is within 3x speed of MiniLM (acceptable)")
+    
+    print(f"\nRecommendation:")
+    if bg_avg_sim < ml_avg_sim - 0.10 and bg_sim_std > ml_sim_std:
+        print(f"  STRONGLY RECOMMEND switching to BGE-small:")
+        print(f"    - Lower similarity scores indicate better discrimination")
+        print(f"    - Higher variance means more accurate relevance ranking")
+        print(f"    - Performance is similar or better")
+    elif bg_avg_sim < ml_avg_sim:
+        print(f"  Consider switching to BGE-small for better quality")
+    else:
+        print(f"  MiniLM may be sufficient for your use case")
     
     # Save comparison
     comparison_file = project_root / "tests" / "model_comparison.json"
