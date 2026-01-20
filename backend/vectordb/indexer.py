@@ -233,8 +233,8 @@ def index_conversations(
         title = conv_row['title'] if conv_row['title'] else ''
         ai_source = conv_row['ai_source'] if conv_row['ai_source'] else 'gpt'
         
-        # Debug: log every 100 conversations to track progress
-        if idx % 100 == 0:
+        # Debug: log more frequently to catch hangs (every 10 conversations, or every 100)
+        if idx % 10 == 0 or idx % 100 == 0:
             print(f"[DEBUG] Processing conversation {idx + 1}/{total_conversations}: {conv_id[:8]}...")
         
         try:
@@ -275,11 +275,15 @@ def index_conversations(
             
             # Embed chunks
             chunk_texts = [chunk['content'] for chunk in chunks]
-            if idx % 100 == 0:
-                print(f"[DEBUG] Embedding {len(chunk_texts)} chunks for conversation {idx + 1}...")
-            chunk_embeddings = embedder.embed(chunk_texts, batch_size=32)
-            if idx % 100 == 0:
-                print(f"[DEBUG] Embedding complete, inserting into vectordb...")
+            if idx % 10 == 0 or len(chunk_texts) > 20:
+                print(f"[DEBUG] Embedding {len(chunk_texts)} chunks for conversation {idx + 1} (conv {conv_id[:8]})...")
+            
+            # Use smaller batch size for very large conversations to avoid hangs
+            batch_size = 16 if len(chunk_texts) > 50 else 32
+            chunk_embeddings = embedder.embed(chunk_texts, batch_size=batch_size)
+            
+            if idx % 10 == 0 or len(chunk_texts) > 20:
+                print(f"[DEBUG] Embedding complete ({len(chunk_embeddings)} vectors), inserting into vectordb...")
             
             # Prepare batch insert items for chunks
             batch_items = []
@@ -305,8 +309,12 @@ def index_conversations(
             
             # Batch insert chunks (much faster than individual inserts)
             if batch_items:
+                if idx % 10 == 0 or len(batch_items) > 20:
+                    print(f"[DEBUG] Inserting {len(batch_items)} chunks into vectordb...")
                 vectordb.insert_batch(batch_items)
                 total_vectors += len(batch_items)
+                if idx % 10 == 0 or len(batch_items) > 20:
+                    print(f"[DEBUG] Insert complete for conversation {idx + 1}")
             
             # Compute conversation-level embedding (average of chunk embeddings)
             if chunk_vectors:
@@ -331,8 +339,8 @@ def index_conversations(
                 )
                 total_vectors += 1
             
-            # Update progress more frequently (every conversation or every 10)
-            if progress_callback and (idx + 1) % 10 == 0 or idx == total_conversations - 1:
+            # Update progress every 10 conversations (more frequent for better visibility)
+            if progress_callback and ((idx + 1) % 10 == 0 or idx == total_conversations - 1):
                 progress = int((idx + 1) / total_conversations * 100)
                 try:
                     progress_callback(
@@ -341,7 +349,11 @@ def index_conversations(
                     )
                 except Exception as e:
                     # Progress callback may fail (e.g., thread safety), log but continue
-                    print(f"Progress callback error: {e}")
+                    print(f"[WARNING] Progress callback error: {e}")
+            
+            # Log completion of this conversation (every 10 for visibility)
+            if idx % 10 == 0:
+                print(f"[DEBUG] Completed conversation {idx + 1}/{total_conversations} ({conv_id[:8]})")
         
         except Exception as e:
             # Log error but continue
