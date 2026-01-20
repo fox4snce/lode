@@ -16,6 +16,7 @@ test_files = [
     'test_deduplication.py',
     'test_import_report.py',
     'test_integrity_checks.py',
+    'test_vectordb_api.py',
 ]
 
 def run_test(test_file):

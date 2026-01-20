@@ -29,6 +29,7 @@ sys.path.insert(0, str(parent_dir))
 from backend.db import check_database_initialized, initialize_database, get_db_connection, get_data_dir
 from backend.jobs import create_job, get_job, list_jobs, cancel_job, JobType, JobStatus
 from backend.routes import organization
+from backend.routes import vectordb
 
 # Import route modules (they define routers)
 from api.routes import conversations, messages, jobs
@@ -1555,6 +1556,7 @@ async def get_exported_file(file_path: str):
 
 # Include routers
 app.include_router(organization.router)
+app.include_router(vectordb.router)
 app.include_router(conversations.router)
 app.include_router(messages.router)
 app.include_router(jobs.router)
