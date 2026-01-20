@@ -233,6 +233,10 @@ def index_conversations(
         title = conv_row['title'] if conv_row['title'] else ''
         ai_source = conv_row['ai_source'] if conv_row['ai_source'] else 'gpt'
         
+        # Debug: log every 100 conversations to track progress
+        if idx % 100 == 0:
+            print(f"[DEBUG] Processing conversation {idx + 1}/{total_conversations}: {conv_id[:8]}...")
+        
         try:
             # Get messages for this conversation
             msg_cursor = conn.execute("""
@@ -263,15 +267,20 @@ def index_conversations(
             
             # Embed chunks
             chunk_texts = [chunk['content'] for chunk in chunks]
+            if idx % 100 == 0:
+                print(f"[DEBUG] Embedding {len(chunk_texts)} chunks for conversation {idx + 1}...")
             chunk_embeddings = embedder.embed(chunk_texts, batch_size=32)
+            if idx % 100 == 0:
+                print(f"[DEBUG] Embedding complete, inserting into vectordb...")
             
-            # Store chunks
+            # Prepare batch insert items for chunks
+            batch_items = []
             chunk_vectors = []
             for chunk, embedding in zip(chunks, chunk_embeddings):
-                vectordb.insert(
-                    content=chunk['content'],
-                    vector=embedding.tolist(),
-                    metadata={
+                batch_items.append({
+                    'content': chunk['content'],
+                    'vector': embedding.tolist(),
+                    'metadata': {
                         'conversation_id': conv_id,
                         'title': title,
                         'ai_source': ai_source,
@@ -280,10 +289,14 @@ def index_conversations(
                         'total_chunks': chunk['total_chunks'],
                         'message_ids': chunk['message_ids'],
                     },
-                    file_id=f"{conv_id}_chunk_{chunk['chunk_index']}",
-                )
+                    'file_id': f"{conv_id}_chunk_{chunk['chunk_index']}",
+                })
                 chunk_vectors.append(embedding)
-                total_vectors += 1
+            
+            # Batch insert chunks (much faster than individual inserts)
+            if batch_items:
+                vectordb.insert_batch(batch_items)
+                total_vectors += len(batch_items)
             
             # Compute conversation-level embedding (average of chunk embeddings)
             if chunk_vectors:
@@ -308,12 +321,13 @@ def index_conversations(
                 )
                 total_vectors += 1
             
-            if progress_callback:
+            # Update progress more frequently (every conversation or every 10)
+            if progress_callback and (idx + 1) % 10 == 0 or idx == total_conversations - 1:
                 progress = int((idx + 1) / total_conversations * 100)
                 try:
                     progress_callback(
                         progress,
-                        f"Indexed {idx + 1}/{total_conversations} conversations ({len(chunks)} chunks)",
+                        f"Indexed {idx + 1}/{total_conversations} conversations ({total_chunks} chunks, {total_vectors} vectors)",
                     )
                 except Exception as e:
                     # Progress callback may fail (e.g., thread safety), log but continue
@@ -321,7 +335,20 @@ def index_conversations(
         
         except Exception as e:
             # Log error but continue
-            print(f"Error indexing conversation {conv_id}: {e}")
+            import traceback
+            error_msg = f"Error indexing conversation {conv_id} (idx {idx + 1}/{total_conversations}): {e}"
+            print(error_msg)
+            traceback.print_exc()
+            # Still update progress even on error
+            if progress_callback:
+                try:
+                    progress = int((idx + 1) / total_conversations * 100)
+                    progress_callback(
+                        progress,
+                        f"Indexed {idx + 1}/{total_conversations} (error on {conv_id[:8]}...)",
+                    )
+                except:
+                    pass
             continue
     
     conn.close()
