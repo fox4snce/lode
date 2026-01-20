@@ -15,6 +15,9 @@ data/
 *.db-shm
 *.db-wal
 
+# User configuration
+lode_config.json
+
 # Python
 __pycache__/
 *.py[cod]
