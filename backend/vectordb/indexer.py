@@ -229,8 +229,9 @@ def index_conversations(
     
     for idx, conv_row in enumerate(conversations):
         conv_id = conv_row['conversation_id']
-        title = conv_row.get('title') or ''
-        ai_source = conv_row.get('ai_source') or 'gpt'
+        # sqlite3.Row supports direct indexing; None values are returned as None
+        title = conv_row['title'] if conv_row['title'] else ''
+        ai_source = conv_row['ai_source'] if conv_row['ai_source'] else 'gpt'
         
         try:
             # Get messages for this conversation
