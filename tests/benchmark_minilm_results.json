@@ -1,0 +1,703 @@
+{
+  "model": "sentence-transformers/all-MiniLM-L6-v2",
+  "embedding_dim": 384,
+  "timestamp": 1768935636.3255687,
+  "queries": [
+    {
+      "query": "spacetime as a simulation",
+      "embed_time_ms": 10.484300000825897,
+      "search_time_ms": 5431.589800000438,
+      "total_time_ms": 5442.074100001264,
+      "top_k": 10,
+      "results": [
+        {
+          "similarity": 0.8755403757095337,
+          "conversation_id": "6c6dde9d-9fbb-42e2-a5f2-f1b9cadffac7",
+          "title": "Add Genres to Library",
+          "chunk_index": 1,
+          "content_preview": "universe from cosmic threats.\"} } } }"
+        },
+        {
+          "similarity": 0.8637821674346924,
+          "conversation_id": "c0fb874c-443b-496f-97f1-cfdfdbf7727c",
+          "title": "Test Request Summary",
+          "chunk_index": 0,
+          "content_preview": "user: test"
+        },
+        {
+          "similarity": 0.8571994304656982,
+          "conversation_id": "67cc875c-09a0-800f-909a-95187bdd3a88",
+          "title": "EM and Spacetime Interaction",
+          "chunk_index": 6,
+          "content_preview": "into that static view of the universe?**"
+        },
+        {
+          "similarity": 0.8563074469566345,
+          "conversation_id": "74ac30a2-6e1b-4eee-990a-de45a8154f82",
+          "title": "",
+          "chunk_index": 0,
+          "content_preview": "user: how many minutes in a day?"
+        },
+        {
+          "similarity": 0.8489494919776917,
+          "conversation_id": "a27b5e82-b449-4007-baf8-98a2feb11269",
+          "title": "New chat",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.8489494919776917,
+          "conversation_id": "9b8e29e5-6080-483b-ad58-af196865a271",
+          "title": "New chat",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.8489494919776917,
+          "conversation_id": "bc657f08-1124-4772-9604-066f3ffd224a",
+          "title": "Hello Conversation Summary",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.8489494919776917,
+          "conversation_id": "360e6c09-bda6-4051-9ca5-5a3973322c05",
+          "title": "Hello Response",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.8476666212081909,
+          "conversation_id": "69221f9f-d530-832e-abd8-17cc28e987f5",
+          "title": "Tattoo studio prompt",
+          "chunk_index": 1,
+          "content_preview": "can run the stories again. please"
+        },
+        {
+          "similarity": 0.8439629077911377,
+          "conversation_id": "68bb333c-74a8-8324-9750-c6a4f6e8d071",
+          "title": "Technical critique feedback",
+          "chunk_index": 12,
+          "content_preview": "and verify end-to-end."
+        }
+      ],
+      "similarity_stats": {
+        "mean": 0.8540256917476654,
+        "median": 0.8489494919776917,
+        "std": 0.009044988024287869,
+        "min": 0.8439629077911377,
+        "max": 0.8755403757095337
+      }
+    },
+    {
+      "query": "quantum mechanics",
+      "embed_time_ms": 10.698699999920791,
+      "search_time_ms": 5330.20679999936,
+      "total_time_ms": 5340.90549999928,
+      "top_k": 10,
+      "results": [
+        {
+          "similarity": 0.915995180606842,
+          "conversation_id": "a27b5e82-b449-4007-baf8-98a2feb11269",
+          "title": "New chat",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.915995180606842,
+          "conversation_id": "9b8e29e5-6080-483b-ad58-af196865a271",
+          "title": "New chat",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.915995180606842,
+          "conversation_id": "bc657f08-1124-4772-9604-066f3ffd224a",
+          "title": "Hello Conversation Summary",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.915995180606842,
+          "conversation_id": "360e6c09-bda6-4051-9ca5-5a3973322c05",
+          "title": "Hello Response",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.9136611223220825,
+          "conversation_id": "c0fb874c-443b-496f-97f1-cfdfdbf7727c",
+          "title": "Test Request Summary",
+          "chunk_index": 0,
+          "content_preview": "user: test"
+        },
+        {
+          "similarity": 0.902060329914093,
+          "conversation_id": "68a539f2-7e7c-8331-88da-b72bbd907a5b",
+          "title": "Mapmaker's Journey",
+          "chunk_index": 30,
+          "content_preview": "once, answered immediately."
+        },
+        {
+          "similarity": 0.902060329914093,
+          "conversation_id": "68a54155-3000-8326-84e9-3e6d6159c0a9",
+          "title": "Chapter critique",
+          "chunk_index": 11,
+          "content_preview": "once, answered immediately."
+        },
+        {
+          "similarity": 0.8939597606658936,
+          "conversation_id": "691a07ad-ae7c-8330-9ea1-d90667d82cae",
+          "title": "Reducing wordcount with LLMs",
+          "chunk_index": 9,
+          "content_preview": "at it, ignore it."
+        },
+        {
+          "similarity": 0.8854333162307739,
+          "conversation_id": "6926030d-4df0-8329-91e0-b019b3eb54d2",
+          "title": "Patreon post ideas",
+          "chunk_index": 32,
+          "content_preview": "a whole post on that one. SO lets just leave it there."
+        },
+        {
+          "similarity": 0.8850187063217163,
+          "conversation_id": "68bb333c-74a8-8324-9750-c6a4f6e8d071",
+          "title": "Technical critique feedback",
+          "chunk_index": 12,
+          "content_preview": "and verify end-to-end."
+        }
+      ],
+      "similarity_stats": {
+        "mean": 0.904617428779602,
+        "median": 0.9078607261180878,
+        "std": 0.012158967203527726,
+        "min": 0.8850187063217163,
+        "max": 0.915995180606842
+      }
+    },
+    {
+      "query": "database design",
+      "embed_time_ms": 10.151000000405475,
+      "search_time_ms": 5321.989899999608,
+      "total_time_ms": 5332.140900000013,
+      "top_k": 10,
+      "results": [
+        {
+          "similarity": 0.8880941271781921,
+          "conversation_id": "a27b5e82-b449-4007-baf8-98a2feb11269",
+          "title": "New chat",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.8880941271781921,
+          "conversation_id": "9b8e29e5-6080-483b-ad58-af196865a271",
+          "title": "New chat",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.8880941271781921,
+          "conversation_id": "bc657f08-1124-4772-9604-066f3ffd224a",
+          "title": "Hello Conversation Summary",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.8880941271781921,
+          "conversation_id": "360e6c09-bda6-4051-9ca5-5a3973322c05",
+          "title": "Hello Response",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.8778388500213623,
+          "conversation_id": "692d504c-1144-8327-8aa1-d3d68c09fd2b",
+          "title": "Fire and Curiosity",
+          "chunk_index": 13,
+          "content_preview": "assistant: 👍"
+        },
+        {
+          "similarity": 0.8767827749252319,
+          "conversation_id": "c0fb874c-443b-496f-97f1-cfdfdbf7727c",
+          "title": "Test Request Summary",
+          "chunk_index": 0,
+          "content_preview": "user: test"
+        },
+        {
+          "similarity": 0.8754884004592896,
+          "conversation_id": "85cff652-505c-4410-8f14-920a4552a064",
+          "title": "Superhero Story Outline",
+          "chunk_index": 2,
+          "content_preview": "assistant: I acknowledge"
+        },
+        {
+          "similarity": 0.8722397089004517,
+          "conversation_id": "aca8c852-d163-4237-8e4a-a94cb5751337",
+          "title": "Create Agate ChatGPT Teams Icon",
+          "chunk_index": 3,
+          "content_preview": "assistant: The new icon design,"
+        },
+        {
+          "similarity": 0.870345950126648,
+          "conversation_id": "69221f9f-d530-832e-abd8-17cc28e987f5",
+          "title": "Tattoo studio prompt",
+          "chunk_index": 1,
+          "content_preview": "can run the stories again. please"
+        },
+        {
+          "similarity": 0.8638996481895447,
+          "conversation_id": "68a539f2-7e7c-8331-88da-b72bbd907a5b",
+          "title": "Mapmaker's Journey",
+          "chunk_index": 30,
+          "content_preview": "once, answered immediately."
+        }
+      ],
+      "similarity_stats": {
+        "mean": 0.8788971841335297,
+        "median": 0.8773108124732971,
+        "std": 0.00835414455769445,
+        "min": 0.8638996481895447,
+        "max": 0.8880941271781921
+      }
+    },
+    {
+      "query": "API architecture",
+      "embed_time_ms": 9.796899999855668,
+      "search_time_ms": 5280.433599999014,
+      "total_time_ms": 5290.23049999887,
+      "top_k": 10,
+      "results": [
+        {
+          "similarity": 0.912771463394165,
+          "conversation_id": "692d504c-1144-8327-8aa1-d3d68c09fd2b",
+          "title": "Fire and Curiosity",
+          "chunk_index": 13,
+          "content_preview": "assistant: 👍"
+        },
+        {
+          "similarity": 0.9078284502029419,
+          "conversation_id": "85cff652-505c-4410-8f14-920a4552a064",
+          "title": "Superhero Story Outline",
+          "chunk_index": 2,
+          "content_preview": "assistant: I acknowledge"
+        },
+        {
+          "similarity": 0.9043725728988647,
+          "conversation_id": "aca8c852-d163-4237-8e4a-a94cb5751337",
+          "title": "Create Agate ChatGPT Teams Icon",
+          "chunk_index": 3,
+          "content_preview": "assistant: The new icon design,"
+        },
+        {
+          "similarity": 0.9014739990234375,
+          "conversation_id": "a27b5e82-b449-4007-baf8-98a2feb11269",
+          "title": "New chat",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.9014739990234375,
+          "conversation_id": "9b8e29e5-6080-483b-ad58-af196865a271",
+          "title": "New chat",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.9014739990234375,
+          "conversation_id": "bc657f08-1124-4772-9604-066f3ffd224a",
+          "title": "Hello Conversation Summary",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.9014739990234375,
+          "conversation_id": "360e6c09-bda6-4051-9ca5-5a3973322c05",
+          "title": "Hello Response",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.8991597890853882,
+          "conversation_id": "c0fb874c-443b-496f-97f1-cfdfdbf7727c",
+          "title": "Test Request Summary",
+          "chunk_index": 0,
+          "content_preview": "user: test"
+        },
+        {
+          "similarity": 0.8892141580581665,
+          "conversation_id": "691a07ad-ae7c-8330-9ea1-d90667d82cae",
+          "title": "Reducing wordcount with LLMs",
+          "chunk_index": 9,
+          "content_preview": "at it, ignore it."
+        },
+        {
+          "similarity": 0.8820762038230896,
+          "conversation_id": "68a539f2-7e7c-8331-88da-b72bbd907a5b",
+          "title": "Mapmaker's Journey",
+          "chunk_index": 30,
+          "content_preview": "once, answered immediately."
+        }
+      ],
+      "similarity_stats": {
+        "mean": 0.9001318633556366,
+        "median": 0.9014739990234375,
+        "std": 0.008308633622743162,
+        "min": 0.8820762038230896,
+        "max": 0.912771463394165
+      }
+    },
+    {
+      "query": "machine learning",
+      "embed_time_ms": 10.300100000677048,
+      "search_time_ms": 5317.968200000905,
+      "total_time_ms": 5328.268300001582,
+      "top_k": 10,
+      "results": [
+        {
+          "similarity": 0.9193719625473022,
+          "conversation_id": "c0fb874c-443b-496f-97f1-cfdfdbf7727c",
+          "title": "Test Request Summary",
+          "chunk_index": 0,
+          "content_preview": "user: test"
+        },
+        {
+          "similarity": 0.9155072569847107,
+          "conversation_id": "a27b5e82-b449-4007-baf8-98a2feb11269",
+          "title": "New chat",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.9155072569847107,
+          "conversation_id": "9b8e29e5-6080-483b-ad58-af196865a271",
+          "title": "New chat",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.9155072569847107,
+          "conversation_id": "bc657f08-1124-4772-9604-066f3ffd224a",
+          "title": "Hello Conversation Summary",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.9155072569847107,
+          "conversation_id": "360e6c09-bda6-4051-9ca5-5a3973322c05",
+          "title": "Hello Response",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.9130793213844299,
+          "conversation_id": "85cff652-505c-4410-8f14-920a4552a064",
+          "title": "Superhero Story Outline",
+          "chunk_index": 2,
+          "content_preview": "assistant: I acknowledge"
+        },
+        {
+          "similarity": 0.9125174283981323,
+          "conversation_id": "692d504c-1144-8327-8aa1-d3d68c09fd2b",
+          "title": "Fire and Curiosity",
+          "chunk_index": 13,
+          "content_preview": "assistant: 👍"
+        },
+        {
+          "similarity": 0.9044311046600342,
+          "conversation_id": "68a539f2-7e7c-8331-88da-b72bbd907a5b",
+          "title": "Mapmaker's Journey",
+          "chunk_index": 30,
+          "content_preview": "once, answered immediately."
+        },
+        {
+          "similarity": 0.9044311046600342,
+          "conversation_id": "68a54155-3000-8326-84e9-3e6d6159c0a9",
+          "title": "Chapter critique",
+          "chunk_index": 11,
+          "content_preview": "once, answered immediately."
+        },
+        {
+          "similarity": 0.8945375680923462,
+          "conversation_id": "691a07ad-ae7c-8330-9ea1-d90667d82cae",
+          "title": "Reducing wordcount with LLMs",
+          "chunk_index": 9,
+          "content_preview": "at it, ignore it."
+        }
+      ],
+      "similarity_stats": {
+        "mean": 0.9110397517681121,
+        "median": 0.9142932891845703,
+        "std": 0.007178258978469905,
+        "min": 0.8945375680923462,
+        "max": 0.9193719625473022
+      }
+    },
+    {
+      "query": "conversation chunking strategy",
+      "embed_time_ms": 10.711499999160878,
+      "search_time_ms": 5468.001400000503,
+      "total_time_ms": 5478.712899999664,
+      "top_k": 10,
+      "results": [
+        {
+          "similarity": 0.8755911588668823,
+          "conversation_id": "85cff652-505c-4410-8f14-920a4552a064",
+          "title": "Superhero Story Outline",
+          "chunk_index": 2,
+          "content_preview": "assistant: I acknowledge"
+        },
+        {
+          "similarity": 0.8728175163269043,
+          "conversation_id": "67a0ec53-8024-800f-862a-edcd275c2f5d",
+          "title": "Simulation Time Processing Debate",
+          "chunk_index": 33,
+          "content_preview": "ideas, or is there any part you'd like to dig deeper into?"
+        },
+        {
+          "similarity": 0.8651898503303528,
+          "conversation_id": "68a539f2-7e7c-8331-88da-b72bbd907a5b",
+          "title": "Mapmaker's Journey",
+          "chunk_index": 30,
+          "content_preview": "once, answered immediately."
+        },
+        {
+          "similarity": 0.8651898503303528,
+          "conversation_id": "68a54155-3000-8326-84e9-3e6d6159c0a9",
+          "title": "Chapter critique",
+          "chunk_index": 11,
+          "content_preview": "once, answered immediately."
+        },
+        {
+          "similarity": 0.8629528284072876,
+          "conversation_id": "692d504c-1144-8327-8aa1-d3d68c09fd2b",
+          "title": "Fire and Curiosity",
+          "chunk_index": 13,
+          "content_preview": "assistant: 👍"
+        },
+        {
+          "similarity": 0.8618521690368652,
+          "conversation_id": "691a07ad-ae7c-8330-9ea1-d90667d82cae",
+          "title": "Reducing wordcount with LLMs",
+          "chunk_index": 9,
+          "content_preview": "at it, ignore it."
+        },
+        {
+          "similarity": 0.8612807989120483,
+          "conversation_id": "68b89eda-f8c4-8329-8c87-2ef1d0549ae8",
+          "title": "Simple explanation of models",
+          "chunk_index": 0,
+          "content_preview": "user: Guess I should ask about this one... What's going on here in simple terms for my simple mind"
+        },
+        {
+          "similarity": 0.8580946326255798,
+          "conversation_id": "a27b5e82-b449-4007-baf8-98a2feb11269",
+          "title": "New chat",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.8580946326255798,
+          "conversation_id": "9b8e29e5-6080-483b-ad58-af196865a271",
+          "title": "New chat",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.8580946326255798,
+          "conversation_id": "bc657f08-1124-4772-9604-066f3ffd224a",
+          "title": "Hello Conversation Summary",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        }
+      ],
+      "similarity_stats": {
+        "mean": 0.8639158070087433,
+        "median": 0.8624024987220764,
+        "std": 0.0057670447657369745,
+        "min": 0.8580946326255798,
+        "max": 0.8755911588668823
+      }
+    },
+    {
+      "query": "vector database search",
+      "embed_time_ms": 9.447099999306374,
+      "search_time_ms": 5736.573199999839,
+      "total_time_ms": 5746.020299999145,
+      "top_k": 10,
+      "results": [
+        {
+          "similarity": 0.8650321960449219,
+          "conversation_id": "c0fb874c-443b-496f-97f1-cfdfdbf7727c",
+          "title": "Test Request Summary",
+          "chunk_index": 0,
+          "content_preview": "user: test"
+        },
+        {
+          "similarity": 0.8476206660270691,
+          "conversation_id": "a27b5e82-b449-4007-baf8-98a2feb11269",
+          "title": "New chat",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.8476206660270691,
+          "conversation_id": "9b8e29e5-6080-483b-ad58-af196865a271",
+          "title": "New chat",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.8476206660270691,
+          "conversation_id": "bc657f08-1124-4772-9604-066f3ffd224a",
+          "title": "Hello Conversation Summary",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.8476206660270691,
+          "conversation_id": "360e6c09-bda6-4051-9ca5-5a3973322c05",
+          "title": "Hello Response",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.843601644039154,
+          "conversation_id": "69221f9f-d530-832e-abd8-17cc28e987f5",
+          "title": "Tattoo studio prompt",
+          "chunk_index": 1,
+          "content_preview": "can run the stories again. please"
+        },
+        {
+          "similarity": 0.8385627269744873,
+          "conversation_id": "68bb333c-74a8-8324-9750-c6a4f6e8d071",
+          "title": "Technical critique feedback",
+          "chunk_index": 12,
+          "content_preview": "and verify end-to-end."
+        },
+        {
+          "similarity": 0.8364995718002319,
+          "conversation_id": "692d504c-1144-8327-8aa1-d3d68c09fd2b",
+          "title": "Fire and Curiosity",
+          "chunk_index": 13,
+          "content_preview": "assistant: 👍"
+        },
+        {
+          "similarity": 0.8330454230308533,
+          "conversation_id": "83d32ff8-8c9c-4b03-872d-1c5d230ae9ce",
+          "title": "Tarot card reading assistance.",
+          "chunk_index": 1,
+          "content_preview": "\"__main__\": main()"
+        },
+        {
+          "similarity": 0.8314688205718994,
+          "conversation_id": "85cff652-505c-4410-8f14-920a4552a064",
+          "title": "Superhero Story Outline",
+          "chunk_index": 2,
+          "content_preview": "assistant: I acknowledge"
+        }
+      ],
+      "similarity_stats": {
+        "mean": 0.8438693046569824,
+        "median": 0.8456111550331116,
+        "std": 0.009260840192450406,
+        "min": 0.8314688205718994,
+        "max": 0.8650321960449219
+      }
+    },
+    {
+      "query": "embedding model comparison",
+      "embed_time_ms": 11.13430000077642,
+      "search_time_ms": 5941.169800000353,
+      "total_time_ms": 5952.304100001129,
+      "top_k": 10,
+      "results": [
+        {
+          "similarity": 0.9257231950759888,
+          "conversation_id": "c0fb874c-443b-496f-97f1-cfdfdbf7727c",
+          "title": "Test Request Summary",
+          "chunk_index": 0,
+          "content_preview": "user: test"
+        },
+        {
+          "similarity": 0.9212013483047485,
+          "conversation_id": "85cff652-505c-4410-8f14-920a4552a064",
+          "title": "Superhero Story Outline",
+          "chunk_index": 2,
+          "content_preview": "assistant: I acknowledge"
+        },
+        {
+          "similarity": 0.9121385812759399,
+          "conversation_id": "aca8c852-d163-4237-8e4a-a94cb5751337",
+          "title": "Create Agate ChatGPT Teams Icon",
+          "chunk_index": 3,
+          "content_preview": "assistant: The new icon design,"
+        },
+        {
+          "similarity": 0.910910964012146,
+          "conversation_id": "69221f9f-d530-832e-abd8-17cc28e987f5",
+          "title": "Tattoo studio prompt",
+          "chunk_index": 1,
+          "content_preview": "can run the stories again. please"
+        },
+        {
+          "similarity": 0.9103715419769287,
+          "conversation_id": "a27b5e82-b449-4007-baf8-98a2feb11269",
+          "title": "New chat",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.9103715419769287,
+          "conversation_id": "9b8e29e5-6080-483b-ad58-af196865a271",
+          "title": "New chat",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.9103715419769287,
+          "conversation_id": "bc657f08-1124-4772-9604-066f3ffd224a",
+          "title": "Hello Conversation Summary",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.9103715419769287,
+          "conversation_id": "360e6c09-bda6-4051-9ca5-5a3973322c05",
+          "title": "Hello Response",
+          "chunk_index": 0,
+          "content_preview": "user: hello"
+        },
+        {
+          "similarity": 0.909843921661377,
+          "conversation_id": "692d504c-1144-8327-8aa1-d3d68c09fd2b",
+          "title": "Fire and Curiosity",
+          "chunk_index": 13,
+          "content_preview": "assistant: 👍"
+        },
+        {
+          "similarity": 0.9078644514083862,
+          "conversation_id": "6e80ae57-5897-4f9e-a554-7d08e6a54717",
+          "title": "Undead Battle: Paladin's Triumph",
+          "chunk_index": 1,
+          "content_preview": "assistant:  righteousness."
+        }
+      ],
+      "similarity_stats": {
+        "mean": 0.9129168629646301,
+        "median": 0.9103715419769287,
+        "std": 0.005460299066903014,
+        "min": 0.9078644514083862,
+        "max": 0.9257231950759888
+      }
+    }
+  ],
+  "summary": {
+    "total_queries": 8,
+    "avg_embed_time_ms": 10.340487500116069,
+    "avg_search_time_ms": 5478.491587500002,
+    "avg_total_time_ms": 5488.8320750001185,
+    "avg_mean_similarity": 0.8836767368018628,
+    "similarity_std": 0.02547095878946813
+  }
+}
