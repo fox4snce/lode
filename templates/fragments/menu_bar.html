@@ -1,0 +1,20 @@
+{% set is_pro = feature_flags.get('chat', false) or feature_flags.get('vectordb', false) %}
+<div class="menu-bar">
+    <h1>Lode</h1>
+    <div class="menu-items">
+        <a href="/main">Main</a>
+        <a href="/import">Import</a>
+        <a href="/analytics">Analytics</a>
+        <a href="/find-tools">Find Tools</a>
+        {% if feature_flags.get('vectordb', false) %}
+        <a href="/vectordb-search">Vector Search</a>
+        {% endif %}
+        {% if feature_flags.get('chat', false) %}
+        <a href="/chat">Chat</a>
+        {% endif %}
+        <a href="/export">Export</a>
+        <a href="/settings">Settings</a>
+        <a href="/help">Help</a>
+        <a href="/about">About</a>
+    </div>
+</div>

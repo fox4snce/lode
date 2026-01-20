@@ -57,6 +57,35 @@ python -c "import lode_version; print(lode_version.__version__)"
    pip install -r requirements-dev.txt
    ```
 
+3. (Optional but recommended) Snapshot provider API references/specs for offline review (not committed)
+
+We looked for **official downloadable** “single-file” API specs/docs for OpenAI + Anthropic. With the current research tooling available in this repo workflow, we **could not verify** a stable official download artifact to hardcode here without guessing.
+
+Instead, this release step is **URL-driven**:
+- You (release operator) provide the official URLs you want to snapshot (API reference page, OpenAPI spec, etc.)
+- We download them into `docs/ignored/api_refs/` (gitignored)
+- We record `Last-Modified` / `ETag` headers if present, so you have a “last updated” signal for the snapshot
+
+```powershell
+# Provide official URLs (do not commit these downloaded files)
+$env:LODE_RELEASE_OPENAI_DOC_URL = "<paste OpenAI official doc/spec URL here>"
+$env:LODE_RELEASE_ANTHROPIC_DOC_URL = "<paste Anthropic official doc/spec URL here>"
+
+python tools/release_download_api_refs.py
+```
+
+If you prefer flags instead of env vars:
+
+```powershell
+python tools/release_download_api_refs.py `
+  --openai-url "<paste OpenAI official doc/spec URL here>" `
+  --anthropic-url "<paste Anthropic official doc/spec URL here>"
+```
+
+After downloading, manually verify our usage against the snapshot:
+- OpenAI: chat/completions or responses, embeddings (whatever we ship in this release)
+- Anthropic: messages (whatever we ship in this release)
+
 ### Build the Executable
 
 Run the build script:

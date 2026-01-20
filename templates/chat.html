@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+
+{% block title %}Chat - Lode{% endblock %}
+
+{% block content %}
+<div class="menu-bar">
+    <h1>Lode</h1>
+    <div class="menu-items">
+        <a href="/main">Main</a>
+        <a href="/import">Import</a>
+        <a href="/analytics">Analytics</a>
+        <a href="/find-tools">Find Tools</a>
+        {% if feature_flags.get('vectordb', false) %}
+        <a href="/vectordb-search">Vector Search</a>
+        {% endif %}
+        {% if feature_flags.get('chat', false) %}
+        <a href="/chat">Chat</a>
+        {% endif %}
+        <a href="/export">Export</a>
+        <a href="/settings">Settings</a>
+        <a href="/help">Help</a>
+        <a href="/about">About</a>
+    </div>
+</div>
+
+<div class="container" style="height: calc(100vh - 60px); display: flex; overflow: hidden;">
+    <!-- Left Sidebar: Settings -->
+    <div style="width: 280px; min-width: 280px; background: #f8f9fa; border-right: 1px solid #ddd; display: flex; flex-direction: column; overflow-y: auto; padding: 16px;">
+        <h2 style="margin: 0 0 16px 0; font-size: 18px; font-weight: 600;">Settings</h2>
+        
+        <!-- Provider Selection -->
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 6px; color: #7f8c8d;">
+                Provider
+            </label>
+            <select id="provider-select"
+                    style="width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; background: white;"
+                    onchange="updateModelPlaceholder()">
+                <option value="">Loading providers...</option>
+            </select>
+        </div>
+        
+        <!-- Model Input -->
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 6px; color: #7f8c8d;">
+                Model
+            </label>
+            <input type="text" id="model-input"
+                   placeholder="Select a provider first..."
+                   style="width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; background: white; box-sizing: border-box;"
+                   disabled>
+        </div>
+        
+        <!-- Test Button -->
+        <div style="margin-bottom: 20px;">
+            <button onclick="testModel()" 
+                    id="test-button"
+                    style="width: 100%; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s;"
+                    onmouseover="if(!this.disabled) this.style.background='#229954'"
+                    onmouseout="if(!this.disabled) this.style.background='#27ae60'">
+                <span id="test-button-text">Test Model</span>
+            </button>
+            <div id="test-status" style="margin-top: 8px; font-size: 12px; min-height: 16px;"></div>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+        
+        <!-- Context Window -->
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 6px; color: #7f8c8d;">
+                Context Window: <span id="context-window-value">4000</span> tokens
+            </label>
+            <input type="range" id="context-window-slider" min="1000" max="8000" step="500" value="4000"
+                   style="width: 100%;"
+                   oninput="document.getElementById('context-window-value').textContent = this.value">
+        </div>
+        
+        <!-- Min Similarity -->
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 6px; color: #7f8c8d;">
+                Min Similarity: <span id="min-sim-value">0.50</span>
+            </label>
+            <input type="range" id="min-similarity-slider" min="0" max="1" step="0.05" value="0.5"
+                   style="width: 100%;"
+                   oninput="document.getElementById('min-sim-value').textContent = parseFloat(this.value).toFixed(2)">
+        </div>
+        
+        <!-- Max Context Chunks -->
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 6px; color: #7f8c8d;">
+                Max Context Chunks
+            </label>
+            <input type="number" id="max-chunks" value="5" min="1" max="10"
+                   style="width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; background: white; box-sizing: border-box;">
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+        
+        <!-- Clear History -->
+        <div>
+            <button onclick="clearHistory()" 
+                    style="width: 100%; padding: 10px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                Clear History
+            </button>
+        </div>
+        
+        <!-- Debug Toggle -->
+        <div style="margin-top: 16px;">
+            <label style="font-size: 12px; color: #7f8c8d; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <input type="checkbox" id="show-debug" onchange="toggleDebug()">
+                Show debug info
+            </label>
+        </div>
+    </div>
+    
+    <!-- Main Chat Area -->
+    <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; background: white;">
+        <!-- Chat Messages -->
+        <div id="chat-messages" style="flex: 1; min-height: 0; overflow-y: auto; padding: 20px; background: #fafafa;">
+            <div class="empty-state" style="text-align: center; padding: 60px 20px; color: #999;">
+                <p style="font-size: 16px; margin: 0;">Start a conversation by typing a message below.</p>
+            </div>
+        </div>
+        
+        <!-- Input Area -->
+        <div style="flex-shrink: 0; padding: 16px; border-top: 1px solid #ddd; background: white;">
+            <div style="display: flex; gap: 8px; align-items: flex-end;">
+                <textarea id="chat-input" 
+                          placeholder="Type your message..."
+                          style="flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; font-family: inherit; resize: none; min-height: 60px; max-height: 200px; background: #fafafa;"
+                          onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); sendMessage(); }"
+                          rows="3"></textarea>
+                <button onclick="sendMessage()" 
+                        id="send-button"
+                        style="padding: 12px 24px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; white-space: nowrap;"
+                        onmouseover="if(!this.disabled) this.style.background='#2980b9'"
+                        onmouseout="if(!this.disabled) this.style.background='#3498db'">
+                    Send
+                </button>
+            </div>
+            <div id="chat-status" style="margin-top: 8px; font-size: 13px; color: #666; min-height: 18px;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+let chatHistory = [];
+let availableProviders = [];
+let selectedProvider = "";
+let selectedModel = "";
+
+// Load available providers on page load
+async function loadProviders() {
+    try {
+        const response = await fetch('/api/chat/providers');
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to load providers: ${response.status} ${errorText}`);
+        }
+        const data = await response.json();
+        availableProviders = data.providers || [];
+        
+        // Populate provider selector
+        const select = document.getElementById('provider-select');
+        if (!select) {
+            console.error('Provider select element not found');
+            return;
+        }
+        select.innerHTML = '<option value="">Select a provider...</option>';
+        
+        for (const provider of availableProviders) {
+            const option = document.createElement('option');
+            option.value = provider.provider;
+            option.textContent = provider.name;
+            option.dataset.placeholder = provider.placeholder || '';
+            select.appendChild(option);
+        }
+    } catch (error) {
+        console.error('Error loading providers:', error);
+        const select = document.getElementById('provider-select');
+        if (select) {
+            select.innerHTML = `<option value="">Error: ${error.message}</option>`;
+        }
+        const statusDiv = document.getElementById('chat-status');
+        if (statusDiv) {
+            statusDiv.textContent = `Error loading providers: ${error.message}`;
+            statusDiv.style.color = '#e74c3c';
+        }
+    }
+}
+
+function updateModelPlaceholder() {
+    const providerSelect = document.getElementById('provider-select');
+    const modelInput = document.getElementById('model-input');
+    const selectedOption = providerSelect.options[providerSelect.selectedIndex];
+    
+    if (selectedOption && selectedOption.value) {
+        selectedProvider = selectedOption.value;
+        modelInput.placeholder = selectedOption.dataset.placeholder || 'Enter model name...';
+        modelInput.disabled = false;
+    } else {
+        selectedProvider = "";
+        modelInput.placeholder = 'Select a provider first...';
+        modelInput.disabled = true;
+    }
+}
+
+async function testModel() {
+    const provider = document.getElementById('provider-select').value;
+    const model = document.getElementById('model-input').value.trim();
+    const testButton = document.getElementById('test-button');
+    const testButtonText = document.getElementById('test-button-text');
+    const testStatus = document.getElementById('test-status');
+    
+    if (!provider) {
+        testStatus.textContent = 'Please select a provider';
+        testStatus.style.color = '#e74c3c';
+        return;
+    }
+    
+    if (!model) {
+        testStatus.textContent = 'Please enter a model name';
+        testStatus.style.color = '#e74c3c';
+        return;
+    }
+    
+    // Update button to show loading state
+    testButton.disabled = true;
+    testButton.style.background = '#95a5a6';
+    testButton.style.cursor = 'not-allowed';
+    testButtonText.textContent = 'Testing...';
+    testStatus.textContent = 'Testing model connection...';
+    testStatus.style.color = '#666';
+    
+    try {
+        const response = await fetch('/api/chat/test-model', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                provider: provider,
+                model: model
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            testStatus.textContent = '✓ ' + data.message;
+            testStatus.style.color = '#27ae60';
+        } else {
+            testStatus.textContent = '✗ ' + data.message;
+            testStatus.style.color = '#e74c3c';
+        }
+    } catch (error) {
+        testStatus.textContent = '✗ Error: ' + error.message;
+        testStatus.style.color = '#e74c3c';
+    } finally {
+        // Restore button state
+        testButton.disabled = false;
+        testButton.style.background = '#27ae60';
+        testButton.style.cursor = 'pointer';
+        testButtonText.textContent = 'Test Model';
+    }
+}
+
+function addMessage(role, content, debugInfo = null) {
+    const messagesDiv = document.getElementById('chat-messages');
+    
+    // Remove empty state if present
+    const emptyState = messagesDiv.querySelector('.empty-state');
+    if (emptyState) {
+        emptyState.remove();
+    }
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.style.marginBottom = '20px';
+    messageDiv.style.display = 'flex';
+    messageDiv.style.flexDirection = 'column';
+    messageDiv.style.alignItems = role === 'user' ? 'flex-end' : 'flex-start';
+    
+    const messageBubble = document.createElement('div');
+    messageBubble.style.maxWidth = '70%';
+    messageBubble.style.padding = '12px 16px';
+    messageBubble.style.borderRadius = '12px';
+    messageBubble.style.backgroundColor = role === 'user' ? '#3498db' : '#ecf0f1';
+    messageBubble.style.color = role === 'user' ? 'white' : '#2c3e50';
+    messageBubble.style.wordWrap = 'break-word';
+    messageBubble.style.whiteSpace = 'pre-wrap';
+    messageBubble.style.fontSize = '14px';
+    messageBubble.style.lineHeight = '1.5';
+    
+    messageBubble.textContent = content;
+    messageDiv.appendChild(messageBubble);
+    
+    // Add debug info if enabled
+    if (debugInfo && document.getElementById('show-debug').checked) {
+        const debugDiv = document.createElement('div');
+        debugDiv.style.marginTop = '8px';
+        debugDiv.style.padding = '8px';
+        debugDiv.style.backgroundColor = '#fff3cd';
+        debugDiv.style.borderRadius = '4px';
+        debugDiv.style.fontSize = '11px';
+        debugDiv.style.color = '#856404';
+        debugDiv.style.maxWidth = '70%';
+        debugDiv.innerHTML = `
+            <strong>Debug:</strong><br>
+            Improved query: ${debugInfo.improved_query || 'N/A'}<br>
+            Context chunks: ${debugInfo.context_chunks_used || 0}<br>
+            Similarity scores: ${(debugInfo.similarity_scores || []).map(s => s.toFixed(2)).join(', ') || 'N/A'}
+        `;
+        messageDiv.appendChild(debugDiv);
+    }
+    
+    messagesDiv.appendChild(messageDiv);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const query = input.value.trim();
+    
+    if (!query) {
+        return;
+    }
+    
+    const provider = document.getElementById('provider-select').value;
+    const model = document.getElementById('model-input').value.trim();
+    
+    if (!provider) {
+        alert('Please select a provider first');
+        return;
+    }
+    
+    if (!model) {
+        alert('Please enter a model name');
+        return;
+    }
+    
+    // Format model name for API
+    selectedProvider = provider;
+    selectedModel = model;
+    
+    // Disable input
+    input.disabled = true;
+    const sendButton = document.getElementById('send-button');
+    sendButton.disabled = true;
+    sendButton.textContent = 'Sending...';
+    sendButton.style.background = '#95a5a6';
+    const statusDiv = document.getElementById('chat-status');
+    statusDiv.textContent = 'Processing...';
+    statusDiv.style.color = '#666';
+    
+    // Add user message
+    addMessage('user', query);
+    chatHistory.push({role: 'user', content: query});
+    
+    // Clear input
+    input.value = '';
+    
+    try {
+        const contextWindowSize = parseInt(document.getElementById('context-window-slider').value);
+        const minSimilarity = parseFloat(document.getElementById('min-similarity-slider').value);
+        const maxChunks = parseInt(document.getElementById('max-chunks').value);
+        
+        // Format model name based on provider
+        let formattedModel = selectedModel;
+        if (selectedProvider === 'lmstudio') {
+            formattedModel = `openai/${selectedModel}`;
+        } else if (selectedProvider === 'ollama') {
+            formattedModel = `ollama/${selectedModel}`;
+        } else if (selectedProvider !== 'custom') {
+            formattedModel = `${selectedProvider}/${selectedModel}`;
+        }
+        
+        const response = await fetch('/api/chat/completion', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                query: query,
+                model: formattedModel,
+                history: chatHistory,
+                context_window_size: contextWindowSize,
+                min_similarity: minSimilarity,
+                max_context_chunks: maxChunks
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Chat completion failed');
+        }
+        
+        const data = await response.json();
+        
+        // Add assistant response
+        addMessage('assistant', data.response, {
+            improved_query: data.improved_query,
+            context_chunks_used: data.context_chunks_used,
+            similarity_scores: data.similarity_scores
+        });
+        chatHistory.push({role: 'assistant', content: data.response});
+        
+        statusDiv.textContent = '';
+    } catch (error) {
+        console.error('Error:', error);
+        statusDiv.textContent = `Error: ${error.message}`;
+        statusDiv.style.color = '#e74c3c';
+        
+        addMessage('assistant', `Error: ${error.message}`);
+    } finally {
+        input.disabled = false;
+        sendButton.disabled = false;
+        sendButton.textContent = 'Send';
+        sendButton.style.background = '#3498db';
+        input.focus();
+    }
+}
+
+function clearHistory() {
+    if (confirm('Clear conversation history?')) {
+        chatHistory = [];
+        document.getElementById('chat-messages').innerHTML = `
+            <div class="empty-state" style="text-align: center; padding: 60px 20px; color: #999;">
+                <p style="font-size: 16px; margin: 0;">Start a conversation by typing a message below.</p>
+            </div>
+        `;
+    }
+}
+
+function toggleDebug() {
+    // Debug info is shown/hidden per message, so we just need to refresh display
+    // This is handled in addMessage function
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadProviders();
+});
+</script>
+{% endblock %}

@@ -30,6 +30,7 @@ from backend.db import check_database_initialized, initialize_database, get_db_c
 from backend.jobs import create_job, get_job, list_jobs, cancel_job, JobType, JobStatus
 from backend.routes import organization
 from backend.routes import vectordb
+from backend.feature_flags import is_feature_enabled
 
 # Import route modules (they define routers)
 from api.routes import conversations, messages, jobs
@@ -84,6 +85,13 @@ jinja_env.filters["highlight"] = highlight_filter
 
 def render_template(template_name: str, **context):
     """Render a Jinja2 template."""
+    # Add feature flags to context for all templates
+    from backend.feature_flags import is_feature_enabled
+    context.setdefault('feature_flags', {
+        'vectordb': is_feature_enabled('vectordb'),
+        'chat': is_feature_enabled('chat'),
+    })
+    
     template = jinja_env.get_template(template_name)
     return template.render(**context)
 
@@ -240,10 +248,21 @@ async def find_tools_screen(request: Request):
 
 @app.get("/vectordb-search", response_class=HTMLResponse)
 async def vectordb_search_screen(request: Request):
-    """Vector search screen."""
+    """Vector search screen (Pro feature)."""
+    if not is_feature_enabled("vectordb"):
+        raise HTTPException(status_code=403, detail="Vector search is a Pro feature")
     if not check_database_initialized():
         return HTMLResponse(render_template("welcome.html"))
     return HTMLResponse(render_template("vectordb_search.html"))
+
+@app.get("/chat", response_class=HTMLResponse)
+async def chat_screen(request: Request):
+    """Chat screen (Pro feature)."""
+    if not is_feature_enabled("chat"):
+        raise HTTPException(status_code=403, detail="Chat is a Pro feature")
+    if not check_database_initialized():
+        return HTMLResponse(render_template("welcome.html"))
+    return HTMLResponse(render_template("chat.html"))
 
 @app.get("/export", response_class=HTMLResponse)
 async def export_screen(request: Request):
@@ -1607,7 +1626,13 @@ async def get_exported_file(file_path: str):
 
 # Include routers
 app.include_router(organization.router)
-app.include_router(vectordb.router)
+# VectorDB router (Pro feature)
+if is_feature_enabled("vectordb"):
+    app.include_router(vectordb.router)
+# Chat router (Pro feature)
+if is_feature_enabled("chat"):
+    from backend.routes import chat
+    app.include_router(chat.router)
 app.include_router(conversations.router)
 app.include_router(messages.router)
 app.include_router(jobs.router)

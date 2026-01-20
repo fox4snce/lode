@@ -25,3 +25,5 @@ tokenizers>=0.13.0
 # NLP (for entity extraction)
 stanza>=1.5.0
 
+# LLM integration (Pro feature - chat)
+litellm>=1.0.0
