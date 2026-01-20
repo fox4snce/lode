@@ -105,6 +105,18 @@ class SQLiteVectorDB:
 
     def insert_batch(self, items: List[Dict[str, Any]]) -> List[int]:
         ids: List[int] = []
+        if not items:
+            return ids
+        
+        # For very large batches, process in smaller chunks to avoid timeouts/locks
+        chunk_size = 100
+        if len(items) > chunk_size:
+            all_ids = []
+            for i in range(0, len(items), chunk_size):
+                chunk = items[i:i + chunk_size]
+                all_ids.extend(self.insert_batch(chunk))
+            return all_ids
+        
         with self._connect() as conn:
             cur = conn.cursor()
             conn.execute("BEGIN")
@@ -121,9 +133,10 @@ class SQLiteVectorDB:
                     )
                     ids.append(int(cur.lastrowid))
                 conn.execute("COMMIT")
-            except Exception:
+            except Exception as e:
                 conn.execute("ROLLBACK")
-                raise
+                # Re-raise with more context
+                raise Exception(f"Batch insert failed for {len(items)} items: {e}") from e
         return ids
 
     def get_stats(self) -> Dict[str, int]:
