@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}Vector Search - Lode{% endblock %}
+
+{% block content %}
+<div class="menu-bar">
+    <h1>Lode</h1>
+    <div class="menu-items">
+        <a href="/main">Main</a>
+        <a href="/import">Import</a>
+        <a href="/analytics">Analytics</a>
+        <a href="/find-tools">Find Tools</a>
+        <a href="/vectordb-search">Vector Search</a>
+        <a href="/export">Export</a>
+        <a href="/settings">Settings</a>
+        <a href="/help">Help</a>
+        <a href="/about">About</a>
+    </div>
+</div>
+
+<div class="container" style="height: calc(100vh - 60px); display: flex; flex-direction: column; overflow: hidden;">
+    <div class="card" style="padding: 16px; display: flex; flex-direction: column; height: 100%; overflow: hidden;">
+        <h2 style="margin: 0 0 12px 0; font-size: 20px; flex-shrink: 0;">Vector Search</h2>
+        <p style="margin: 0 0 16px 0; color: #666; font-size: 14px; flex-shrink: 0;">
+            Semantic search across all conversations. Enter phrases to find similar content.
+        </p>
+        
+        <!-- Search Form -->
+        <div style="margin-bottom: 16px; padding: 16px; background: #f8f9fa; border-radius: 4px; flex-shrink: 0;">
+            <div style="margin-bottom: 12px;">
+                <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: #7f8c8d;">
+                    Search Phrases (one per line or comma-separated)
+                </label>
+                <textarea id="search-phrases" 
+                          placeholder="Enter phrases to search for...&#10;Example:&#10;database migration&#10;API design&#10;product roadmap"
+                          style="width: 100%; min-height: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; font-family: inherit; resize: vertical;"></textarea>
+            </div>
+            
+            <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;">
+                <div style="min-width: 120px;">
+                    <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: #7f8c8d;">Results per phrase</label>
+                    <input type="number" id="top-k" value="5" min="1" max="50"
+                           style="width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                </div>
+                
+                <div style="min-width: 150px;">
+                    <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: #7f8c8d;">Min Similarity (0-1)</label>
+                    <input type="number" id="min-similarity" value="" min="0" max="1" step="0.01"
+                           placeholder="No minimum"
+                           style="width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                </div>
+                
+                <div style="min-width: 150px;">
+                    <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 4px; color: #7f8c8d;">AI Source</label>
+                    <select id="ai-source-filter"
+                            style="width: 100%; padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                        <option value="">All</option>
+                        <option value="gpt">OpenAI (GPT)</option>
+                        <option value="claude">Claude</option>
+                    </select>
+                </div>
+                
+                <div style="flex: 1; min-width: 200px;">
+                    <button onclick="performSearch()" 
+                            style="width: 100%; padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                        Search
+                    </button>
+                </div>
+            </div>
+            
+            <div id="search-status" style="margin-top: 12px; font-size: 13px; color: #666;"></div>
+        </div>
+        
+        <!-- Results -->
+        <div id="search-results" style="flex: 1; min-height: 0; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; padding: 16px; background: white;">
+            <div class="empty-state" style="text-align: center; padding: 40px; color: #999;">
+                <p>Enter search phrases and click "Search" to find similar content.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function parsePhrases(text) {
+    if (!text || !text.trim()) return [];
+    
+    // Split by newlines first, then by commas
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+    const phrases = [];
+    
+    for (const line of lines) {
+        if (line.includes(',')) {
+            // Split by comma if present
+            const commaPhrases = line.split(',').map(p => p.trim()).filter(p => p);
+            phrases.push(...commaPhrases);
+        } else {
+            phrases.push(line);
+        }
+    }
+    
+    return phrases.filter(p => p.length > 0);
+}
+
+async function performSearch() {
+    const phrasesText = document.getElementById('search-phrases').value;
+    const phrases = parsePhrases(phrasesText);
+    
+    if (phrases.length === 0) {
+        alert('Please enter at least one search phrase');
+        return;
+    }
+    
+    const topK = parseInt(document.getElementById('top-k').value) || 5;
+    const minSimilarityInput = document.getElementById('min-similarity').value;
+    const minSimilarity = minSimilarityInput ? parseFloat(minSimilarityInput) : null;
+    const aiSource = document.getElementById('ai-source-filter').value;
+    
+    const statusDiv = document.getElementById('search-status');
+    const resultsDiv = document.getElementById('search-results');
+    
+    statusDiv.innerHTML = '<span style="color: #3498db;">Searching...</span>';
+    resultsDiv.innerHTML = '<div class="loading" style="text-align: center; padding: 40px;">Searching...</div>';
+    
+    try {
+        const requestBody = {
+            phrases: phrases,
+            top_k: topK,
+            include_content: true,
+            include_debug: false
+        };
+        
+        if (minSimilarity !== null) {
+            requestBody.min_similarity = minSimilarity;
+        }
+        
+        const filters = { type: 'chunk' };
+        if (aiSource) {
+            filters.ai_source = aiSource;
+        }
+        if (Object.keys(filters).length > 0) {
+            requestBody.filters = filters;
+        }
+        
+        const response = await fetch('/api/vectordb/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Search failed: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const resultsByPhrase = data.results_by_phrase || [];
+        
+        if (resultsByPhrase.length === 0) {
+            statusDiv.innerHTML = '<span style="color: #e74c3c;">No results found</span>';
+            resultsDiv.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #999;"><p>No matching chunks found. Try different phrases or adjust filters.</p></div>';
+            return;
+        }
+        
+        // Render results
+        let html = '';
+        let totalResults = 0;
+        
+        for (const phraseResult of resultsByPhrase) {
+            const phrase = phraseResult.phrase;
+            const results = phraseResult.results || [];
+            totalResults += results.length;
+            
+            html += `<div style="margin-bottom: 24px; border-bottom: 2px solid #eee; padding-bottom: 16px;">`;
+            html += `<h3 style="margin: 0 0 12px 0; font-size: 16px; color: #2c3e50;">Phrase: "${phrase}"</h3>`;
+            html += `<p style="margin: 0 0 12px 0; font-size: 13px; color: #666;">Found ${results.length} result${results.length !== 1 ? 's' : ''}</p>`;
+            
+            if (results.length === 0) {
+                html += `<p style="color: #999; font-style: italic;">No results for this phrase.</p>`;
+            } else {
+                html += `<div style="display: flex; flex-direction: column; gap: 12px;">`;
+                
+                for (const result of results) {
+                    const similarity = (result.similarity || 0).toFixed(3);
+                    const content = result.content || '';
+                    const source = result.source || {};
+                    const conversationId = source.conversation_id || '';
+                    const messageIds = source.message_ids || [];
+                    const chunkIndex = source.chunk_index !== undefined ? source.chunk_index : null;
+                    const title = result.metadata?.title || 'Untitled';
+                    
+                    html += `<div style="border: 1px solid #ddd; border-radius: 4px; padding: 12px; background: #fafafa; transition: background 0.2s;" 
+                                 onmouseover="this.style.background='#f0f0f0'" 
+                                 onmouseout="this.style.background='#fafafa'">`;
+                    
+                    // Header with similarity and source link
+                    html += `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">`;
+                    html += `<div>`;
+                    html += `<span style="font-size: 12px; color: #666; background: #e8e8e8; padding: 2px 6px; border-radius: 3px; margin-right: 8px;">Similarity: ${similarity}</span>`;
+                    html += `<span style="font-size: 12px; color: #666;">From: ${title}</span>`;
+                    html += `</div>`;
+                    html += `<button onclick="openConversation('${conversationId}', ${JSON.stringify(messageIds).replace(/"/g, '&quot;')})" 
+                                     style="padding: 4px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                                View Conversation
+                            </button>`;
+                    html += `</div>`;
+                    
+                    // Content preview
+                    const preview = content.length > 300 ? content.substring(0, 300) + '...' : content;
+                    html += `<div style="font-size: 14px; line-height: 1.6; color: #333; white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(preview)}</div>`;
+                    
+                    // Source info
+                    if (chunkIndex !== null) {
+                        html += `<div style="margin-top: 8px; font-size: 11px; color: #999;">`;
+                        html += `Chunk ${chunkIndex + 1}`;
+                        if (messageIds.length > 0) {
+                            html += ` • ${messageIds.length} message${messageIds.length !== 1 ? 's' : ''}`;
+                        }
+                        html += `</div>`;
+                    }
+                    
+                    html += `</div>`;
+                }
+                
+                html += `</div>`;
+            }
+            
+            html += `</div>`;
+        }
+        
+        statusDiv.innerHTML = `<span style="color: #27ae60;">✓ Found ${totalResults} result${totalResults !== 1 ? 's' : ''} across ${resultsByPhrase.length} phrase${resultsByPhrase.length !== 1 ? 's' : ''}</span>`;
+        resultsDiv.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Search error:', error);
+        statusDiv.innerHTML = `<span style="color: #e74c3c;">Error: ${error.message}</span>`;
+        resultsDiv.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px; color: #e74c3c;"><p>Search failed. Please try again.</p></div>';
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function openConversation(conversationId, messageIds) {
+    if (!conversationId) {
+        alert('No conversation ID available');
+        return;
+    }
+    
+    // Navigate to main page with conversation and message parameters
+    const messageId = Array.isArray(messageIds) && messageIds.length > 0 ? messageIds[0] : null;
+    let url = `/main?conversation=${encodeURIComponent(conversationId)}`;
+    if (messageId) {
+        url += `&message=${encodeURIComponent(messageId)}`;
+    }
+    window.location.href = url;
+}
+
+// Allow Enter key to trigger search (Ctrl+Enter or Cmd+Enter)
+document.getElementById('search-phrases').addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        performSearch();
+    }
+});
+</script>
+{% endblock %}

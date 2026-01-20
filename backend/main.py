@@ -238,6 +238,13 @@ async def find_tools_screen(request: Request):
         return HTMLResponse(render_template("welcome.html"))
     return HTMLResponse(render_template("find_tools.html"))
 
+@app.get("/vectordb-search", response_class=HTMLResponse)
+async def vectordb_search_screen(request: Request):
+    """Vector search screen."""
+    if not check_database_initialized():
+        return HTMLResponse(render_template("welcome.html"))
+    return HTMLResponse(render_template("vectordb_search.html"))
+
 @app.get("/export", response_class=HTMLResponse)
 async def export_screen(request: Request):
     """Export screen."""
