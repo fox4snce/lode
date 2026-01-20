@@ -65,8 +65,27 @@ class SQLiteVectorDB:
             )
             conn.execute("CREATE INDEX IF NOT EXISTS idx_vectors_file_id ON vectors(file_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_vectors_created_at ON vectors(created_at)")
-            # Ensure idempotent upserts by file_id (NULLs are allowed multiple times in UNIQUE)
-            conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_vectors_file_id_unique ON vectors(file_id)")
+            
+            # Check if unique index already exists
+            index_exists = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_vectors_file_id_unique'"
+            ).fetchone()
+            
+            if not index_exists:
+                # Clean up duplicates before creating unique index
+                # Keep the most recent row per file_id (highest id, which is auto-increment)
+                conn.execute("""
+                    DELETE FROM vectors
+                    WHERE id NOT IN (
+                        SELECT MAX(id)
+                        FROM vectors
+                        WHERE file_id IS NOT NULL
+                        GROUP BY file_id
+                    )
+                    AND file_id IS NOT NULL
+                """)
+                # Ensure idempotent upserts by file_id (NULLs are allowed multiple times in UNIQUE)
+                conn.execute("CREATE UNIQUE INDEX idx_vectors_file_id_unique ON vectors(file_id)")
 
     def insert(
         self,
