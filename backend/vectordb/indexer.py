@@ -375,6 +375,18 @@ def index_conversations(
     
     conn.close()
     
+    # Ensure final progress update is sent (in case the last conversation didn't trigger it)
+    if progress_callback:
+        try:
+            progress_callback(
+                100,
+                f"Indexed {total_conversations}/{total_conversations} conversations ({total_chunks} chunks, {total_vectors} vectors) - Complete!",
+            )
+        except Exception as e:
+            print(f"[WARNING] Final progress callback error: {e}")
+    
+    print(f"[DEBUG] Indexing complete: {total_conversations} conversations, {total_chunks} chunks, {total_vectors} vectors")
+    
     return {
         'total_conversations': total_conversations,
         'total_chunks': total_chunks,
