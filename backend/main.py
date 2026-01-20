@@ -259,6 +259,30 @@ async def settings_screen(request: Request):
         return HTMLResponse(render_template("welcome.html"))
     return HTMLResponse(render_template("settings.html"))
 
+
+# Config API endpoints
+@app.get("/api/config/port")
+async def get_server_port():
+    """Get configured server port."""
+    from backend.config import get_port
+    return {"port": get_port()}
+
+
+class PortConfigRequest(BaseModel):
+    port: int
+
+
+@app.post("/api/config/port")
+async def set_server_port(request: PortConfigRequest):
+    """Set server port."""
+    from backend.config import set_port
+    
+    if request.port < 1024 or request.port > 65535:
+        raise HTTPException(status_code=400, detail="Port must be between 1024 and 65535")
+    
+    set_port(request.port)
+    return {"status": "saved", "port": request.port}
+
 @app.get("/help", response_class=HTMLResponse)
 async def help_screen(request: Request):
     """Help screen."""

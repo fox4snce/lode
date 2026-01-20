@@ -23,14 +23,38 @@
         <h2>Settings</h2>
         
         <div class="tabs" style="border-bottom: 1px solid #ddd; margin-bottom: 20px;">
-            <button class="tab-btn active" onclick="showTab('integrity')">Integrity Checks</button>
+            <button class="tab-btn active" onclick="showTab('server')">Server</button>
+            <button class="tab-btn" onclick="showTab('integrity')">Integrity Checks</button>
             <button class="tab-btn" onclick="showTab('deduplication')">Deduplication</button>
             <button class="tab-btn" onclick="showTab('cleanup')">Cleanup</button>
             <button class="tab-btn" onclick="showTab('encryption')">Encryption</button>
         </div>
         
         <div id="tab-content">
-            <div id="integrity-tab" class="tab-panel active">
+            <div id="server-tab" class="tab-panel active">
+                <h3>Server Settings</h3>
+                <p>Configure the FastAPI server port. The VectorDB API and all other APIs run on this port.</p>
+                <div style="margin-bottom: 20px;">
+                    <label for="server-port" style="display: block; margin-bottom: 8px; font-weight: 500;">
+                        Server Port:
+                    </label>
+                    <input 
+                        type="number" 
+                        id="server-port" 
+                        min="1024" 
+                        max="65535" 
+                        style="width: 200px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;"
+                    />
+                    <button onclick="saveServerPort()" class="btn btn-primary" style="margin-left: 10px;">Save</button>
+                </div>
+                <div id="server-message" style="margin-top: 10px; padding: 10px; border-radius: 4px; display: none;"></div>
+                <div style="margin-top: 20px; padding: 12px; background: #f8f9fa; border-radius: 4px; font-size: 13px; color: #666;">
+                    <strong>Note:</strong> Changes to the port require restarting Lode to take effect.
+                    <br>If the port is already in use, you'll see an error message when starting Lode.
+                </div>
+            </div>
+            
+            <div id="integrity-tab" class="tab-panel">
                 <h3>Integrity Checks</h3>
                 <p>Run integrity checks to verify database consistency.</p>
                 <button onclick="runIntegrityChecks()" class="btn btn-primary">Run Integrity Checks</button>
@@ -113,6 +137,58 @@ table th {
 </style>
 
 <script>
+// Load server port on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadServerPort();
+});
+
+async function loadServerPort() {
+    try {
+        const response = await fetch('/api/config/port');
+        const data = await response.json();
+        document.getElementById('server-port').value = data.port || 8000;
+    } catch (error) {
+        console.error('Failed to load server port:', error);
+        document.getElementById('server-port').value = 8000;
+    }
+}
+
+async function saveServerPort() {
+    const portInput = document.getElementById('server-port');
+    const port = parseInt(portInput.value);
+    const messageDiv = document.getElementById('server-message');
+    
+    if (isNaN(port) || port < 1024 || port > 65535) {
+        messageDiv.style.display = 'block';
+        messageDiv.className = 'error';
+        messageDiv.textContent = 'Please enter a valid port number (1024-65535)';
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/config/port', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ port: port })
+        });
+        
+        if (response.ok) {
+            messageDiv.style.display = 'block';
+            messageDiv.className = 'success';
+            messageDiv.textContent = `Port ${port} saved. Please restart Lode for changes to take effect.`;
+        } else {
+            const data = await response.json();
+            messageDiv.style.display = 'block';
+            messageDiv.className = 'error';
+            messageDiv.textContent = data.detail || 'Failed to save port';
+        }
+    } catch (error) {
+        messageDiv.style.display = 'block';
+        messageDiv.className = 'error';
+        messageDiv.textContent = `Error: ${error.message}`;
+    }
+}
+
 function showTab(tabName) {
     document.querySelectorAll('.tab-panel').forEach(panel => {
         panel.classList.remove('active');

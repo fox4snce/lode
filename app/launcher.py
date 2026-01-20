@@ -241,16 +241,16 @@ def wait_for_server(port, max_retries=30):
 
 def main():
     """Launch the desktop application."""
-    # Use fixed port 8000 for FastAPI
-    port = 8000
+    # Load configured port (default 8000)
+    from backend.config import get_port, set_port
     
-    # Check for existing instance
-    has_instance, existing_pid = check_existing_instance(port)
-    if has_instance:
-        if existing_pid:
-            print(f"Another Lode instance is already running (PID: {existing_pid})")
-            print("Please close that instance first or wait for it to finish.")
-        else:
+    port = get_port()
+    
+    # Check if port is in use
+    if is_port_in_use(port):
+        # Check if it's our server
+        if is_our_server(port):
+            # It's our server, try to clean up
             print(f"Port {port} is in use by another Lode server.")
             print("Attempting to clean up...")
             if kill_lode_server(port):
@@ -258,8 +258,26 @@ def main():
                 time.sleep(2)  # Give process time to die
             else:
                 print(f"ERROR: Could not clean up. Port {port} is in use.")
-                print("Please stop that application or use a different port.")
+                print("Please stop that application or change the port in Settings.")
                 sys.exit(1)
+        else:
+            # Port is in use by something else
+            print(f"ERROR: Port {port} is already in use by another application.")
+            print(f"Please change the server port in Settings, or stop the application using port {port}.")
+            print(f"\nTo change the port:")
+            print(f"  1. Open Lode Settings")
+            print(f"  2. Go to 'Server' tab")
+            print(f"  3. Change the port number")
+            print(f"  4. Restart Lode")
+            sys.exit(1)
+    
+    # Check for existing instance (lock file)
+    has_instance, existing_pid = check_existing_instance(port)
+    if has_instance:
+        if existing_pid:
+            print(f"Another Lode instance is already running (PID: {existing_pid})")
+            print("Please close that instance first or wait for it to finish.")
+            sys.exit(1)
     
     # Create lock file to prevent multiple instances
     create_lock_file()
