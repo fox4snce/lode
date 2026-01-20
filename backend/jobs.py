@@ -23,6 +23,7 @@ class JobType(str, Enum):
     REINDEX = "reindex"
     EXPORT = "export"
     CALCULATE_STATS = "calculate_stats"
+    VECTORDB_INDEX = "vectordb_index"
 
 
 def init_jobs_table():

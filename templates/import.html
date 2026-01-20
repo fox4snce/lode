@@ -56,6 +56,22 @@
             <button type="submit" class="btn btn-primary">Start Import</button>
         </form>
         
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;">
+            <h3>Vector Database Indexing</h3>
+            <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
+                Index conversations for semantic search. This will:
+                <ul style="color: #666; font-size: 13px; margin-left: 20px;">
+                    <li>Chunk conversations (300-800 words, preferring user-query/assistant-response boundaries)</li>
+                    <li>Embed each chunk using offline ONNX model</li>
+                    <li>Store conversation-level embeddings (average of chunk embeddings)</li>
+                </ul>
+            </p>
+            <button type="button" onclick="startVectordbIndexing()" class="btn btn-secondary" id="vectordb-index-btn">
+                Index Conversations for Vector Search
+            </button>
+            <div id="vectordb-index-status" style="margin-top: 10px;"></div>
+        </div>
+        
         <div id="import-status" style="margin-top: 20px;"></div>
         <div id="jobs-list" style="margin-top: 20px;"></div>
     </div>
@@ -193,5 +209,80 @@ async function pollJobStatus(jobId) {
 
 // Load jobs on page load
 loadJobs();
+
+async function startVectordbIndexing() {
+    const btn = document.getElementById('vectordb-index-btn');
+    const statusDiv = document.getElementById('vectordb-index-status');
+    
+    btn.disabled = true;
+    btn.textContent = 'Starting...';
+    statusDiv.innerHTML = '<div class="loading">Starting vectordb indexing...</div>';
+    
+    try {
+        const response = await fetch('/api/jobs/vectordb-index', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({})
+        });
+        
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(errText || 'Indexing job creation failed');
+        }
+        
+        const result = await response.json();
+        statusDiv.innerHTML = `<div class="success">Indexing job created! Job ID: ${result.job_id}</div>`;
+        
+        // Load jobs list
+        loadJobs();
+        
+        // Poll for job status
+        pollVectordbJobStatus(result.job_id);
+    } catch (error) {
+        statusDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+        btn.disabled = false;
+        btn.textContent = 'Index Conversations for Vector Search';
+    }
+}
+
+async function pollVectordbJobStatus(jobId) {
+    const maxAttempts = 300;  // 5 minutes max
+    let attempts = 0;
+    
+    const interval = setInterval(async () => {
+        attempts++;
+        if (attempts > maxAttempts) {
+            clearInterval(interval);
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/jobs/${jobId}`);
+            const job = await response.json();
+            
+            const statusDiv = document.getElementById('vectordb-index-status');
+            const btn = document.getElementById('vectordb-index-btn');
+            
+            if (job.status === 'completed') {
+                const msg = job.message || 'Indexing completed successfully!';
+                statusDiv.innerHTML = `<div class="success">${msg}</div>`;
+                clearInterval(interval);
+                btn.disabled = false;
+                btn.textContent = 'Index Conversations for Vector Search';
+                loadJobs();
+            } else if (job.status === 'failed') {
+                statusDiv.innerHTML = `<div class="error">Indexing failed: ${job.error || 'Unknown error'}</div>`;
+                clearInterval(interval);
+                btn.disabled = false;
+                btn.textContent = 'Index Conversations for Vector Search';
+                loadJobs();
+            } else {
+                statusDiv.innerHTML = `<div class="loading">${job.message || 'Processing...'} (${job.progress || 0}%)</div>`;
+            }
+        } catch (error) {
+            console.error('Error polling vectordb job status:', error);
+        }
+    }, 1000);
+}
 </script>
 {% endblock %}

@@ -209,3 +209,58 @@ async def run_reindex_job(job_id: str):
     except Exception as e:
         update_job(job_id, status=JobStatus.FAILED.value, error=str(e))
 
+
+async def run_vectordb_index_job(job_id: str, metadata: dict):
+    """Run a vectordb indexing job."""
+    try:
+        update_job(job_id, status=JobStatus.RUNNING.value, progress=0, message="Starting vectordb indexing...")
+        
+        db_path = get_db_path()
+        from backend.vectordb.service import get_vectordb_path
+        vectordb_path = get_vectordb_path()
+        
+        # Get conversation IDs to index (if specified)
+        conversation_ids = metadata.get('conversation_ids')  # None = all
+        
+        # Progress callback - update_job creates its own connection so it's safe from executor thread
+        def progress_cb(progress: int, message: str):
+            try:
+                update_job(job_id, progress=progress, message=message)
+            except Exception as e:
+                # Log but don't fail indexing if progress update fails
+                print(f"Progress update error: {e}")
+        
+        # Run indexing in executor (it's CPU-bound)
+        import concurrent.futures
+        loop = asyncio.get_event_loop()
+        
+        def do_index():
+            from backend.vectordb.indexer import index_conversations
+            return index_conversations(
+                str(db_path),
+                str(vectordb_path),
+                conversation_ids=conversation_ids,
+                progress_callback=progress_cb,
+            )
+        
+        result = await loop.run_in_executor(None, do_index)
+        
+        update_job(
+            job_id,
+            status=JobStatus.COMPLETED.value,
+            progress=100,
+            message=(
+                f"Indexing completed: {result['total_conversations']} conversations, "
+                f"{result['total_chunks']} chunks, {result['total_vectors']} vectors"
+            ),
+            result=result,
+        )
+    
+    except Exception as e:
+        import traceback
+        error_msg = str(e)
+        if not error_msg:
+            error_msg = f"Unknown error: {type(e).__name__}"
+        print(f"Vectordb index job {job_id} failed: {error_msg}")
+        traceback.print_exc()
+        update_job(job_id, status=JobStatus.FAILED.value, error=error_msg)

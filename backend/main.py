@@ -827,6 +827,26 @@ async def create_reindex_job():
     
     return JobResponse(job_id=job_id)
 
+
+class VectordbIndexRequest(BaseModel):
+    conversation_ids: Optional[List[str]] = None
+
+@app.post("/api/jobs/vectordb-index", response_model=JobResponse)
+async def create_vectordb_index_job(request: VectordbIndexRequest = VectordbIndexRequest()):
+    """Create a vectordb indexing job."""
+    job_id = create_job(JobType.VECTORDB_INDEX.value, {
+        "conversation_ids": request.conversation_ids,  # None = all conversations
+    })
+    
+    # Start indexing in background
+    import asyncio
+    from backend.job_runner import run_vectordb_index_job
+    asyncio.create_task(run_vectordb_index_job(job_id, {
+        "conversation_ids": request.conversation_ids,
+    }))
+    
+    return JobResponse(job_id=job_id)
+
 @app.get("/api/jobs", response_model=List[JobStatusResponse])
 async def list_jobs_endpoint():
     """List all jobs."""
