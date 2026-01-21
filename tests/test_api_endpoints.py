@@ -2,6 +2,12 @@
 Comprehensive API endpoint testing for Lode MVP.
 Tests all API endpoints programmatically.
 """
+import pytest
+
+# This is a MANUAL integration script (expects a running server at 127.0.0.1).
+# Keep it in-repo, but don't run it in CI/unit test runs.
+pytest.skip("manual integration script (requires running server)", allow_module_level=True)
+
 import requests
 import json
 import sys

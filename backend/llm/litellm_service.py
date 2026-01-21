@@ -8,6 +8,7 @@ Provides:
 
 import os
 from typing import List, Dict, Any, Optional
+from typing import Iterator
 
 try:
     from litellm import completion
@@ -160,3 +161,65 @@ def call_llm(
                 raise Exception(f"LLM call failed: {e2}")
 
         raise Exception(f"LLM call failed: {e}")
+
+
+def call_llm_stream(
+    messages: List[Dict[str, str]],
+    model: str,
+    temperature: Optional[float] = None,
+    max_tokens: Optional[int] = None,
+) -> Iterator[str]:
+    """
+    Streaming LLM call via LiteLLM. Yields text deltas.
+    """
+    if not LITELLM_AVAILABLE:
+        raise Exception("LiteLLM is not installed. Install with: pip install litellm")
+
+    def _extract_delta(chunk: Any) -> str:
+        # LiteLLM aims for OpenAI-compatible streaming chunks, but be defensive.
+        try:
+            choice = chunk.choices[0]
+            # OpenAI-style object
+            delta = getattr(choice, "delta", None)
+            if delta is not None:
+                return getattr(delta, "content", "") or ""
+            msg = getattr(choice, "message", None)
+            if msg is not None:
+                return getattr(msg, "content", "") or ""
+        except Exception:
+            pass
+        # Dict-like fallback
+        try:
+            choices = chunk.get("choices") or []
+            if choices:
+                delta = choices[0].get("delta") or {}
+                return delta.get("content") or ""
+        except Exception:
+            pass
+        return ""
+
+    kwargs: Dict[str, Any] = {"model": model, "messages": messages, "stream": True}
+    if temperature is not None:
+        kwargs["temperature"] = temperature
+    if max_tokens is not None:
+        kwargs["max_tokens"] = max_tokens
+
+    try:
+        stream = completion(**kwargs)
+    except Exception as e:
+        msg = str(e)
+        if "max_tokens" in kwargs and "max_completion_tokens" in msg and "not supported" in msg:
+            retry = dict(kwargs)
+            retry["max_completion_tokens"] = retry.pop("max_tokens")
+            stream = completion(**retry)
+        elif "temperature" in kwargs and ("don't support temperature" in msg or "UnsupportedParamsError" in msg):
+            retry = dict(kwargs)
+            retry.pop("temperature", None)
+            stream = completion(**retry)
+        else:
+            raise Exception(f"LLM call failed: {e}")
+
+    for chunk in stream:
+        delta = _extract_delta(chunk)
+        if delta:
+            yield delta

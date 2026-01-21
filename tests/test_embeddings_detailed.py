@@ -7,6 +7,11 @@ Tests:
 - Memory usage
 - Consistency (same text -> same embedding)
 """
+import pytest
+
+# Manual benchmark script (not a unit test).
+pytest.skip("manual benchmark script", allow_module_level=True)
+
 import time
 import numpy as np
 from embeddings_onnx import OfflineEmbedder

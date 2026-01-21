@@ -7,6 +7,10 @@ This script:
 3. Analyzes similarity score distributions and relevance
 4. Helps identify if model upgrade would help
 """
+import pytest
+
+# Manual investigation script (not a unit test).
+pytest.skip("manual investigation script", allow_module_level=True)
 
 import sys
 import os

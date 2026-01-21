@@ -1,3 +1,8 @@
+import pytest
+
+# Manual integration script (requires LM Studio running locally).
+pytest.skip("manual integration script (requires LM Studio)", allow_module_level=True)
+
 """
 Quick test against LM Studio's OpenAI-compatible endpoint.
 

@@ -59,32 +59,41 @@ python -c "import lode_version; print(lode_version.__version__)"
 
 3. (Optional but recommended) Snapshot provider API references/specs for offline review (not committed)
 
-We looked for **official downloadable** “single-file” API specs/docs for OpenAI + Anthropic. With the current research tooling available in this repo workflow, we **could not verify** a stable official download artifact to hardcode here without guessing.
+Download official API documentation snapshots for offline verification during release:
 
-Instead, this release step is **URL-driven**:
-- You (release operator) provide the official URLs you want to snapshot (API reference page, OpenAPI spec, etc.)
-- We download them into `docs/ignored/api_refs/` (gitignored)
-- We record `Last-Modified` / `ETag` headers if present, so you have a “last updated” signal for the snapshot
+- **OpenAI**: [Quickstart Guide](https://platform.openai.com/docs/quickstart) - covers chat completions, API setup
+- **Anthropic**: [Get Started Guide](https://platform.claude.com/docs/en/get-started) - covers messages API, SDK usage
 
+These snapshots are saved to `docs/ignored/api_refs/` (gitignored) with timestamps and metadata headers.
+
+**Default URLs (verified working):**
 ```powershell
-# Provide official URLs (do not commit these downloaded files)
-$env:LODE_RELEASE_OPENAI_DOC_URL = "<paste OpenAI official doc/spec URL here>"
-$env:LODE_RELEASE_ANTHROPIC_DOC_URL = "<paste Anthropic official doc/spec URL here>"
-
 python tools/release_download_api_refs.py
 ```
 
-If you prefer flags instead of env vars:
+This uses default URLs:
+- OpenAI: `https://platform.openai.com/docs/quickstart`
+- Anthropic: `https://platform.claude.com/docs/en/get-started`
 
+**Custom URLs (if needed):**
 ```powershell
 python tools/release_download_api_refs.py `
-  --openai-url "<paste OpenAI official doc/spec URL here>" `
-  --anthropic-url "<paste Anthropic official doc/spec URL here>"
+  --openai-url "https://platform.openai.com/docs/quickstart" `
+  --anthropic-url "https://platform.claude.com/docs/en/get-started"
 ```
 
-After downloading, manually verify our usage against the snapshot:
-- OpenAI: chat/completions or responses, embeddings (whatever we ship in this release)
-- Anthropic: messages (whatever we ship in this release)
+Or via environment variables:
+```powershell
+$env:LODE_RELEASE_OPENAI_DOC_URL = "https://platform.openai.com/docs/quickstart"
+$env:LODE_RELEASE_ANTHROPIC_DOC_URL = "https://platform.claude.com/docs/en/get-started"
+python tools/release_download_api_refs.py
+```
+
+**After downloading, verify our usage against the snapshots:**
+- OpenAI: Check our LiteLLM usage matches chat/completions patterns
+- Anthropic: Check our LiteLLM usage matches messages API patterns
+- Verify parameter names (`max_tokens` vs `max_completion_tokens`, etc.)
+- Check for any deprecated endpoints or breaking changes
 
 ### Build the Executable
 

@@ -3,16 +3,20 @@ Chat API routes for RAG chat feature (Pro only).
 """
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
+import json
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import asyncio
 
 from backend.feature_flags import is_feature_enabled
-from backend.llm.litellm_service import call_llm, get_available_providers
+from backend.llm.litellm_service import call_llm, call_llm_stream, get_available_providers
 from backend.chat.query_improver import improve_query_for_search
 from backend.chat.context_manager import filter_results_by_quality, format_context_for_llm
 from backend.chat.history_manager import apply_sliding_window
 from backend.vectordb.service import search_phrases
+from backend.db import check_database_initialized, get_db_connection
+from backend.chat import storage as chat_storage
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -27,10 +31,13 @@ class ChatRequest(BaseModel):
     """Chat completion request."""
     query: str
     model: str  # e.g., "openai/gpt-4o"
+    provider: Optional[str] = None  # UI provider (openai/anthropic/lmstudio/ollama/custom)
+    model_name: Optional[str] = None  # raw model input from UI (without provider prefix)
     history: List[ChatMessage] = []
     context_window_size: int = 4000  # tokens
     min_similarity: float = 0.5
     max_context_chunks: int = 5
+    include_debug: bool = False
 
 
 class ChatResponse(BaseModel):
@@ -39,6 +46,9 @@ class ChatResponse(BaseModel):
     improved_query: str
     context_chunks_used: int
     similarity_scores: List[float]
+    # Optional debug fields (populated when include_debug=True)
+    context_preview: Optional[str] = None
+    sources_preview: Optional[List[Dict[str, Any]]] = None
 
 
 async def search_vectordb(query: str, max_chunks: int) -> List[Dict[str, Any]]:
@@ -90,6 +100,7 @@ async def chat_completion(request: ChatRequest) -> ChatResponse:
         
         # 4. Format context
         context = format_context_for_llm(filtered)
+        has_context = len(filtered) > 0
         
         # 5. Apply sliding window to history
         windowed_history = apply_sliding_window(
@@ -98,21 +109,15 @@ async def chat_completion(request: ChatRequest) -> ChatResponse:
         )
         
         # 6. Build messages for LLM
-        system_prompt = (
-            "You are a helpful assistant that answers questions based on the provided context. "
-            "Use the context information to provide accurate and relevant answers. "
-            "If the context doesn't contain relevant information, say so clearly. "
-            "Cite sources when referencing specific information from the context."
-        )
-        
-        # Ensure system message is first
-        if not windowed_history or windowed_history[0].get("role") != "system":
-            windowed_history.insert(0, {"role": "system", "content": system_prompt})
-        else:
-            windowed_history[0]["content"] = system_prompt
-        
-        # Add context and current query
-        user_message = f"""Context information:
+        if has_context:
+            # RAG mode: Answer based on context
+            system_prompt = (
+                "You are a helpful assistant that answers questions based on the provided context. "
+                "Use the context information to provide accurate and relevant answers. "
+                "If the context doesn't contain relevant information, say so clearly. "
+                "Cite sources when referencing specific information from the context."
+            )
+            user_message = f"""Context information:
 
 {context}
 
@@ -121,6 +126,19 @@ async def chat_completion(request: ChatRequest) -> ChatResponse:
 User question: {request.query}
 
 Please provide a helpful answer based on the context above."""
+        else:
+            # No context: Answer from general knowledge
+            system_prompt = (
+                "You are a helpful assistant that answers questions. "
+                "Provide accurate and helpful information based on your knowledge."
+            )
+            user_message = request.query
+        
+        # Ensure system message is first
+        if not windowed_history or windowed_history[0].get("role") != "system":
+            windowed_history.insert(0, {"role": "system", "content": system_prompt})
+        else:
+            windowed_history[0]["content"] = system_prompt
         
         messages = windowed_history + [
             {"role": "user", "content": user_message}
@@ -133,16 +151,133 @@ Please provide a helpful answer based on the context above."""
             temperature=0.7,
             max_tokens=2048
         )
+
+        # Persist last-used model/provider (sanity check DB init, but it should be initialized for this page)
+        if check_database_initialized():
+            try:
+                provider = request.provider
+                model_name = request.model_name
+                if not provider or not model_name:
+                    # Parse from formatted model string as fallback
+                    if "/" in request.model:
+                        provider, model_name = request.model.split("/", 1)
+                    else:
+                        provider, model_name = "custom", request.model
+                conn = get_db_connection()
+                chat_storage.set_last_used(conn, provider, model_name)
+                conn.close()
+            except Exception:
+                pass
         
-        return ChatResponse(
+        resp = ChatResponse(
             response=response_text,
             improved_query=improved_query,
             context_chunks_used=len(filtered),
             similarity_scores=[r.get("similarity", 0) for r in filtered]
         )
+        if request.include_debug:
+            # Show the *actual* context string being passed (trimmed)
+            resp.context_preview = context[:1200]
+            resp.sources_preview = [
+                {
+                    "title": (r.get("metadata") or {}).get("title"),
+                    "chunk_index": (r.get("metadata") or {}).get("chunk_index"),
+                    "similarity": r.get("similarity"),
+                }
+                for r in filtered[: min(len(filtered), 5)]
+            ]
+        return resp
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chat completion failed: {str(e)}")
+
+
+@router.post("/completion-stream")
+async def chat_completion_stream(request: ChatRequest):
+    """Streaming chat completion endpoint (Server-Sent Events)."""
+    if not is_feature_enabled("chat"):
+        raise HTTPException(status_code=403, detail="Chat is a Pro feature")
+
+    async def gen():
+        try:
+            history = [{"role": msg.role, "content": msg.content} for msg in request.history]
+            improved_query = improve_query_for_search(request.query, request.model, history)
+            search_results = await search_vectordb(improved_query, request.max_context_chunks)
+            filtered = filter_results_by_quality(search_results, request.min_similarity, request.max_context_chunks)
+            context = format_context_for_llm(filtered)
+
+            # send initial meta
+            meta = {
+                "type": "meta",
+                "improved_query": improved_query,
+                "context_chunks_used": len(filtered),
+                "similarity_scores": [r.get("similarity", 0) for r in filtered],
+            }
+            if request.include_debug:
+                meta["context_preview"] = context[:1200]
+            yield f"data: {json.dumps(meta)}\n\n"
+
+            windowed_history = apply_sliding_window(history, request.context_window_size)
+
+            if len(filtered) > 0:
+                system_prompt = (
+                    "You are a helpful assistant that answers questions based on the provided context. "
+                    "Use the context information to provide accurate and relevant answers. "
+                    "If the context doesn't contain relevant information, say so clearly. "
+                    "Cite sources when referencing specific information from the context."
+                )
+                user_message = f"""Context information:
+
+{context}
+
+---
+
+User question: {request.query}
+
+Please provide a helpful answer based on the context above."""
+            else:
+                system_prompt = (
+                    "You are a helpful assistant that answers questions. "
+                    "Provide accurate and helpful information based on your knowledge."
+                )
+                user_message = request.query
+
+            if not windowed_history or windowed_history[0].get("role") != "system":
+                windowed_history.insert(0, {"role": "system", "content": system_prompt})
+            else:
+                windowed_history[0]["content"] = system_prompt
+
+            messages = windowed_history + [{"role": "user", "content": user_message}]
+
+            # stream deltas
+            full = []
+            for delta in call_llm_stream(messages, request.model, temperature=0.7, max_tokens=2048):
+                full.append(delta)
+                yield f"data: {json.dumps({'type':'delta','content':delta})}\n\n"
+
+            final_text = "".join(full)
+
+            # persist last-used model/provider
+            if check_database_initialized():
+                try:
+                    provider = request.provider
+                    model_name = request.model_name
+                    if not provider or not model_name:
+                        if "/" in request.model:
+                            provider, model_name = request.model.split("/", 1)
+                        else:
+                            provider, model_name = "custom", request.model
+                    conn = get_db_connection()
+                    chat_storage.set_last_used(conn, provider, model_name)
+                    conn.close()
+                except Exception:
+                    pass
+
+            yield f"data: {json.dumps({'type':'done','response':final_text})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type':'error','error':str(e)})}\n\n"
+
+    return StreamingResponse(gen(), media_type="text/event-stream")
 
 
 @router.get("/providers")
@@ -190,11 +325,27 @@ async def test_model(request: TestModelRequest) -> TestModelResponse:
         response = call_llm(messages, formatted_model)
         
         if response and len(response) > 0:
+            # Persist verified model + last-used
+            if check_database_initialized():
+                try:
+                    conn = get_db_connection()
+                    chat_storage.upsert_verified_model(conn, request.provider, request.model, True)
+                    chat_storage.set_last_used(conn, request.provider, request.model)
+                    conn.close()
+                except Exception:
+                    pass
             return TestModelResponse(
                 success=True,
                 message=f"Model '{request.model}' works!"
             )
         else:
+            if check_database_initialized():
+                try:
+                    conn = get_db_connection()
+                    chat_storage.upsert_verified_model(conn, request.provider, request.model, False)
+                    conn.close()
+                except Exception:
+                    pass
             return TestModelResponse(
                 success=False,
                 message=f"Error: Model '{request.model}' returned empty response"
@@ -210,3 +361,20 @@ async def test_model(request: TestModelRequest) -> TestModelResponse:
             success=False,
             message=f"Error with {request.model}: {error_msg}"
         )
+
+
+@router.get("/settings")
+async def get_settings():
+    """Get persisted chat UI state (last model + verified models)."""
+    if not is_feature_enabled("chat"):
+        raise HTTPException(status_code=403, detail="Chat is a Pro feature")
+    if not check_database_initialized():
+        raise HTTPException(status_code=400, detail="Database is not initialized")
+    try:
+        conn = get_db_connection()
+        settings = chat_storage.get_settings(conn)
+        verified = chat_storage.get_verified_models(conn)
+        conn.close()
+        return {"settings": settings, "verified_models": verified}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load chat settings: {str(e)}")

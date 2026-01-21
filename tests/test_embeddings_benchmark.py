@@ -3,6 +3,11 @@ Benchmark ONNX embeddings provider vs API-based embeddings.
 
 Tests performance (speed) and compares results.
 """
+import pytest
+
+# Manual benchmark script (not a unit test).
+pytest.skip("manual benchmark script", allow_module_level=True)
+
 import time
 import sqlite3
 import json

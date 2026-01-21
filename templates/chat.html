@@ -46,9 +46,23 @@
                 Model
             </label>
             <input type="text" id="model-input"
+                   list="verified-models"
                    placeholder="Select a provider first..."
                    style="width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; background: white; box-sizing: border-box;"
                    disabled>
+            <datalist id="verified-models"></datalist>
+        </div>
+
+        <!-- Verified Models (Quick Pick) -->
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 6px; color: #7f8c8d;">
+                Verified models (this provider)
+            </label>
+            <select id="verified-model-select"
+                    style="width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; background: white;"
+                    onchange="if(this.value){ document.getElementById('model-input').value=this.value; selectedModel=this.value; }">
+                <option value="">(none yet)</option>
+            </select>
         </div>
         
         <!-- Test Button -->
@@ -146,6 +160,7 @@
 <script>
 let chatHistory = [];
 let availableProviders = [];
+let verifiedModels = []; // [{provider, model}]
 let selectedProvider = "";
 let selectedModel = "";
 
@@ -189,6 +204,60 @@ async function loadProviders() {
     }
 }
 
+async function loadChatSettings() {
+    try {
+        const resp = await fetch('/api/chat/settings');
+        if (!resp.ok) return;
+        const data = await resp.json();
+        verifiedModels = data.verified_models || [];
+        const settings = (data.settings || {});
+
+        // Load last-used provider/model if present
+        if (settings.last_provider) {
+            const providerSelect = document.getElementById('provider-select');
+            providerSelect.value = settings.last_provider;
+            updateModelPlaceholder();
+        }
+        if (settings.last_model) {
+            const modelInput = document.getElementById('model-input');
+            modelInput.value = settings.last_model;
+            selectedModel = settings.last_model;
+        }
+        refreshVerifiedModelsDatalist();
+    } catch (e) {
+        // ignore
+    }
+}
+
+function refreshVerifiedModelsDatalist() {
+    const dl = document.getElementById('verified-models');
+    if (!dl) return;
+    dl.innerHTML = '';
+    const provider = document.getElementById('provider-select').value;
+    const filtered = verifiedModels.filter(v => v.provider === provider);
+    for (const item of filtered) {
+        const opt = document.createElement('option');
+        opt.value = item.model;
+        dl.appendChild(opt);
+    }
+
+    // Also populate quick-pick select
+    const sel = document.getElementById('verified-model-select');
+    if (sel) {
+        sel.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = filtered.length ? 'Select verified model…' : '(none yet)';
+        sel.appendChild(placeholder);
+        for (const item of filtered) {
+            const o = document.createElement('option');
+            o.value = item.model;
+            o.textContent = item.model;
+            sel.appendChild(o);
+        }
+    }
+}
+
 function updateModelPlaceholder() {
     const providerSelect = document.getElementById('provider-select');
     const modelInput = document.getElementById('model-input');
@@ -198,6 +267,7 @@ function updateModelPlaceholder() {
         selectedProvider = selectedOption.value;
         modelInput.placeholder = selectedOption.dataset.placeholder || 'Enter model name...';
         modelInput.disabled = false;
+        refreshVerifiedModelsDatalist();
     } else {
         selectedProvider = "";
         modelInput.placeholder = 'Select a provider first...';
@@ -247,9 +317,12 @@ async function testModel() {
         if (data.success) {
             testStatus.textContent = '✓ ' + data.message;
             testStatus.style.color = '#27ae60';
+            // Refresh verified models and persist last-used
+            await loadChatSettings();
         } else {
             testStatus.textContent = '✗ ' + data.message;
             testStatus.style.color = '#e74c3c';
+            await loadChatSettings();
         }
     } catch (error) {
         testStatus.textContent = '✗ Error: ' + error.message;
@@ -307,12 +380,19 @@ function addMessage(role, content, debugInfo = null) {
             Improved query: ${debugInfo.improved_query || 'N/A'}<br>
             Context chunks: ${debugInfo.context_chunks_used || 0}<br>
             Similarity scores: ${(debugInfo.similarity_scores || []).map(s => s.toFixed(2)).join(', ') || 'N/A'}
+            ${debugInfo.context_preview ? `<br><br><strong>Context preview sent to LLM:</strong><br><pre style="white-space:pre-wrap; margin:6px 0 0 0;">${escapeHtml(debugInfo.context_preview)}</pre>` : ''}
         `;
         messageDiv.appendChild(debugDiv);
     }
     
     messagesDiv.appendChild(messageDiv);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function escapeHtml(str) {
+    return (str || '').replace(/[&<>"']/g, function(m) {
+        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',\"'\":'&#39;'}[m]);
+    });
 }
 
 async function sendMessage() {
@@ -372,33 +452,92 @@ async function sendMessage() {
             formattedModel = `${selectedProvider}/${selectedModel}`;
         }
         
-        const response = await fetch('/api/chat/completion', {
+        // Create assistant message bubble for streaming updates
+        addMessage('assistant', '');
+        const messagesDiv = document.getElementById('chat-messages');
+        const lastMessageBubble = messagesDiv.lastChild.querySelector('div');
+
+        const response = await fetch('/api/chat/completion-stream', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
                 query: query,
                 model: formattedModel,
+                provider: selectedProvider,
+                model_name: selectedModel,
                 history: chatHistory,
                 context_window_size: contextWindowSize,
                 min_similarity: minSimilarity,
-                max_context_chunks: maxChunks
+                max_context_chunks: maxChunks,
+                include_debug: document.getElementById('show-debug').checked
             })
         });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Chat completion failed');
+
+        if (!response.ok || !response.body) {
+            // fallback to non-streaming endpoint
+            const r2 = await fetch('/api/chat/completion', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    query: query,
+                    model: formattedModel,
+                    provider: selectedProvider,
+                    model_name: selectedModel,
+                    history: chatHistory,
+                    context_window_size: contextWindowSize,
+                    min_similarity: minSimilarity,
+                    max_context_chunks: maxChunks,
+                    include_debug: document.getElementById('show-debug').checked
+                })
+            });
+            const data = await r2.json();
+            lastMessageBubble.textContent = data.response || '(no response)';
+            chatHistory.push({role: 'assistant', content: data.response});
+            statusDiv.textContent = '';
+            return;
         }
-        
-        const data = await response.json();
-        
-        // Add assistant response
-        addMessage('assistant', data.response, {
-            improved_query: data.improved_query,
-            context_chunks_used: data.context_chunks_used,
-            similarity_scores: data.similarity_scores
-        });
-        chatHistory.push({role: 'assistant', content: data.response});
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let fullText = '';
+        let lastMeta = null;
+
+        while (true) {
+            const {value, done} = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, {stream: true});
+
+            // parse SSE frames separated by blank line
+            const parts = buffer.split('\n\n');
+            buffer = parts.pop() || '';
+            for (const frame of parts) {
+                const line = frame.split('\n').find(l => l.startsWith('data: '));
+                if (!line) continue;
+                const payload = JSON.parse(line.slice(6));
+                if (payload.type === 'meta') {
+                    lastMeta = payload;
+                } else if (payload.type === 'delta') {
+                    fullText += payload.content;
+                    lastMessageBubble.textContent = fullText;
+                } else if (payload.type === 'done') {
+                    if (payload.response && payload.response.length) {
+                        fullText = payload.response;
+                        lastMessageBubble.textContent = fullText;
+                    }
+                } else if (payload.type === 'error') {
+                    throw new Error(payload.error || 'stream error');
+                }
+            }
+        }
+
+        // Attach debug info to the *last* assistant message by re-adding with debug (simple approach)
+        if (lastMeta && document.getElementById('show-debug').checked) {
+            // remove last (empty) assistant message wrapper and re-add with debug
+            messagesDiv.removeChild(messagesDiv.lastChild);
+            addMessage('assistant', fullText, lastMeta);
+        }
+        chatHistory.push({role: 'assistant', content: fullText});
         
         statusDiv.textContent = '';
     } catch (error) {
@@ -434,7 +573,7 @@ function toggleDebug() {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    loadProviders();
+    loadProviders().then(loadChatSettings);
 });
 </script>
 {% endblock %}
