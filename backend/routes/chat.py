@@ -51,24 +51,60 @@ class ChatResponse(BaseModel):
     sources_preview: Optional[List[Dict[str, Any]]] = None
 
 
-async def search_vectordb(query: str, max_chunks: int) -> List[Dict[str, Any]]:
-    """Search vector database (async wrapper)."""
+def _dedupe_query_list(items: List[str]) -> List[str]:
+    out: List[str] = []
+    seen = set()
+    for s in items:
+        ss = (s or "").strip()
+        if not ss:
+            continue
+        if ss in seen:
+            continue
+        seen.add(ss)
+        out.append(ss)
+    return out
+
+
+async def search_vectordb(queries: List[str], max_chunks: int) -> List[Dict[str, Any]]:
+    """
+    Search vector database (async wrapper).
+
+    Uses multiple queries (e.g. improved + raw) and merges/dedupes results.
+    """
+    queries = _dedupe_query_list(queries)
+    if not queries:
+        return []
+
     loop = asyncio.get_event_loop()
-    results = await loop.run_in_executor(
+    grouped = await loop.run_in_executor(
         None,
         lambda: search_phrases(
-            phrases=[query],
-            top_k=max_chunks * 2,  # Get more candidates for filtering
+            phrases=queries,
+            top_k=max_chunks * 3,  # Get more candidates for filtering/merging
             min_similarity=None,  # Filter later
             filters={"type": "chunk"},
             include_content=True,
         )
     )
     
-    # Extract results from response
-    if results and len(results) > 0:
-        return results[0].get("results", [])
-    return []
+    # Merge/dedupe across phrases (keep best similarity per source)
+    best: Dict[Any, Dict[str, Any]] = {}
+    for group in (grouped or []):
+        for r in (group.get("results") or []):
+            src = r.get("source") or {}
+            md = r.get("metadata") or {}
+            key = (
+                src.get("conversation_id") or md.get("conversation_id"),
+                src.get("chunk_index") or md.get("chunk_index"),
+                md.get("type"),
+                r.get("content"),
+            )
+            prev = best.get(key)
+            if prev is None or float(r.get("similarity", 0.0)) > float(prev.get("similarity", 0.0)):
+                best[key] = r
+
+    merged = sorted(best.values(), key=lambda x: float(x.get("similarity", 0.0)), reverse=True)
+    return merged
 
 
 @router.post("/completion", response_model=ChatResponse)
@@ -80,16 +116,22 @@ async def chat_completion(request: ChatRequest) -> ChatResponse:
     try:
         # Convert history to dict format
         history = [{"role": msg.role, "content": msg.content} for msg in request.history]
+
+        # Use a windowed subset for query improvement (keeps it relevant + bounded)
+        history_for_improvement = apply_sliding_window(history, max_tokens=min(800, request.context_window_size))
         
         # 1. Improve query
         improved_query = improve_query_for_search(
             request.query,
             request.model,
-            history
+            history_for_improvement
         )
         
-        # 2. Search vector database
-        search_results = await search_vectordb(improved_query, request.max_context_chunks)
+        # 2. Search vector database (use both improved + raw, merge results)
+        search_results = await search_vectordb(
+            [improved_query, request.query],
+            request.max_context_chunks,
+        )
         
         # 3. Filter by quality
         filtered = filter_results_by_quality(
@@ -99,7 +141,11 @@ async def chat_completion(request: ChatRequest) -> ChatResponse:
         )
         
         # 4. Format context
-        context = format_context_for_llm(filtered)
+        # Scale RAG context budget with the user's chosen history window.
+        # (We still cap per-chunk so we include multiple sources.)
+        rag_budget_chars = max(6000, min(24000, int(request.context_window_size) * 4))
+        per_chunk_chars = max(800, min(2400, rag_budget_chars // max(1, request.max_context_chunks)))
+        context = format_context_for_llm(filtered, max_context_length=rag_budget_chars, max_chunk_chars=per_chunk_chars)
         has_context = len(filtered) > 0
         
         # 5. Apply sliding window to history
@@ -177,7 +223,7 @@ Please provide a helpful answer based on the context above."""
         )
         if request.include_debug:
             # Show the *actual* context string being passed (trimmed)
-            resp.context_preview = context[:1200]
+            resp.context_preview = context[:6000]
             resp.sources_preview = [
                 {
                     "title": (r.get("metadata") or {}).get("title"),
@@ -201,10 +247,13 @@ async def chat_completion_stream(request: ChatRequest):
     async def gen():
         try:
             history = [{"role": msg.role, "content": msg.content} for msg in request.history]
-            improved_query = improve_query_for_search(request.query, request.model, history)
-            search_results = await search_vectordb(improved_query, request.max_context_chunks)
+            history_for_improvement = apply_sliding_window(history, max_tokens=min(800, request.context_window_size))
+            improved_query = improve_query_for_search(request.query, request.model, history_for_improvement)
+            search_results = await search_vectordb([improved_query, request.query], request.max_context_chunks)
             filtered = filter_results_by_quality(search_results, request.min_similarity, request.max_context_chunks)
-            context = format_context_for_llm(filtered)
+            rag_budget_chars = max(6000, min(24000, int(request.context_window_size) * 4))
+            per_chunk_chars = max(800, min(2400, rag_budget_chars // max(1, request.max_context_chunks)))
+            context = format_context_for_llm(filtered, max_context_length=rag_budget_chars, max_chunk_chars=per_chunk_chars)
 
             # send initial meta
             meta = {
@@ -214,7 +263,7 @@ async def chat_completion_stream(request: ChatRequest):
                 "similarity_scores": [r.get("similarity", 0) for r in filtered],
             }
             if request.include_debug:
-                meta["context_preview"] = context[:1200]
+                meta["context_preview"] = context[:6000]
             yield f"data: {json.dumps(meta)}\n\n"
 
             windowed_history = apply_sliding_window(history, request.context_window_size)

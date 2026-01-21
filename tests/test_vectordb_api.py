@@ -13,6 +13,7 @@ import math
 import tempfile
 import unittest
 import warnings
+import os
 from pathlib import Path
 from typing import List
 from unittest.mock import patch
@@ -98,6 +99,13 @@ class TestVectorDBAPI(unittest.TestCase):
             },
             file_id="conv_neutral",
         )
+
+        # Ensure the VectorDB API router is registered (Pro-only feature).
+        # We must set env var BEFORE importing backend.main, because router inclusion happens at import time.
+        os.environ["LODE_BUILD_TYPE"] = "pro"
+        for mod in ("backend.main", "backend.feature_flags"):
+            if mod in sys.modules:
+                del sys.modules[mod]
 
         # Import app after data is set up
         from backend.main import app

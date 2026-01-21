@@ -1,6 +1,7 @@
 """
 Desktop launcher for Lode using pywebview.
 """
+import os
 import sys
 from pathlib import Path
 import ctypes
@@ -9,6 +10,10 @@ import tempfile
 # Add project root to Python path so imports work
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
+
+# Default to Pro features when launching the desktop app from source.
+# If you want the Core build, set `LODE_BUILD_TYPE=core` in your environment.
+os.environ.setdefault("LODE_BUILD_TYPE", "pro")
 
 import webview
 import threading
@@ -19,7 +24,6 @@ from backend.main import app
 import uvicorn
 import platform
 import socket
-import os
 import atexit
 
 

@@ -41,7 +41,8 @@ def filter_results_by_quality(
 
 def format_context_for_llm(
     results: List[Dict[str, Any]],
-    max_context_length: int = 4000
+    max_context_length: int = 4000,
+    max_chunk_chars: int = 1200,
 ) -> str:
     """
     Format search results into LLM context.
@@ -65,14 +66,36 @@ def format_context_for_llm(
         metadata = result.get("metadata", {})
         title = metadata.get("title", "Unknown")
         chunk_idx = metadata.get("chunk_index", 0)
-        
-        chunk_text = f"[Context {i} - Similarity: {similarity:.2f}]\n"
-        chunk_text += f"Source: {title} (Chunk {chunk_idx})\n"
-        chunk_text += f"{content}\n\n"
-        
-        if total_length + len(chunk_text) > max_context_length:
+
+        header = (
+            f"[Context {i} - Similarity: {similarity:.2f}]\n"
+            f"Source: {title} (Chunk {chunk_idx})\n"
+        )
+
+        remaining = max_context_length - total_length
+        if remaining <= 0:
             break
-        
+
+        # Always try to include at least the header; truncate content to fit the remaining budget.
+        # This prevents the "No relevant context found." false-negative when chunks are large.
+        min_needed = len(header) + 2  # "\n\n" after content
+        if remaining < min_needed:
+            break
+
+        # Cap each chunk so one huge chunk doesn't crowd out the others.
+        # This is critical for good RAG behavior (multiple, diverse evidence snippets).
+        per_chunk_cap = max(200, int(max_chunk_chars))
+        max_content_len = min(per_chunk_cap, remaining - len(header) - 2)
+        safe_content = content or ""
+        if len(safe_content) > max_content_len:
+            # Reserve a small suffix for an ellipsis marker when truncating.
+            if max_content_len > 30:
+                safe_content = safe_content[: max_content_len - 3].rstrip() + "..."
+            else:
+                safe_content = safe_content[:max_content_len]
+
+        chunk_text = f"{header}{safe_content}\n\n"
+
         parts.append(chunk_text)
         total_length += len(chunk_text)
     

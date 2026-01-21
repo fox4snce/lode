@@ -391,7 +391,7 @@ function addMessage(role, content, debugInfo = null) {
 
 function escapeHtml(str) {
     return (str || '').replace(/[&<>"']/g, function(m) {
-        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',\"'\":'&#39;'}[m]);
+        return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]);
     });
 }
 
