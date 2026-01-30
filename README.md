@@ -6,6 +6,8 @@ A local-first desktop application for organizing, searching, and analyzing your 
 
 - **Import Conversations**: Import conversations from OpenAI and Claude JSON exports
 - **Full-Text Search**: Fast SQLite FTS5 search across all conversations
+- **Vector Search**: Semantic search over your conversations (embedding-based). Build the index via Import or Settings.
+- **Chat**: RAG chat over your data (OpenAI/Anthropic). Ask questions and get answers grounded in your imported conversations.
 - **Analytics**: Track usage patterns, word counts, activity over time, and more
 - **Organization**: Tag, bookmark, and annotate conversations with notes
 - **Find Tools**: Extract code blocks, links, TODOs, questions, dates, decisions, and prompts
@@ -60,7 +62,7 @@ python app/launcher.py
 ```
 
 This will:
-- Start the FastAPI backend server
+- Start the FastAPI backend server (default port 8000; change in Settings → Server)
 - Open a desktop window with the application interface
 
 ### First Run
@@ -71,24 +73,26 @@ This will:
 
 ### Key Features
 
-- **Main Screen**: Browse and view all your conversations
-- **Search**: Use the search bar to find specific conversations or messages
+- **Main Screen**: Browse and view all your conversations (with in-app find)
+- **Search**: Full-text search and Vector Search (semantic) across conversations
+- **Chat**: Ask questions over your data (RAG with OpenAI or Anthropic)
 - **Analytics**: View detailed analytics about your conversation usage
 - **Find Tools**: Extract and browse code blocks, links, TODOs, and more
 - **Export**: Export individual conversations or use bulk export features
-- **Settings**: Manage your database, run integrity checks, and configure options
+- **Settings**: Server port, database integrity, deduplication, cleanup
 
 ## Project Structure
 
 ```
 lode/
 ├── app/                # Desktop launcher (pywebview)
-├── backend/            # FastAPI backend application
+├── backend/            # FastAPI backend (routes, chat, vectordb, db, config)
 ├── database/           # Database schema creation scripts
-├── docs/               # Documentation and assets
+├── docs/               # Documentation (API, release process)
 ├── static/             # Static files (CSS, JS, images)
 ├── templates/          # Jinja2 HTML templates
 ├── tests/              # Test suite
+├── tools/              # Build and utility scripts
 └── importers/          # Conversation import modules
 ```
 
@@ -110,7 +114,8 @@ See [PACKAGING.md](PACKAGING.md).
 - **Backend**: FastAPI, SQLite with FTS5
 - **Frontend**: Jinja2 templates, HTMX, vanilla JavaScript
 - **Desktop**: pywebview
-- **Embeddings**: ONNX Runtime (for local embeddings)
+- **Embeddings**: ONNX Runtime (local embeddings for Vector Search)
+- **Chat**: LiteLLM (OpenAI, Anthropic)
 
 ## License
 
