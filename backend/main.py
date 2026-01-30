@@ -1608,8 +1608,10 @@ async def export_conversation(
 async def get_exported_file(file_path: str):
     """Get exported file content for preview."""
     try:
-        # Security: only allow files from exports/
-        if not file_path.startswith("exports/"):
+        # Normalize path (Windows may send backslashes)
+        file_path = file_path.replace("\\", "/")
+        # Security: only allow files from exports/, no traversal
+        if not file_path.startswith("exports/") or ".." in file_path:
             raise HTTPException(status_code=403, detail="Access denied")
         
         file_path_obj = get_data_dir() / file_path
@@ -1624,6 +1626,26 @@ async def get_exported_file(file_path: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/export/open-exports-folder")
+async def open_exports_folder():
+    """Open the exports directory in the system file manager."""
+    try:
+        import subprocess
+        exports_dir = get_data_dir() / "exports"
+        exports_dir.mkdir(parents=True, exist_ok=True)
+        path = str(exports_dir.resolve())
+        if sys.platform == "win32":
+            os.startfile(path)
+        elif sys.platform == "darwin":
+            subprocess.run(["open", path], check=False)
+        else:
+            subprocess.run(["xdg-open", path], check=False)
+        return {}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # Include routers
 app.include_router(organization.router)

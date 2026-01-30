@@ -34,6 +34,10 @@
             </select>
         </div>
         
+        <div class="form-group" style="margin-bottom: 15px;">
+            <button onclick="openExportsFolder()" class="btn btn-primary">Open Exports Folder</button>
+        </div>
+        
         <div id="export-options" style="display: none;">
             <div class="form-group">
                 <label for="export-format">Format</label>
@@ -121,35 +125,32 @@ async function exportConversation() {
         const filePath = data.path || data.absolute_path || '';
         const absolutePath = data.absolute_path || '';
         
-        // Load file content for preview
+        // Load file content for preview (normalize path for Windows)
         let content = '';
+        const normalizedPath = (filePath || '').replace(/\\/g, '/');
         try {
-            const fileResponse = await fetch(`/api/export/file/${encodeURIComponent(filePath)}`);
-            if (fileResponse.ok) {
-                content = await fileResponse.text();
+            if (normalizedPath) {
+                const fileResponse = await fetch(`/api/export/file/${encodeURIComponent(normalizedPath)}`);
+                if (fileResponse.ok) {
+                    content = await fileResponse.text();
+                }
             }
         } catch (e) {
             console.log('Could not load file for preview:', e);
         }
         
-        const openFolderBtn = absolutePath ? 
-            `<button onclick="openExportsFolder('${absolutePath.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" 
-                     class="btn btn-primary" style="margin-left: 10px;">
-                Open Exports Folder
-            </button>` : '';
-        
         resultDiv.innerHTML = `
             <div class="success">Export completed!</div>
             <div style="margin-top: 15px;">
                 <div style="margin-bottom: 15px; padding: 10px; background: #e8f5e9; border-radius: 4px;">
-                    <strong>File saved to:</strong> ${filePath}<br>
-                    <strong>Filename:</strong> ${filename}
+                    <strong>File saved to:</strong> ${escapeHtml(filePath)}<br>
+                    <strong>Filename:</strong> ${escapeHtml(filename)}
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <h3>Exported Content Preview:</h3>
                     <div>
                         <button onclick="copyExportedContent(event)" class="btn btn-primary" style="margin-right: 10px;">Copy Content</button>
-                        ${openFolderBtn}
+                        <button onclick="openExportsFolder()" class="btn btn-primary" style="margin-left: 10px;">Open Exports Folder</button>
                     </div>
                 </div>
                 <div id="export-content-display" style="position: relative;">
@@ -193,15 +194,16 @@ function copyExportedContent(ev) {
     });
 }
 
-function openExportsFolder(filePath) {
-    // Extract directory from file path
-    const pathParts = filePath.replace(/\\/g, '/').split('/');
-    pathParts.pop(); // Remove filename
-    const folderPath = pathParts.join('/');
-    
-    // Open folder using file:// URL (works in pywebview)
-    const fileUrl = 'file:///' + folderPath.replace(/\\/g, '/');
-    window.open(fileUrl, '_blank');
+async function openExportsFolder() {
+    try {
+        const response = await fetch('/api/export/open-exports-folder', { method: 'POST' });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            alert('Could not open folder: ' + (err.detail || response.statusText));
+        }
+    } catch (e) {
+        alert('Could not open folder: ' + e.message);
+    }
 }
 
 // Load conversations on page load
