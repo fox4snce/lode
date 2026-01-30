@@ -32,6 +32,7 @@ def get_available_providers() -> List[Dict[str, Any]]:
         - name: str (display name)
         - placeholder: str (example model name for this provider)
     """
+    # Chat tab: OpenAI and Anthropic only for now; others in a future version.
     providers = [
         {
             "provider": "openai",
@@ -43,23 +44,7 @@ def get_available_providers() -> List[Dict[str, Any]]:
             "name": "Anthropic",
             "placeholder": "claude-sonnet-4-20250514, claude-3-5-sonnet-20241022"
         },
-        {
-            "provider": "lmstudio",
-            "name": "LM Studio",
-            "placeholder": "local model name (e.g., llama-3, mistral)"
-        },
-        {
-            "provider": "ollama",
-            "name": "Ollama",
-            "placeholder": "local model name (e.g., llama3, mistral)"
-        },
-        {
-            "provider": "custom",
-            "name": "Custom",
-            "placeholder": "provider/model (e.g., openai/gpt-4o, anthropic/claude-3)"
-        }
     ]
-    
     return providers
 
 

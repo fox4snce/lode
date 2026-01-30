@@ -29,10 +29,17 @@
             <div class="card">
                 <h3>Quick Navigation</h3>
                 <ul class="help-nav">
+                    <li><a href="#quick-start-help">🚀 Quick Start</a></li>
                     <li><a href="#main-help">📱 Main</a></li>
                     <li><a href="#import-help">📥 Import</a></li>
                     <li><a href="#analytics-help">📊 Analytics</a></li>
                     <li><a href="#find-tools-help">🔍 Find Tools</a></li>
+                    {% if feature_flags.get('vectordb', false) %}
+                    <li><a href="#vectordb-help">🔎 Vector Search</a></li>
+                    {% endif %}
+                    {% if feature_flags.get('chat', false) %}
+                    <li><a href="#chat-help">💬 Chat</a></li>
+                    {% endif %}
                     <li><a href="#export-help">💾 Export</a></li>
                     <li><a href="#settings-help">⚙️ Settings</a></li>
                 </ul>
@@ -42,7 +49,29 @@
         <main class="help-content">
             <div class="card">
                 <h2>Help & Documentation</h2>
-                <p class="help-subtitle">MVP help: pragmatic, quick, and consistent with what the app actually does.</p>
+
+                <section id="quick-start-help" class="help-section">
+                    <h3>🚀 Quick Start</h3>
+                    <p class="help-subtitle">A simple path from “empty” to “useful”.</p>
+
+                    <div class="help-kv">
+                        <div class="help-block">
+                            <h4>Steps</h4>
+                            <ol>
+                                <li><strong>Import your conversations</strong>: Go to <strong>Import</strong>, choose OpenAI or Claude, select your export, then start import.</li>
+                                <li><strong>Try Vector Search</strong>: Open <strong>Vector Search</strong>, enter a few phrases, and adjust Min Similarity until results look right.{% if not feature_flags.get('vectordb', false) %} (If Vector Search isn’t available, this feature is disabled.){% endif %}</li>
+                                <li><strong>Chat with your data</strong>: Open <strong>Chat</strong>, select a provider/model, then ask questions that reference your imported conversations.{% if not feature_flags.get('chat', false) %} (If Chat isn’t available, this feature is disabled.){% endif %}</li>
+                            </ol>
+                        </div>
+
+                        <div class="help-block help-tip">
+                            <h4>Common gotcha</h4>
+                            <ul>
+                                <li>Vector Search and Chat require the vector index to exist. If searches return nothing, build the index from Import (recommended) or run the vectordb indexing job.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
 
                 <section id="main-help" class="help-section">
                     <h3>📱 Main — Conversation Viewer</h3>
@@ -159,6 +188,139 @@
                     </div>
                 </section>
 
+                {% if feature_flags.get('vectordb', false) %}
+                <section id="vectordb-help" class="help-section">
+                    <h3>🔎 Vector Search</h3>
+                    <p class="help-subtitle">Semantic search across all conversations. Find similar content by meaning, not just keywords.</p>
+
+                    <div class="help-kv">
+                        <div class="help-block">
+                            <h4>How it works</h4>
+                            <ul>
+                                <li><strong>Search phrases</strong>: Enter one or more phrases (one per line or comma-separated)</li>
+                                <li><strong>Results per phrase</strong>: How many matches to return per phrase (1–50)</li>
+                                <li><strong>Min Similarity</strong>: 0–1; raise it to get tighter matches, lower it if nothing shows up (e.g. 0.35–0.60)</li>
+                                <li><strong>AI Source</strong>: Filter by OpenAI (GPT) or Claude, or All</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-block help-tip">
+                            <h4>Requirements</h4>
+                            <ul>
+                                <li>Vector index must be built first (Import → options: Build Search Index, or Settings / jobs for vectordb index)</li>
+                                <li>Results show similar chunks with similarity score; click through to open the conversation</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-block">
+                            <h4>Use Vector Search from scripts</h4>
+                            <ul>
+                                <li><strong>Server + port</strong>: The API runs on Lode’s server port. Set it in <strong>Settings → Server → Server Port</strong>. Default is <code>8000</code>. Port changes require a restart.</li>
+                                <li><strong>Endpoint</strong>: <code>POST http://127.0.0.1:&lt;PORT&gt;/api/vectordb/search</code></li>
+                                <li><strong>Request JSON</strong>:
+                                    <ul>
+                                        <li><code>phrases</code>: list of strings (required)</li>
+                                        <li><code>top_k</code>: int 1–50 (default 5)</li>
+                                        <li><code>min_similarity</code>: float 0–1 (optional; try 0.35+)</li>
+                                        <li><code>filters</code>: object (optional). Common: <code>{"type": "chunk"}</code>; you can also add <code>ai_source</code> (<code>"gpt"</code> or <code>"claude"</code>)</li>
+                                        <li><code>include_content</code>: bool (default true)</li>
+                                        <li><code>include_debug</code>: bool (default false)</li>
+                                    </ul>
+                                </li>
+                                <li><strong>Response JSON</strong>: <code>{"results_by_phrase": [{"phrase": "...", "results": [...]}, ...]}</code>. Each result includes <code>similarity</code>, <code>source</code> (conversation_id, message_ids, chunk_index), <code>metadata</code>, and (if enabled) <code>content</code>.</li>
+                            </ul>
+
+                            <div style="margin-top: 10px;">
+                                <div style="font-weight: 600; margin-bottom: 6px;">Example (Python)</div>
+                                <pre style="margin: 0; padding: 12px; background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; overflow-x: auto; font-size: 12px; line-height: 1.4;"><code># API configuration
+API_BASE_URL = "http://127.0.0.1:8001/api"
+VECTOR_SEARCH_URL = f"{API_BASE_URL}/vectordb/search"
+
+
+def search_vector_db(query_summary: str, top_k: int = 5) -> List[Dict[str, Any]]:
+    """Search the vector database with the query summary."""
+    payload = {
+        "phrases": [query_summary],
+        "top_k": top_k,
+        "min_similarity": 0.35,
+        "include_content": True,
+        "include_debug": False
+    }
+    
+    try:
+        response = requests.post(VECTOR_SEARCH_URL, json=payload, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        
+        # Extract results from the response
+        if "results_by_phrase" in data and len(data["results_by_phrase"]) > 0:
+            return data["results_by_phrase"][0].get("results", [])
+        return []
+    except requests.exceptions.RequestException as e:
+        print(f"Error searching vector database: {e}")
+        return []</code></pre>
+                                <div style="margin-top: 6px; font-size: 12px; color: #666;">
+                                    Replace <code>8001</code> with your configured Server Port (Settings → Server).
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 12px;">
+                                <div style="font-weight: 600; margin-bottom: 6px;">Example (curl)</div>
+                                <pre style="margin: 0; padding: 12px; background: #f8f9fa; border: 1px solid #eee; border-radius: 4px; overflow-x: auto; font-size: 12px; line-height: 1.4;"><code>curl -X POST "http://127.0.0.1:8000/api/vectordb/search" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phrases": ["database migration"],
+    "top_k": 5,
+    "min_similarity": 0.35,
+    "filters": {"type": "chunk"},
+    "include_content": true,
+    "include_debug": false
+  }'</code></pre>
+                                <div style="margin-top: 6px; font-size: 12px; color: #666;">
+                                    Replace <code>8000</code> with your configured Server Port (Settings → Server).
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                {% endif %}
+
+                {% if feature_flags.get('chat', false) %}
+                <section id="chat-help" class="help-section">
+                    <h3>💬 Chat</h3>
+                    <p class="help-subtitle">RAG chat over your conversation database. Ask questions and get answers grounded in your imported conversations.</p>
+
+                    <div class="help-kv">
+                        <div class="help-block">
+                            <h4>Setup</h4>
+                            <ul>
+                                <li><strong>Provider</strong>: OpenAI or Anthropic</li>
+                                <li><strong>Model</strong>: Enter the model name (e.g. gpt-4o, claude-3-5-sonnet); use <strong>Test Model</strong> to verify</li>
+                                <li><strong>Context Window (tokens)</strong>: 1,000–100,000; how much conversation history + context to send the model</li>
+                                <li><strong>Min Similarity</strong> / <strong>Max Context Chunks</strong>: Control how much RAG context is pulled from the vector index</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-block">
+                            <h4>During chat</h4>
+                            <ul>
+                                <li>Responses stream in as they are generated</li>
+                                <li><strong>Sources</strong>: When the answer uses your data, source links appear; click to open that conversation in Main</li>
+                                <li><strong>Show debug info</strong>: Optional context and similarity details</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-block help-tip">
+                            <h4>Persistence</h4>
+                            <ul>
+                                <li>Last provider/model and UI settings (context window, min similarity, max chunks, debug) are saved</li>
+                                <li>Conversation history in the chat tab is saved; use <strong>Clear History</strong> to start fresh</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+                {% endif %}
+
                 <section id="export-help" class="help-section">
                     <h3>💾 Export</h3>
                     <p class="help-subtitle">Export a single conversation to Markdown/CSV/JSON.</p>
@@ -212,8 +374,6 @@
                         </div>
                     </div>
                 </section>
-
-                <!-- Footer intentionally minimal for MVP; keep Help focused on app usage. -->
             </div>
         </main>
     </div>

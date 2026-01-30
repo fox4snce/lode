@@ -2,12 +2,13 @@
 Chat API routes for RAG chat feature (Pro only).
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import StreamingResponse
 import json
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 import asyncio
+import queue
 
 from backend.feature_flags import is_feature_enabled
 from backend.llm.litellm_service import call_llm, call_llm_stream, get_available_providers
@@ -34,7 +35,7 @@ class ChatRequest(BaseModel):
     provider: Optional[str] = None  # UI provider (openai/anthropic/lmstudio/ollama/custom)
     model_name: Optional[str] = None  # raw model input from UI (without provider prefix)
     history: List[ChatMessage] = []
-    context_window_size: int = 4000  # tokens
+    context_window_size: int = Field(4000, ge=1, le=100_000)  # tokens (up to 100k)
     min_similarity: float = 0.5
     max_context_chunks: int = 5
     include_debug: bool = False
@@ -46,6 +47,8 @@ class ChatResponse(BaseModel):
     improved_query: str
     context_chunks_used: int
     similarity_scores: List[float]
+    # Sources (always included when context is used, for clickable links)
+    sources: Optional[List[Dict[str, Any]]] = None
     # Optional debug fields (populated when include_debug=True)
     context_preview: Optional[str] = None
     sources_preview: Optional[List[Dict[str, Any]]] = None
@@ -141,10 +144,9 @@ async def chat_completion(request: ChatRequest) -> ChatResponse:
         )
         
         # 4. Format context
-        # Scale RAG context budget with the user's chosen history window.
-        # (We still cap per-chunk so we include multiple sources.)
-        rag_budget_chars = max(6000, min(24000, int(request.context_window_size) * 4))
-        per_chunk_chars = max(800, min(2400, rag_budget_chars // max(1, request.max_context_chunks)))
+        # Scale RAG context budget with the user's chosen history window (up to ~400k chars for 100k tokens).
+        rag_budget_chars = max(6000, min(400_000, int(request.context_window_size) * 4))
+        per_chunk_chars = max(800, min(8000, rag_budget_chars // max(1, request.max_context_chunks)))
         context = format_context_for_llm(filtered, max_context_length=rag_budget_chars, max_chunk_chars=per_chunk_chars)
         has_context = len(filtered) > 0
         
@@ -215,11 +217,26 @@ Please provide a helpful answer based on the context above."""
             except Exception:
                 pass
         
+        # Build sources list (always include when context is used)
+        sources = None
+        if has_context and filtered:
+            sources = [
+                {
+                    "title": (r.get("metadata") or {}).get("title") or "Untitled",
+                    "chunk_index": (r.get("metadata") or {}).get("chunk_index"),
+                    "similarity": r.get("similarity"),
+                    "conversation_id": (r.get("source") or {}).get("conversation_id") or (r.get("metadata") or {}).get("conversation_id"),
+                    "message_ids": (r.get("source") or {}).get("message_ids") or (r.get("metadata") or {}).get("message_ids"),
+                }
+                for r in filtered
+            ]
+        
         resp = ChatResponse(
             response=response_text,
             improved_query=improved_query,
             context_chunks_used=len(filtered),
-            similarity_scores=[r.get("similarity", 0) for r in filtered]
+            similarity_scores=[r.get("similarity", 0) for r in filtered],
+            sources=sources
         )
         if request.include_debug:
             # Show the *actual* context string being passed (trimmed)
@@ -229,6 +246,8 @@ Please provide a helpful answer based on the context above."""
                     "title": (r.get("metadata") or {}).get("title"),
                     "chunk_index": (r.get("metadata") or {}).get("chunk_index"),
                     "similarity": r.get("similarity"),
+                    "conversation_id": (r.get("source") or {}).get("conversation_id") or (r.get("metadata") or {}).get("conversation_id"),
+                    "message_ids": (r.get("source") or {}).get("message_ids") or (r.get("metadata") or {}).get("message_ids"),
                 }
                 for r in filtered[: min(len(filtered), 5)]
             ]
@@ -251,19 +270,34 @@ async def chat_completion_stream(request: ChatRequest):
             improved_query = improve_query_for_search(request.query, request.model, history_for_improvement)
             search_results = await search_vectordb([improved_query, request.query], request.max_context_chunks)
             filtered = filter_results_by_quality(search_results, request.min_similarity, request.max_context_chunks)
-            rag_budget_chars = max(6000, min(24000, int(request.context_window_size) * 4))
-            per_chunk_chars = max(800, min(2400, rag_budget_chars // max(1, request.max_context_chunks)))
+            rag_budget_chars = max(6000, min(400_000, int(request.context_window_size) * 4))
+            per_chunk_chars = max(800, min(8000, rag_budget_chars // max(1, request.max_context_chunks)))
             context = format_context_for_llm(filtered, max_context_length=rag_budget_chars, max_chunk_chars=per_chunk_chars)
 
             # send initial meta
+            sources = None
+            if len(filtered) > 0:
+                sources = [
+                    {
+                        "title": (r.get("metadata") or {}).get("title") or "Untitled",
+                        "chunk_index": (r.get("metadata") or {}).get("chunk_index"),
+                        "similarity": r.get("similarity"),
+                        "conversation_id": (r.get("source") or {}).get("conversation_id") or (r.get("metadata") or {}).get("conversation_id"),
+                        "message_ids": (r.get("source") or {}).get("message_ids") or (r.get("metadata") or {}).get("message_ids"),
+                    }
+                    for r in filtered
+                ]
+            
             meta = {
                 "type": "meta",
                 "improved_query": improved_query,
                 "context_chunks_used": len(filtered),
                 "similarity_scores": [r.get("similarity", 0) for r in filtered],
+                "sources": sources,
             }
             if request.include_debug:
                 meta["context_preview"] = context[:6000]
+                meta["sources_preview"] = sources[: min(len(sources or []), 5)] if sources else []
             yield f"data: {json.dumps(meta)}\n\n"
 
             windowed_history = apply_sliding_window(history, request.context_window_size)
@@ -298,11 +332,26 @@ Please provide a helpful answer based on the context above."""
 
             messages = windowed_history + [{"role": "user", "content": user_message}]
 
-            # stream deltas
+            # Stream deltas from LLM in a thread so we don't block the event loop;
+            # yielding + sleep(0) lets the response flush each chunk to the client.
+            sync_queue: queue.Queue = queue.Queue()
             full = []
-            for delta in call_llm_stream(messages, request.model, temperature=0.7, max_tokens=2048):
-                full.append(delta)
+
+            def collect_stream():
+                for delta in call_llm_stream(messages, request.model, temperature=0.7, max_tokens=2048):
+                    full.append(delta)
+                    sync_queue.put(delta)
+                sync_queue.put(None)  # sentinel
+
+            loop = asyncio.get_event_loop()
+            loop.run_in_executor(None, collect_stream)
+
+            while True:
+                delta = await loop.run_in_executor(None, sync_queue.get)
+                if delta is None:
+                    break
                 yield f"data: {json.dumps({'type':'delta','content':delta})}\n\n"
+                await asyncio.sleep(0)  # yield to event loop so chunk can be sent
 
             final_text = "".join(full)
 
@@ -326,7 +375,15 @@ Please provide a helpful answer based on the context above."""
         except Exception as e:
             yield f"data: {json.dumps({'type':'error','error':str(e)})}\n\n"
 
-    return StreamingResponse(gen(), media_type="text/event-stream")
+    return StreamingResponse(
+        gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
 
 
 @router.get("/providers")
@@ -414,7 +471,7 @@ async def test_model(request: TestModelRequest) -> TestModelResponse:
 
 @router.get("/settings")
 async def get_settings():
-    """Get persisted chat UI state (last model + verified models)."""
+    """Get persisted chat UI state (last model + verified models + conversation history)."""
     if not is_feature_enabled("chat"):
         raise HTTPException(status_code=403, detail="Chat is a Pro feature")
     if not check_database_initialized():
@@ -423,7 +480,92 @@ async def get_settings():
         conn = get_db_connection()
         settings = chat_storage.get_settings(conn)
         verified = chat_storage.get_verified_models(conn)
+        history = chat_storage.load_chat_history(conn)
         conn.close()
-        return {"settings": settings, "verified_models": verified}
+        return {"settings": settings, "verified_models": verified, "history": history}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load chat settings: {str(e)}")
+
+
+class ChatUISettingsUpdate(BaseModel):
+    """Optional UI settings to persist."""
+    context_window_size: Optional[int] = None
+    min_similarity: Optional[float] = None
+    max_context_chunks: Optional[int] = None
+    show_debug: Optional[bool] = None
+
+
+@router.post("/save-settings")
+async def save_settings(payload: ChatUISettingsUpdate):
+    """Persist chat UI settings (context window, min similarity, max chunks, show debug)."""
+    if not is_feature_enabled("chat"):
+        raise HTTPException(status_code=403, detail="Chat is a Pro feature")
+    if not check_database_initialized():
+        raise HTTPException(status_code=400, detail="Database is not initialized")
+    try:
+        ctx = payload.context_window_size
+        if ctx is not None:
+            ctx = max(1, min(100_000, ctx))
+        conn = get_db_connection()
+        chat_storage.set_ui_settings(
+            conn,
+            context_window_size=ctx,
+            min_similarity=payload.min_similarity,
+            max_context_chunks=payload.max_context_chunks,
+            show_debug=payload.show_debug,
+        )
+        conn.close()
+        return {"status": "saved"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save chat settings: {str(e)}")
+
+
+@router.post("/save-history")
+async def save_history(request: Request):
+    """Save chat conversation history. Accepts both JSON and Blob (for sendBeacon)."""
+    if not is_feature_enabled("chat"):
+        raise HTTPException(status_code=403, detail="Chat is a Pro feature")
+    if not check_database_initialized():
+        raise HTTPException(status_code=400, detail="Database is not initialized")
+    try:
+        # Handle both JSON and Blob (from sendBeacon)
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            body = await request.json()
+            history = body.get("history", [])
+        else:
+            # Blob from sendBeacon
+            body_bytes = await request.body()
+            body = json.loads(body_bytes.decode("utf-8"))
+            history = body.get("history", [])
+        
+        conn = get_db_connection()
+        # Ensure history is in the right format (list of {role, content} dicts)
+        if history and isinstance(history[0], dict) and "role" in history[0]:
+            # Already in correct format
+            pass
+        else:
+            # Convert if needed (shouldn't happen, but be defensive)
+            history = [{"role": msg.get("role") or (hasattr(msg, "role") and msg.role), "content": msg.get("content") or (hasattr(msg, "content") and msg.content)} for msg in history]
+        
+        chat_storage.save_chat_history(conn, history)
+        conn.close()
+        return {"status": "saved"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save chat history: {str(e)}")
+
+
+@router.post("/clear-history")
+async def clear_history():
+    """Clear chat conversation history."""
+    if not is_feature_enabled("chat"):
+        raise HTTPException(status_code=403, detail="Chat is a Pro feature")
+    if not check_database_initialized():
+        raise HTTPException(status_code=400, detail="Database is not initialized")
+    try:
+        conn = get_db_connection()
+        chat_storage.clear_chat_history(conn)
+        conn.close()
+        return {"status": "cleared"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to clear chat history: {str(e)}")

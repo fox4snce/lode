@@ -79,14 +79,15 @@
         
         <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
         
-        <!-- Context Window -->
+        <!-- Context Window (tokens; up to 100,000) -->
         <div style="margin-bottom: 20px;">
             <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 6px; color: #7f8c8d;">
-                Context Window: <span id="context-window-value">4000</span> tokens
+                Context Window (tokens)
             </label>
-            <input type="range" id="context-window-slider" min="1000" max="8000" step="500" value="4000"
-                   style="width: 100%;"
-                   oninput="document.getElementById('context-window-value').textContent = this.value">
+            <input type="number" id="context-window-input" value="4000" min="1000" max="100000" step="1000"
+                   style="width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; background: white; box-sizing: border-box;"
+                   onchange="saveChatSettings();"
+                   placeholder="e.g. 4000 or 100000">
         </div>
         
         <!-- Min Similarity -->
@@ -96,7 +97,7 @@
             </label>
             <input type="range" id="min-similarity-slider" min="0" max="1" step="0.05" value="0.5"
                    style="width: 100%;"
-                   oninput="document.getElementById('min-sim-value').textContent = parseFloat(this.value).toFixed(2)">
+                   oninput="document.getElementById('min-sim-value').textContent = parseFloat(this.value).toFixed(2); saveChatSettings();">
         </div>
         
         <!-- Max Context Chunks -->
@@ -105,7 +106,8 @@
                 Max Context Chunks
             </label>
             <input type="number" id="max-chunks" value="5" min="1" max="10"
-                   style="width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; background: white; box-sizing: border-box;">
+                   style="width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; background: white; box-sizing: border-box;"
+                   onchange="saveChatSettings();">
         </div>
         
         <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
@@ -121,7 +123,7 @@
         <!-- Debug Toggle -->
         <div style="margin-top: 16px;">
             <label style="font-size: 12px; color: #7f8c8d; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                <input type="checkbox" id="show-debug" onchange="toggleDebug()">
+                <input type="checkbox" id="show-debug" onchange="toggleDebug(); saveChatSettings();">
                 Show debug info
             </label>
         </div>
@@ -223,9 +225,80 @@ async function loadChatSettings() {
             modelInput.value = settings.last_model;
             selectedModel = settings.last_model;
         }
+        // UI settings (defaults from backend if null)
+        const ctx = settings.context_window_size != null ? Number(settings.context_window_size) : 4000;
+        const ctxInput = document.getElementById('context-window-input');
+        if (ctxInput) ctxInput.value = Math.max(1000, Math.min(100000, ctx));
+        const minSim = settings.min_similarity != null ? Number(settings.min_similarity) : 0.5;
+        const minSimSlider = document.getElementById('min-similarity-slider');
+        const minSimValue = document.getElementById('min-sim-value');
+        if (minSimSlider && minSimValue) {
+            minSimSlider.value = minSim;
+            minSimValue.textContent = parseFloat(minSim).toFixed(2);
+        }
+        const maxCh = settings.max_context_chunks != null ? Number(settings.max_context_chunks) : 5;
+        const maxChunksEl = document.getElementById('max-chunks');
+        if (maxChunksEl) maxChunksEl.value = maxCh;
+        const showDebugEl = document.getElementById('show-debug');
+        if (showDebugEl) showDebugEl.checked = !!settings.show_debug;
         refreshVerifiedModelsDatalist();
+        
+        // Load conversation history if present
+        if (data.history && Array.isArray(data.history) && data.history.length > 0) {
+            chatHistory = data.history;
+            // Restore messages to UI
+            const messagesDiv = document.getElementById('chat-messages');
+            const emptyState = messagesDiv.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+            for (const msg of chatHistory) {
+                addMessage(msg.role, msg.content);
+            }
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
     } catch (e) {
         // ignore
+    }
+}
+
+let saveSettingsTimeout = null;
+function saveChatSettings() {
+    if (saveSettingsTimeout) clearTimeout(saveSettingsTimeout);
+    saveSettingsTimeout = setTimeout(async () => {
+        saveSettingsTimeout = null;
+        try {
+            const ctxInput = document.getElementById('context-window-input');
+            const minSimSlider = document.getElementById('min-similarity-slider');
+            const maxChunksEl = document.getElementById('max-chunks');
+            const showDebugEl = document.getElementById('show-debug');
+            const ctxVal = ctxInput ? parseInt(ctxInput.value, 10) : undefined;
+            await fetch('/api/chat/save-settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    context_window_size: (ctxVal != null && !isNaN(ctxVal)) ? Math.max(1000, Math.min(100000, ctxVal)) : undefined,
+                    min_similarity: minSimSlider ? parseFloat(minSimSlider.value) : undefined,
+                    max_context_chunks: maxChunksEl ? parseInt(maxChunksEl.value) : undefined,
+                    show_debug: showDebugEl ? showDebugEl.checked : undefined
+                })
+            });
+        } catch (e) {
+            console.warn('Failed to save chat settings:', e);
+        }
+    }, 400);
+}
+
+async function saveChatHistory() {
+    try {
+        await fetch('/api/chat/save-history', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({history: chatHistory})
+        });
+    } catch (e) {
+        // Silently fail - this is best-effort persistence
+        console.warn('Failed to save chat history:', e);
     }
 }
 
@@ -336,7 +409,7 @@ async function testModel() {
     }
 }
 
-function addMessage(role, content, debugInfo = null) {
+function addMessage(role, content, debugInfo = null, sources = null) {
     const messagesDiv = document.getElementById('chat-messages');
     
     // Remove empty state if present
@@ -365,6 +438,40 @@ function addMessage(role, content, debugInfo = null) {
     messageBubble.textContent = content;
     messageDiv.appendChild(messageBubble);
     
+    // Add sources section (always visible when sources exist)
+    if (role === 'assistant' && sources && Array.isArray(sources) && sources.length > 0) {
+        const sourcesDiv = document.createElement('div');
+        sourcesDiv.style.marginTop = '8px';
+        sourcesDiv.style.padding = '8px 12px';
+        sourcesDiv.style.backgroundColor = '#e8f4f8';
+        sourcesDiv.style.borderRadius = '6px';
+        sourcesDiv.style.fontSize = '12px';
+        sourcesDiv.style.color = '#2c3e50';
+        sourcesDiv.style.maxWidth = '70%';
+        sourcesDiv.style.borderLeft = '3px solid #3498db';
+        
+        let sourcesHtml = '<strong style="color: #2980b9;">Sources:</strong><br>';
+        sources.forEach((src, idx) => {
+            const title = src.title || 'Untitled';
+            const convId = src.conversation_id;
+            
+            if (convId) {
+                const msgIds = src.message_ids;
+                const msgId = Array.isArray(msgIds) && msgIds.length > 0 ? msgIds[0] : null;
+                let url = `/main?conversation=${encodeURIComponent(convId)}`;
+                if (msgId) {
+                    url += `&message=${encodeURIComponent(msgId)}`;
+                }
+                sourcesHtml += `${idx + 1}. <a href="${url}" style="color: #0066cc; text-decoration: underline; cursor: pointer;" onclick="event.preventDefault(); window.location.href='${url}';">${escapeHtml(title)}</a><br>`;
+            } else {
+                sourcesHtml += `${idx + 1}. ${escapeHtml(title)}<br>`;
+            }
+        });
+        
+        sourcesDiv.innerHTML = sourcesHtml;
+        messageDiv.appendChild(sourcesDiv);
+    }
+    
     // Add debug info if enabled
     if (debugInfo && document.getElementById('show-debug').checked) {
         const debugDiv = document.createElement('div');
@@ -375,11 +482,39 @@ function addMessage(role, content, debugInfo = null) {
         debugDiv.style.fontSize = '11px';
         debugDiv.style.color = '#856404';
         debugDiv.style.maxWidth = '70%';
+        
+        // Build sources list with clickable links
+        let sourcesHtml = '';
+        if (debugInfo.sources_preview && Array.isArray(debugInfo.sources_preview) && debugInfo.sources_preview.length > 0) {
+            sourcesHtml = '<br><strong>Sources:</strong><br>';
+            debugInfo.sources_preview.forEach((src, idx) => {
+                const title = src.title || 'Untitled';
+                const chunkIdx = src.chunk_index !== undefined ? src.chunk_index : '?';
+                const sim = src.similarity !== undefined ? src.similarity.toFixed(2) : '?';
+                const convId = src.conversation_id;
+                const msgIds = src.message_ids;
+                
+                if (convId) {
+                    // Make it a clickable link
+                    const msgId = Array.isArray(msgIds) && msgIds.length > 0 ? msgIds[0] : null;
+                    let url = `/main?conversation=${encodeURIComponent(convId)}`;
+                    if (msgId) {
+                        url += `&message=${encodeURIComponent(msgId)}`;
+                    }
+                    sourcesHtml += `${idx + 1}. <a href="${url}" style="color: #0066cc; text-decoration: underline; cursor: pointer;" onclick="event.preventDefault(); window.location.href='${url}';">${escapeHtml(title)}</a> (Chunk ${chunkIdx}, sim: ${sim})<br>`;
+                } else {
+                    // Fallback: just text
+                    sourcesHtml += `${idx + 1}. ${escapeHtml(title)} (Chunk ${chunkIdx}, sim: ${sim})<br>`;
+                }
+            });
+        }
+        
         debugDiv.innerHTML = `
             <strong>Debug:</strong><br>
-            Improved query: ${debugInfo.improved_query || 'N/A'}<br>
+            Improved query: ${escapeHtml(debugInfo.improved_query || 'N/A')}<br>
             Context chunks: ${debugInfo.context_chunks_used || 0}<br>
             Similarity scores: ${(debugInfo.similarity_scores || []).map(s => s.toFixed(2)).join(', ') || 'N/A'}
+            ${sourcesHtml}
             ${debugInfo.context_preview ? `<br><br><strong>Context preview sent to LLM:</strong><br><pre style="white-space:pre-wrap; margin:6px 0 0 0;">${escapeHtml(debugInfo.context_preview)}</pre>` : ''}
         `;
         messageDiv.appendChild(debugDiv);
@@ -433,12 +568,15 @@ async function sendMessage() {
     // Add user message
     addMessage('user', query);
     chatHistory.push({role: 'user', content: query});
+    // Save history after adding user message
+    saveChatHistory();
     
     // Clear input
     input.value = '';
     
     try {
-        const contextWindowSize = parseInt(document.getElementById('context-window-slider').value);
+        const ctxInput = document.getElementById('context-window-input');
+        const contextWindowSize = Math.max(1000, Math.min(100000, parseInt(ctxInput && ctxInput.value ? ctxInput.value : '4000', 10) || 4000));
         const minSimilarity = parseFloat(document.getElementById('min-similarity-slider').value);
         const maxChunks = parseInt(document.getElementById('max-chunks').value);
         
@@ -493,6 +631,43 @@ async function sendMessage() {
             const data = await r2.json();
             lastMessageBubble.textContent = data.response || '(no response)';
             chatHistory.push({role: 'assistant', content: data.response});
+            // Save history after receiving response
+            saveChatHistory();
+            // Add sources if available (non-streaming path)
+            if (data.sources && Array.isArray(data.sources) && data.sources.length > 0) {
+                const messagesDiv = document.getElementById('chat-messages');
+                const lastMsgDiv = messagesDiv.lastChild;
+                if (lastMsgDiv) {
+                    const sourcesDiv = document.createElement('div');
+                    sourcesDiv.style.marginTop = '8px';
+                    sourcesDiv.style.padding = '8px 12px';
+                    sourcesDiv.style.backgroundColor = '#e8f4f8';
+                    sourcesDiv.style.borderRadius = '6px';
+                    sourcesDiv.style.fontSize = '12px';
+                    sourcesDiv.style.color = '#2c3e50';
+                    sourcesDiv.style.maxWidth = '70%';
+                    sourcesDiv.style.borderLeft = '3px solid #3498db';
+                    
+                    let sourcesHtml = '<strong style="color: #2980b9;">Sources:</strong><br>';
+                    data.sources.forEach((src, idx) => {
+                        const title = src.title || 'Untitled';
+                        const convId = src.conversation_id;
+                        if (convId) {
+                            const msgIds = src.message_ids;
+                            const msgId = Array.isArray(msgIds) && msgIds.length > 0 ? msgIds[0] : null;
+                            let url = `/main?conversation=${encodeURIComponent(convId)}`;
+                            if (msgId) {
+                                url += `&message=${encodeURIComponent(msgId)}`;
+                            }
+                            sourcesHtml += `${idx + 1}. <a href="${url}" style="color: #0066cc; text-decoration: underline; cursor: pointer;" onclick="event.preventDefault(); window.location.href='${url}';">${escapeHtml(title)}</a><br>`;
+                        } else {
+                            sourcesHtml += `${idx + 1}. ${escapeHtml(title)}<br>`;
+                        }
+                    });
+                    sourcesDiv.innerHTML = sourcesHtml;
+                    lastMsgDiv.appendChild(sourcesDiv);
+                }
+            }
             statusDiv.textContent = '';
             return;
         }
@@ -502,6 +677,10 @@ async function sendMessage() {
         let buffer = '';
         let fullText = '';
         let lastMeta = null;
+
+        function scrollToBottom() {
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
 
         while (true) {
             const {value, done} = await reader.read();
@@ -514,17 +693,24 @@ async function sendMessage() {
             for (const frame of parts) {
                 const line = frame.split('\n').find(l => l.startsWith('data: '));
                 if (!line) continue;
-                const payload = JSON.parse(line.slice(6));
+                let payload;
+                try {
+                    payload = JSON.parse(line.slice(6));
+                } catch (e) {
+                    continue;
+                }
                 if (payload.type === 'meta') {
                     lastMeta = payload;
                 } else if (payload.type === 'delta') {
-                    fullText += payload.content;
+                    fullText += payload.content || '';
                     lastMessageBubble.textContent = fullText;
+                    scrollToBottom();
                 } else if (payload.type === 'done') {
-                    if (payload.response && payload.response.length) {
+                    if (payload.response != null && payload.response.length) {
                         fullText = payload.response;
                         lastMessageBubble.textContent = fullText;
                     }
+                    scrollToBottom();
                 } else if (payload.type === 'error') {
                     throw new Error(payload.error || 'stream error');
                 }
@@ -535,9 +721,22 @@ async function sendMessage() {
         if (lastMeta && document.getElementById('show-debug').checked) {
             // remove last (empty) assistant message wrapper and re-add with debug
             messagesDiv.removeChild(messagesDiv.lastChild);
-            addMessage('assistant', fullText, lastMeta);
+            // Ensure sources_preview is available from meta
+            if (!lastMeta.sources_preview && lastMeta.context_chunks_used > 0) {
+                // Fallback: construct from what we have (though this shouldn't happen if backend is correct)
+                lastMeta.sources_preview = [];
+            }
+            // Use sources from meta if available, otherwise construct from sources_preview
+            const sources = lastMeta.sources || (lastMeta.sources_preview || []);
+            addMessage('assistant', fullText, lastMeta, sources);
+        } else if (lastMeta && lastMeta.sources) {
+            // Even without debug, show sources if available
+            messagesDiv.removeChild(messagesDiv.lastChild);
+            addMessage('assistant', fullText, null, lastMeta.sources);
         }
         chatHistory.push({role: 'assistant', content: fullText});
+        // Save history after receiving streaming response
+        saveChatHistory();
         
         statusDiv.textContent = '';
     } catch (error) {
@@ -555,14 +754,20 @@ async function sendMessage() {
     }
 }
 
-function clearHistory() {
-    if (confirm('Clear conversation history?')) {
+async function clearHistory() {
+    if (confirm('Clear conversation history. Are you sure?')) {
         chatHistory = [];
         document.getElementById('chat-messages').innerHTML = `
             <div class="empty-state" style="text-align: center; padding: 60px 20px; color: #999;">
                 <p style="font-size: 16px; margin: 0;">Start a conversation by typing a message below.</p>
             </div>
         `;
+        // Clear from database too
+        try {
+            await fetch('/api/chat/clear-history', {method: 'POST'});
+        } catch (e) {
+            console.warn('Failed to clear chat history from database:', e);
+        }
     }
 }
 
@@ -570,6 +775,28 @@ function toggleDebug() {
     // Debug info is shown/hidden per message, so we just need to refresh display
     // This is handled in addMessage function
 }
+
+// Save history before page unload (e.g., when clicking source links)
+window.addEventListener('beforeunload', function() {
+    // Use sendBeacon for reliable delivery even during navigation
+    if (chatHistory.length > 0) {
+        try {
+            const data = JSON.stringify({history: chatHistory});
+            const blob = new Blob([data], {type: 'application/json'});
+            navigator.sendBeacon('/api/chat/save-history', blob);
+        } catch (e) {
+            // Fallback: try synchronous fetch (less reliable but better than nothing)
+            console.warn('sendBeacon failed, trying sync save:', e);
+        }
+    }
+});
+
+// Also save periodically (every 30 seconds) as a safety net
+setInterval(function() {
+    if (chatHistory.length > 0) {
+        saveChatHistory();
+    }
+}, 30000);
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
