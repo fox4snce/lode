@@ -148,7 +148,7 @@ async function exportConversation() {
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <h3>Exported Content Preview:</h3>
                     <div>
-                        <button onclick="copyExportedContent()" class="btn btn-primary" style="margin-right: 10px;">Copy Content</button>
+                        <button onclick="copyExportedContent(event)" class="btn btn-primary" style="margin-right: 10px;">Copy Content</button>
                         ${openFolderBtn}
                     </div>
                 </div>
@@ -172,22 +172,22 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function copyExportedContent() {
+function copyExportedContent(ev) {
     if (!window.exportedContent) {
         alert('No content to copy');
         return;
     }
-    
+    const btn = ev && ev.target ? ev.target : null;
     navigator.clipboard.writeText(window.exportedContent).then(() => {
-        // Show brief success message
-        const btn = event.target;
-        const originalText = btn.textContent;
-        btn.textContent = 'Copied!';
-        btn.style.background = '#27ae60';
-        setTimeout(() => {
-            btn.textContent = originalText;
-            btn.style.background = '';
-        }, 2000);
+        if (btn) {
+            const originalText = btn.textContent;
+            btn.textContent = 'Copied!';
+            btn.style.background = '#27ae60';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 2000);
+        }
     }).catch(err => {
         alert('Failed to copy: ' + err.message);
     });

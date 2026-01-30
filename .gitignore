@@ -8,6 +8,9 @@ env/
 data/
 !data/example_corpus/
 
+# Export output (user-generated)
+exports/
+
 # Database files
 *.db
 *.sqlite
