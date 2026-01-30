@@ -232,8 +232,15 @@ async function startVectordbIndexing() {
         });
         
         if (!response.ok) {
+            let errMsg = 'Indexing job creation failed';
             const errText = await response.text();
-            throw new Error(errText || 'Indexing job creation failed');
+            try {
+                const errJson = JSON.parse(errText);
+                if (errJson.detail) errMsg = typeof errJson.detail === 'string' ? errJson.detail : (errJson.detail.join?.(' ') || errMsg);
+            } catch (_) {
+                if (errText) errMsg = errText;
+            }
+            throw new Error(errMsg);
         }
         
         const result = await response.json();

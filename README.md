@@ -52,6 +52,12 @@ A local-first desktop application for organizing, searching, and analyzing your 
    pip install -r requirements.txt
    ```
 
+5. **Optional — Vector Search and Chat**: If you want semantic search or RAG chat over your data, export the embedding model once (downloads from the internet, saves to `vendor/` which is gitignored):
+   ```bash
+   python tools/export_embedder_onnx.py --model bge-small
+   ```
+   Without this step, Vector Search and the vectordb index job will fail with "Model not found at ... vendor/embedder_bge_small_v1_5". Full-text search and the rest of the app work without it.
+
 ## Usage
 
 ### Running the Application

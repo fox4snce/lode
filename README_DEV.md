@@ -20,6 +20,12 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
+**Optional — Vector Search / Chat**: To use Vector Search or RAG chat, export the embedding model once:
+```bash
+python tools/export_embedder_onnx.py --model bge-small
+```
+This downloads the BGE-small model to `vendor/embedder_bge_small_v1_5` (gitignored). Without it, the vectordb index job and Vector Search will fail with "Model not found".
+
 ## Running in Development
 
 ### Option 1: Use Launcher (Recommended)

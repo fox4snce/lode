@@ -35,13 +35,40 @@ def get_vectordb() -> SQLiteVectorDB:
     return _get_vectordb(str(p))
 
 
+# Default embedder dir (must match path used in get_embedder)
+_EMBEDDER_MODEL_DIR = "vendor/embedder_bge_small_v1_5"
+
+
+def embedder_model_ready() -> tuple[bool, str]:
+    """
+    Check if the embedding model is present so Vector Search / index job can run.
+    Returns (ready: bool, message: str). If not ready, message explains how to fix.
+    """
+    import os
+    import sys
+    base = getattr(sys, "_MEIPASS", os.path.abspath("."))
+    model_path = os.path.join(base, _EMBEDDER_MODEL_DIR, "model.onnx")
+    tok_path = os.path.join(base, _EMBEDDER_MODEL_DIR, "tokenizer.json")
+    if not os.path.exists(model_path):
+        return False, (
+            "Embedding model not found. Run this once from the project root: "
+            "python tools/export_embedder_onnx.py --model bge-small"
+        )
+    if not os.path.exists(tok_path):
+        return False, (
+            "Embedding tokenizer not found. Run this once from the project root: "
+            "python tools/export_embedder_onnx.py --model bge-small"
+        )
+    return True, ""
+
+
 @lru_cache(maxsize=1)
 def get_embedder():
     # Default embedder: BGE-small-en-v1.5 (better quality than MiniLM)
     # TODO: Add user-configurable embedding provider support
     from embeddings_onnx import OfflineEmbedder
 
-    return OfflineEmbedder.load(model_dir="vendor/embedder_bge_small_v1_5")
+    return OfflineEmbedder.load(model_dir=_EMBEDDER_MODEL_DIR)
 
 
 def _ensure_2d(a: np.ndarray) -> np.ndarray:
