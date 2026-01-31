@@ -323,24 +323,25 @@ def search_vector_db(query_summary: str, top_k: int = 5) -> List[Dict[str, Any]]
 
                 <section id="export-help" class="help-section">
                     <h3>💾 Export</h3>
-                    <p class="help-subtitle">Export a single conversation to Markdown/CSV/JSON.</p>
+                    <p class="help-subtitle">Export one or more conversations to Markdown/CSV/JSON files.</p>
 
                     <div class="help-kv">
                         <div class="help-block">
                             <h4>Steps</h4>
                             <ol>
-                                <li>Select a conversation</li>
+                                <li>Select one or more conversations (use <strong>Select all</strong> / <strong>Clear</strong> as needed)</li>
                                 <li>Choose format (Markdown/CSV/JSON)</li>
                                 <li>Pick options: timestamps, metadata</li>
-                                <li>Export, then copy or save</li>
+                                <li>Click <strong>Export selected</strong></li>
                             </ol>
                         </div>
 
                         <div class="help-block help-tip">
                             <h4>Notes</h4>
                             <ul>
-                                <li>Copy places content on your clipboard</li>
-                                <li>Save downloads a file to your system</li>
+                                <li>Exports are written to Lode’s persistent <code>exports/</code> folder</li>
+                                <li>Use <strong>Open exports folder</strong> to open it in your system file manager</li>
+                                <li>When exporting multiple conversations, Lode creates one file per conversation</li>
                             </ul>
                         </div>
                     </div>

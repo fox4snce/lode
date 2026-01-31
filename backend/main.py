@@ -185,14 +185,28 @@ async def setup_check():
     return SetupCheckResponse(initialized=check_database_initialized())
 
 @app.post("/api/setup/initialize")
-async def setup_initialize():
+async def setup_initialize(request: Request):
+    is_htmx = request.headers.get("HX-Request", "").lower() == "true"
     if check_database_initialized():
         raise HTTPException(status_code=400, detail="Database already initialized")
-    
+
+    def _escape_html(s: str) -> str:
+        return (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
     try:
         initialize_database()
+        if is_htmx:
+            return HTMLResponse(
+                '<div class="success">Database initialized. Opening Lode…</div>',
+                status_code=200,
+            )
         return {"status": "success", "message": "Database initialized"}
     except Exception as e:
+        if is_htmx:
+            return HTMLResponse(
+                f'<div class="error">Failed to initialize database: {_escape_html(str(e))}</div>',
+                status_code=500,
+            )
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1590,13 +1604,14 @@ async def export_conversation(
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(content)
         
-        # Return file path relative to the Lode data dir (safe to expose and stable across machines).
+        # Return file path relative to the Lode data dir (forward slashes for cross-platform / Windows).
         relative_path = file_path.relative_to(get_data_dir())
+        path_str = str(relative_path).replace("\\", "/")
         
         return {
             "format": format,
             "filename": filename,
-            "path": str(relative_path),
+            "path": path_str,
             "absolute_path": str(file_path)
         }
     except HTTPException:

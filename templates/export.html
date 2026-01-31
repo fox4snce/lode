@@ -2,6 +2,80 @@
 
 {% block title %}Export - Lode{% endblock %}
 
+{% block extra_head %}
+<style>
+    /* Export page layout tweaks (scoped) */
+    .export-top {
+        display: grid;
+        grid-template-columns: minmax(240px, 360px) 1fr;
+        gap: 16px;
+        align-items: end;
+    }
+    @media (max-width: 760px) {
+        .export-top {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .export-flags {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        flex-wrap: wrap;
+        padding-top: 22px; /* align with label+select height on left */
+    }
+    .export-flag {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        margin: 0;
+        font-weight: 500;
+        user-select: none;
+        cursor: pointer;
+    }
+    .export-flag input[type="checkbox"] {
+        margin: 0;
+    }
+
+    #conversation-list {
+        padding: 0 !important;
+        height: clamp(220px, 45vh, 420px) !important;
+        overflow: auto;
+    }
+    .export-conv-row {
+        display: grid !important;
+        grid-template-columns: 22px 1fr;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        margin: 0 !important;
+        font-weight: 400 !important;
+        text-align: left;
+    }
+    .export-conv-row:last-child {
+        border-bottom: none;
+    }
+    .export-conv-row input[type="checkbox"] {
+        margin: 0;
+        justify-self: start;
+    }
+    .export-conv-title {
+        justify-self: start;
+        word-break: break-word;
+    }
+
+    /* Tighten vertical spacing a bit */
+    .form-group {
+        margin-bottom: 12px;
+    }
+    .card h2 {
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="menu-bar">
     <h1>Lode</h1>
@@ -25,42 +99,43 @@
 
 <div class="container">
     <div class="card">
-        <h2>Export Conversation</h2>
-        
-        <div class="form-group">
-            <label for="conversation-select">Select Conversation</label>
-            <select id="conversation-select" onchange="loadConversation()">
-                <option value="">Select a conversation...</option>
-            </select>
-        </div>
-        
-        <div class="form-group" style="margin-bottom: 15px;">
-            <button onclick="openExportsFolder()" class="btn btn-primary">Open Exports Folder</button>
-        </div>
-        
-        <div id="export-options" style="display: none;">
-            <div class="form-group">
-                <label for="export-format">Format</label>
+        <h2>Export Conversations</h2>
+
+        <div class="export-top">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Format</label>
                 <select id="export-format">
                     <option value="markdown">Markdown</option>
                     <option value="csv">CSV</option>
                     <option value="json">JSON</option>
                 </select>
             </div>
-            
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="include-timestamps" checked> Include Timestamps
+            <div class="export-flags">
+                <label class="export-flag">
+                    <input type="checkbox" id="include-timestamps" checked>
+                    <span>Include timestamps</span>
+                </label>
+                <label class="export-flag">
+                    <input type="checkbox" id="include-metadata" checked>
+                    <span>Include metadata</span>
                 </label>
             </div>
-            
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="include-metadata" checked> Include Metadata
-                </label>
+        </div>
+        
+        <div class="form-group">
+            <label>Conversations</label>
+            <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+                <button type="button" onclick="selectAllConversations(true)" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;">Select all</button>
+                <button type="button" onclick="selectAllConversations(false)" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;">Clear</button>
             </div>
-            
-            <button onclick="exportConversation()" class="btn btn-primary">Export</button>
+            <div id="conversation-list" style="border: 1px solid #ccc; border-radius: 4px; background: #fff; height: 320px; overflow-y: auto; padding: 8px;">
+                <div id="conversation-list-inner">Loading…</div>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
+            <button type="button" onclick="exportSelected()" class="btn btn-primary">Export selected</button>
+            <button type="button" onclick="openExportsFolder()" class="btn btn-primary">Open exports folder</button>
         </div>
         
         <div id="export-result" style="margin-top: 20px;"></div>
@@ -68,102 +143,29 @@
 </div>
 
 <script>
+let allConversations = [];
+
 async function loadConversations() {
+    const inner = document.getElementById('conversation-list-inner');
     try {
         const response = await fetch('/api/conversations?sort=update_time');
         const conversations = await response.json();
-        
-        const select = document.getElementById('conversation-select');
-        conversations.forEach(conv => {
-            const option = document.createElement('option');
-            option.value = conv.conversation_id;
-            option.textContent = conv.title || conv.conversation_id;
-            select.appendChild(option);
-        });
+        allConversations = conversations;
+        if (conversations.length === 0) {
+            inner.innerHTML = '<span style="color: #666;">No conversations.</span>';
+            return;
+        }
+        inner.innerHTML = conversations.map(conv => {
+            const id = conv.conversation_id;
+            const title = escapeHtml(conv.title || id);
+            return `<label class="export-conv-row">
+                <input type="checkbox" class="export-conv-cb" value="${escapeHtml(id)}">
+                <span class="export-conv-title">${title}</span>
+            </label>`;
+        }).join('');
     } catch (error) {
+        inner.innerHTML = '<span class="error">Failed to load conversations.</span>';
         console.error('Error loading conversations:', error);
-    }
-}
-
-function loadConversation() {
-    const select = document.getElementById('conversation-select');
-    if (select.value) {
-        document.getElementById('export-options').style.display = 'block';
-    } else {
-        document.getElementById('export-options').style.display = 'none';
-    }
-}
-
-async function exportConversation() {
-    const conversationId = document.getElementById('conversation-select').value;
-    if (!conversationId) {
-        alert('Please select a conversation');
-        return;
-    }
-    
-    const format = document.getElementById('export-format').value;
-    const includeTimestamps = document.getElementById('include-timestamps').checked;
-    const includeMetadata = document.getElementById('include-metadata').checked;
-    
-    const resultDiv = document.getElementById('export-result');
-    resultDiv.innerHTML = '<div class="loading">Exporting...</div>';
-    
-    try {
-        const response = await fetch(
-            `/api/export/conversation/${conversationId}?format=${format}&include_timestamps=${includeTimestamps}&include_metadata=${includeMetadata}`,
-            { method: 'POST' }
-        );
-        
-        if (!response.ok) {
-            throw new Error('Export failed');
-        }
-        
-        const data = await response.json();
-        
-        // File is now saved server-side in the persistent exports directory
-        const filename = data.filename || 'exported_file';
-        const filePath = data.path || data.absolute_path || '';
-        const absolutePath = data.absolute_path || '';
-        
-        // Load file content for preview (normalize path for Windows)
-        let content = '';
-        const normalizedPath = (filePath || '').replace(/\\/g, '/');
-        try {
-            if (normalizedPath) {
-                const fileResponse = await fetch(`/api/export/file/${encodeURIComponent(normalizedPath)}`);
-                if (fileResponse.ok) {
-                    content = await fileResponse.text();
-                }
-            }
-        } catch (e) {
-            console.log('Could not load file for preview:', e);
-        }
-        
-        resultDiv.innerHTML = `
-            <div class="success">Export completed!</div>
-            <div style="margin-top: 15px;">
-                <div style="margin-bottom: 15px; padding: 10px; background: #e8f5e9; border-radius: 4px;">
-                    <strong>File saved to:</strong> ${escapeHtml(filePath)}<br>
-                    <strong>Filename:</strong> ${escapeHtml(filename)}
-                </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h3>Exported Content Preview:</h3>
-                    <div>
-                        <button onclick="copyExportedContent(event)" class="btn btn-primary" style="margin-right: 10px;">Copy Content</button>
-                        <button onclick="openExportsFolder()" class="btn btn-primary" style="margin-left: 10px;">Open Exports Folder</button>
-                    </div>
-                </div>
-                <div id="export-content-display" style="position: relative;">
-                    <pre id="export-content-text" style="background: #f5f5f5; padding: 15px; border-radius: 4px; overflow-x: auto; max-height: 500px; overflow-y: auto; text-align: left;">${escapeHtml(content || 'Content preview not available')}</pre>
-                </div>
-            </div>
-        `;
-        
-        // Store content globally for copy function
-        window.exportedContent = content;
-        window.exportedFormat = format;
-    } catch (error) {
-        resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
     }
 }
 
@@ -173,25 +175,62 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function copyExportedContent(ev) {
-    if (!window.exportedContent) {
-        alert('No content to copy');
+function selectAllConversations(checked) {
+    document.querySelectorAll('.export-conv-cb').forEach(cb => { cb.checked = checked; });
+}
+
+function getSelectedIds() {
+    return Array.from(document.querySelectorAll('.export-conv-cb:checked')).map(cb => cb.value);
+}
+
+async function exportSelected() {
+    const ids = getSelectedIds();
+    if (ids.length === 0) {
+        alert('Select at least one conversation.');
         return;
     }
-    const btn = ev && ev.target ? ev.target : null;
-    navigator.clipboard.writeText(window.exportedContent).then(() => {
-        if (btn) {
-            const originalText = btn.textContent;
-            btn.textContent = 'Copied!';
-            btn.style.background = '#27ae60';
-            setTimeout(() => {
-                btn.textContent = originalText;
-                btn.style.background = '';
-            }, 2000);
+    const format = document.getElementById('export-format').value;
+    const includeTimestamps = document.getElementById('include-timestamps').checked;
+    const includeMetadata = document.getElementById('include-metadata').checked;
+    const resultDiv = document.getElementById('export-result');
+    const total = ids.length;
+    resultDiv.innerHTML = `<div class="loading">Exporting 0 / ${total}…</div>`;
+    const baseUrl = `/api/export/conversation`;
+    const query = `format=${encodeURIComponent(format)}&include_timestamps=${includeTimestamps}&include_metadata=${includeMetadata}`;
+    const results = [];
+    let done = 0;
+    for (const conversationId of ids) {
+        resultDiv.innerHTML = `<div class="loading">Exporting ${done + 1} / ${total}…</div>`;
+        try {
+            const response = await fetch(`${baseUrl}/${encodeURIComponent(conversationId)}?${query}`, { method: 'POST' });
+            if (response.ok) {
+                const data = await response.json();
+                results.push({ ok: true, filename: data.filename || '', path: data.path || '' });
+            } else {
+                results.push({ ok: false, id: conversationId });
+            }
+        } catch (e) {
+            results.push({ ok: false, id: conversationId });
         }
-    }).catch(err => {
-        alert('Failed to copy: ' + err.message);
-    });
+        done++;
+    }
+    const succeeded = results.filter(r => r.ok);
+    const failed = results.filter(r => !r.ok);
+    if (failed.length === 0) {
+        resultDiv.innerHTML = `
+            <div style="padding: 12px; background: #e8f5e9; border-radius: 4px; border-left: 4px solid #2e7d32;">
+                <strong>Exported ${succeeded.length} conversation(s).</strong>
+                <ul style="margin: 8px 0 0 0; padding-left: 20px;">${succeeded.map(r => '<li>' + escapeHtml(r.filename) + '</li>').join('')}</ul>
+            </div>
+        `;
+    } else {
+        resultDiv.innerHTML = `
+            <div style="padding: 12px; background: #fff3e0; border-radius: 4px; border-left: 4px solid #e65100;">
+                <strong>Exported ${succeeded.length}; ${failed.length} failed.</strong>
+                ${succeeded.length ? '<ul style="margin: 8px 0 0 0; padding-left: 20px;">' + succeeded.map(r => '<li>' + escapeHtml(r.filename) + '</li>').join('') + '</ul>' : ''}
+            </div>
+        `;
+    }
 }
 
 async function openExportsFolder() {
@@ -206,7 +245,6 @@ async function openExportsFolder() {
     }
 }
 
-// Load conversations on page load
 loadConversations();
 </script>
 {% endblock %}
