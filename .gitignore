@@ -11,6 +11,9 @@ data/
 # Export output (user-generated)
 exports/
 
+# Uploaded files (user data, never track)
+uploads/
+
 # Database files
 *.db
 *.sqlite
