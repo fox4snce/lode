@@ -466,9 +466,36 @@ def main():
         icon_thread = threading.Thread(target=_set_icons_with_delay, daemon=True)
         icon_thread.start()
 
+    cleanup_ran = False
+
+    # Prefer a real close event hook when available (some platforms don't unwind
+    # webview.start() cleanly on close).
+    try:
+        window.events.closed += lambda: on_closed()  # type: ignore[attr-defined]
+    except Exception:
+        pass
+
     def on_closed():
         """Cleanup on window close."""
+        nonlocal cleanup_ran
+        if cleanup_ran:
+            return
+        cleanup_ran = True
         print("=== CLEANUP STARTING ===")
+
+        # If something keeps the process alive (e.g., non-daemon worker threads from the
+        # embedded server stack), force-exit after a short grace period so Lode.exe
+        # never lingers after the UI closes.
+        def _force_exit():
+            try:
+                print("=== FORCE EXIT (watchdog) ===")
+            finally:
+                os._exit(0)
+
+        watchdog = threading.Timer(8.0, _force_exit)
+        watchdog.daemon = True
+        watchdog.start()
+
         try:
             # Signal any running vectordb index job to stop so indexing doesn't keep running
             try:
@@ -479,6 +506,13 @@ def main():
                 print(f"Error signalling jobs to stop: {e}")
             server_thread.shutdown()
             print("Server thread shutdown called")
+            # Give the server thread a moment to exit cleanly.
+            try:
+                server_thread.join(timeout=5)
+                if server_thread.is_alive():
+                    print("WARNING: server thread still alive after shutdown; watchdog will force-exit soon.")
+            except Exception as e:
+                print(f"Error waiting for server thread to exit: {e}")
         except Exception as e:
             print(f"Error shutting down server: {e}")
         
