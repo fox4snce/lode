@@ -165,6 +165,7 @@ let availableProviders = [];
 let verifiedModels = []; // [{provider, model}]
 let selectedProvider = "";
 let selectedModel = "";
+let _didRenderInitialHistory = false;
 
 // Load available providers on page load
 async function loadProviders() {
@@ -243,19 +244,20 @@ async function loadChatSettings() {
         if (showDebugEl) showDebugEl.checked = !!settings.show_debug;
         refreshVerifiedModelsDatalist();
         
-        // Load conversation history if present
-        if (data.history && Array.isArray(data.history) && data.history.length > 0) {
+        // Load conversation history if present.
+        // IMPORTANT: Only render it once (initial page load). This function is also called
+        // after "Test Model" to refresh verified models; re-rendering history would duplicate
+        // messages in the chat window and look like they were "re-sent".
+        if (!_didRenderInitialHistory && data.history && Array.isArray(data.history) && data.history.length > 0) {
             chatHistory = data.history;
-            // Restore messages to UI
             const messagesDiv = document.getElementById('chat-messages');
-            const emptyState = messagesDiv.querySelector('.empty-state');
-            if (emptyState) {
-                emptyState.remove();
-            }
+            // Clear any existing UI (including the empty state) before restoring.
+            messagesDiv.innerHTML = '';
             for (const msg of chatHistory) {
                 addMessage(msg.role, msg.content);
             }
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            _didRenderInitialHistory = true;
         }
     } catch (e) {
         // ignore

@@ -45,6 +45,27 @@ def _ensure_litellm() -> None:
     )
 
 
+def _normalize_kwargs_for_model(kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Normalize provider/model-specific kwargs so "Test Model" and "Chat" behave consistently.
+
+    In particular, some OpenAI gpt-5* models reject `temperature` and/or `max_tokens`
+    (preferring `max_completion_tokens`).
+    """
+    model = str(kwargs.get("model") or "")
+    if model.startswith("openai/"):
+        name = model.split("/", 1)[1] if "/" in model else model
+        if name.startswith("gpt-5"):
+            # Be conservative: align with the minimal param set used by "Test Model".
+            if "max_tokens" in kwargs and "max_completion_tokens" not in kwargs:
+                kwargs = dict(kwargs)
+                kwargs["max_completion_tokens"] = kwargs.pop("max_tokens")
+            if "temperature" in kwargs:
+                kwargs = dict(kwargs)
+                kwargs.pop("temperature", None)
+    return kwargs
+
+
 def get_available_providers() -> List[Dict[str, Any]]:
     """
     Get list of available providers.
@@ -142,6 +163,7 @@ def call_llm(
         kwargs["temperature"] = temperature
     if max_tokens is not None:
         kwargs["max_tokens"] = max_tokens
+    kwargs = _normalize_kwargs_for_model(kwargs)
 
     try:
         return _do_call(kwargs)
@@ -209,6 +231,7 @@ def call_llm_stream(
         kwargs["temperature"] = temperature
     if max_tokens is not None:
         kwargs["max_tokens"] = max_tokens
+    kwargs = _normalize_kwargs_for_model(kwargs)
 
     try:
         stream = completion(**kwargs)
