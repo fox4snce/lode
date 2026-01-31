@@ -10,16 +10,39 @@ import os
 from typing import List, Dict, Any, Optional
 from typing import Iterator
 
+_LITELLM_IMPORT_ERROR: Optional[str] = None
+
 try:
     from litellm import completion
     import litellm
     # Drop unsupported params to avoid errors with models like gpt-5
     litellm.drop_params = True
     LITELLM_AVAILABLE = True
-except Exception:
+except ImportError as e:
+    _LITELLM_IMPORT_ERROR = f"ImportError: {e}"
     LITELLM_AVAILABLE = False
     completion = None
     litellm = None
+except Exception as e:
+    # In frozen builds, imports can fail for non-ImportError reasons (missing optional deps/data).
+    # Capture the real error so the UI can surface it (without leaking keys).
+    _LITELLM_IMPORT_ERROR = f"{type(e).__name__}: {e}"
+    LITELLM_AVAILABLE = False
+    completion = None
+    litellm = None
+
+
+def _ensure_litellm() -> None:
+    if LITELLM_AVAILABLE:
+        return
+    openai_present = bool(os.getenv("OPENAI_API_KEY"))
+    anthropic_present = bool(os.getenv("ANTHROPIC_API_KEY"))
+    extra = f" (import error: {_LITELLM_IMPORT_ERROR})" if _LITELLM_IMPORT_ERROR else ""
+    raise Exception(
+        "LiteLLM is unavailable in this runtime"
+        f"{extra}. "
+        f"Env keys present: OPENAI_API_KEY={openai_present}, ANTHROPIC_API_KEY={anthropic_present}"
+    )
 
 
 def get_available_providers() -> List[Dict[str, Any]]:
@@ -100,8 +123,7 @@ def call_llm(
     Raises:
         Exception: If LLM call fails or LiteLLM is not available
     """
-    if not LITELLM_AVAILABLE:
-        raise Exception("LiteLLM is not installed. Install with: pip install litellm")
+    _ensure_litellm()
     
     # Keep this wrapper *thin* and LiteLLM-first:
     # - Call litellm.completion() with standard params
@@ -157,8 +179,7 @@ def call_llm_stream(
     """
     Streaming LLM call via LiteLLM. Yields text deltas.
     """
-    if not LITELLM_AVAILABLE:
-        raise Exception("LiteLLM is not installed. Install with: pip install litellm")
+    _ensure_litellm()
 
     def _extract_delta(chunk: Any) -> str:
         # LiteLLM aims for OpenAI-compatible streaming chunks, but be defensive.
