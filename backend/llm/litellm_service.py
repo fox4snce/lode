@@ -16,7 +16,7 @@ try:
     # Drop unsupported params to avoid errors with models like gpt-5
     litellm.drop_params = True
     LITELLM_AVAILABLE = True
-except ImportError:
+except Exception:
     LITELLM_AVAILABLE = False
     completion = None
     litellm = None

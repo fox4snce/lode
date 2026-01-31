@@ -470,6 +470,13 @@ def main():
         """Cleanup on window close."""
         print("=== CLEANUP STARTING ===")
         try:
+            # Signal any running vectordb index job to stop so indexing doesn't keep running
+            try:
+                from backend.job_runner import cancel_all_vectordb_jobs
+                cancel_all_vectordb_jobs()
+                time.sleep(2)  # give indexer time to notice and exit
+            except Exception as e:
+                print(f"Error signalling jobs to stop: {e}")
             server_thread.shutdown()
             print("Server thread shutdown called")
         except Exception as e:

@@ -83,6 +83,20 @@ def highlight_filter(value: str, query: str = ""):
 
 jinja_env.filters["highlight"] = highlight_filter
 
+
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    # On shutdown: signal running vectordb index jobs to stop so the process can exit
+    try:
+        from backend.job_runner import cancel_all_vectordb_jobs
+        cancel_all_vectordb_jobs()
+    except Exception:
+        pass
+
+
 def render_template(template_name: str, **context):
     """Render a Jinja2 template."""
     # Add feature flags to context for all templates
@@ -95,7 +109,7 @@ def render_template(template_name: str, **context):
     template = jinja_env.get_template(template_name)
     return template.render(**context)
 
-app = FastAPI(title="Lode", version=LODE_VERSION)
+app = FastAPI(title="Lode", version=LODE_VERSION, lifespan=lifespan)
 
 # Mount static files
 static_dir = Path(__file__).parent.parent / "static"
@@ -196,9 +210,11 @@ async def setup_initialize(request: Request):
     try:
         initialize_database()
         if is_htmx:
+            # HX-Redirect makes the Welcome page reliably navigate after init.
             return HTMLResponse(
                 '<div class="success">Database initialized. Opening Lode…</div>',
                 status_code=200,
+                headers={"HX-Redirect": "/main"},
             )
         return {"status": "success", "message": "Database initialized"}
     except Exception as e:
@@ -929,7 +945,9 @@ async def get_job_endpoint(job_id: str = PathParam(...)):
 @app.post("/api/jobs/{job_id}/cancel")
 async def cancel_job_endpoint(job_id: str = PathParam(...)):
     """Cancel a job."""
+    from backend.job_runner import set_vectordb_job_cancelled
     if cancel_job(job_id):
+        set_vectordb_job_cancelled(job_id)  # signal running indexer to stop
         return {"status": "cancelled"}
     raise HTTPException(status_code=400, detail="Job cannot be cancelled")
 

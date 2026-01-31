@@ -10,7 +10,7 @@ Chunking strategy:
 from __future__ import annotations
 
 import sqlite3
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 import numpy as np
 
 from backend.vectordb.sqlite_vectordb import SQLiteVectorDB
@@ -181,7 +181,8 @@ def index_conversations(
     db_path: str,
     vectordb_path: str,
     conversation_ids: Optional[List[str]] = None,
-    progress_callback: Optional[callable] = None,
+    progress_callback: Optional[Callable[[int, str], None]] = None,
+    cancellation_check: Optional[Callable[[], bool]] = None,
 ) -> Dict:
     """
     Index conversations into the vectordb.
@@ -191,9 +192,10 @@ def index_conversations(
         vectordb_path: Path to conversations_vectordb.db
         conversation_ids: Optional list of specific conversation IDs to index (None = all)
         progress_callback: Optional function(progress: int, message: str) for progress updates
+        cancellation_check: Optional callable that returns True if indexing should stop
     
     Returns:
-        Dict with stats: total_conversations, total_chunks, total_vectors
+        Dict with stats: total_conversations, total_chunks, total_vectors; plus cancelled=True if stopped early
     """
     embedder = get_embedder()
     vectordb = SQLiteVectorDB(vectordb_path)
@@ -228,6 +230,25 @@ def index_conversations(
         progress_callback(0, f"Starting indexing of {total_conversations} conversations...")
     
     for idx, conv_row in enumerate(conversations):
+        # Check for cancellation at the start of each conversation (so shutdown/cancel stops quickly)
+        if cancellation_check and cancellation_check():
+            conn.close()
+            if progress_callback:
+                try:
+                    progress = int((idx + 1) / total_conversations * 100) if total_conversations else 0
+                    progress_callback(
+                        progress,
+                        f"Indexing cancelled: {idx}/{total_conversations} conversations ({total_chunks} chunks, {total_vectors} vectors)",
+                    )
+                except Exception as e:
+                    print(f"[WARNING] Progress callback error on cancel: {e}")
+            return {
+                "total_conversations": total_conversations,
+                "total_chunks": total_chunks,
+                "total_vectors": total_vectors,
+                "cancelled": True,
+                "indexed_conversations": idx,
+            }
         conv_id = conv_row['conversation_id']
         # sqlite3.Row supports direct indexing; None values are returned as None
         title = conv_row['title'] if conv_row['title'] else ''
@@ -339,8 +360,8 @@ def index_conversations(
                 )
                 total_vectors += 1
             
-            # Update progress every 10 conversations (more frequent for better visibility)
-            if progress_callback and ((idx + 1) % 10 == 0 or idx == total_conversations - 1):
+            # Update progress every 3 conversations so UI doesn't appear stuck (was every 10)
+            if progress_callback and ((idx + 1) % 3 == 0 or idx == total_conversations - 1):
                 progress = int((idx + 1) / total_conversations * 100)
                 try:
                     progress_callback(
@@ -391,4 +412,5 @@ def index_conversations(
         'total_conversations': total_conversations,
         'total_chunks': total_chunks,
         'total_vectors': total_vectors,
+        'cancelled': False,
     }

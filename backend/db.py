@@ -34,10 +34,23 @@ def get_db_path() -> Path:
     return get_data_dir() / "conversations.db"
 
 
-def get_db_connection():
-    """Get a database connection."""
+def get_jobs_db_path() -> Path:
+    """Get the jobs database path (separate file to avoid lock contention with indexer)."""
+    return get_data_dir() / "jobs.db"
+
+
+def get_db_connection(timeout: float = 30.0):
+    """Get a database connection for conversations/messages."""
     db_path = get_db_path()
-    conn = sqlite3.connect(str(db_path))
+    conn = sqlite3.connect(str(db_path), timeout=timeout)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def get_jobs_connection(timeout: float = 30.0):
+    """Get a connection to the jobs database (separate file to avoid lock contention)."""
+    db_path = get_jobs_db_path()
+    conn = sqlite3.connect(str(db_path), timeout=timeout)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -59,25 +72,20 @@ def check_database_initialized() -> bool:
 
 def initialize_database():
     """Initialize all database tables."""
-    import sys
-    from pathlib import Path
-    
-    # Add database directory to path for imports
-    project_root = Path(__file__).parent.parent
-    database_dir = project_root / "database"
-    if str(database_dir) not in sys.path:
-        sys.path.insert(0, str(database_dir))
-    
-    import create_database
-    import create_metadata_tables
-    import create_organization_tables
-    import create_metadata_calc_tables
-    import create_fts5_tables
-    import create_user_state_table
-    import create_deduplication_tables
-    import create_import_report_tables
-    import create_entity_keyword_tables
-    import create_analytics_cache_tables
+    # IMPORTANT: import these as a normal package so PyInstaller can bundle them.
+    # (Dynamic sys.path + bare imports tend to break in frozen builds.)
+    from database import (
+        create_database,
+        create_metadata_tables,
+        create_organization_tables,
+        create_metadata_calc_tables,
+        create_fts5_tables,
+        create_user_state_table,
+        create_deduplication_tables,
+        create_import_report_tables,
+        create_entity_keyword_tables,
+        create_analytics_cache_tables,
+    )
     
     db_path = get_db_path()
     

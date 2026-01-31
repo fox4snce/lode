@@ -7,7 +7,7 @@ import json
 from datetime import datetime
 from typing import Dict, Optional, List
 from enum import Enum
-from backend.db import get_db_connection
+from backend.db import get_jobs_connection
 
 
 class JobStatus(str, Enum):
@@ -28,7 +28,7 @@ class JobType(str, Enum):
 
 def init_jobs_table():
     """Create jobs table if it doesn't exist."""
-    conn = get_db_connection()
+    conn = get_jobs_connection()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS jobs (
             id TEXT PRIMARY KEY,
@@ -54,7 +54,7 @@ def create_job(job_type: str, metadata: Optional[Dict] = None) -> str:
     init_jobs_table()
     
     job_id = str(uuid.uuid4())
-    conn = get_db_connection()
+    conn = get_jobs_connection()
     conn.execute("""
         INSERT INTO jobs (id, job_type, status, metadata_json)
         VALUES (?, ?, ?, ?)
@@ -69,7 +69,7 @@ def update_job(job_id: str, status: Optional[str] = None, progress: Optional[int
                 message: Optional[str] = None, result: Optional[Dict] = None,
                 error: Optional[str] = None):
     """Update job status."""
-    conn = get_db_connection()
+    conn = get_jobs_connection()
     
     updates = []
     params = []
@@ -111,7 +111,7 @@ def update_job(job_id: str, status: Optional[str] = None, progress: Optional[int
 
 def get_job(job_id: str) -> Optional[Dict]:
     """Get job by ID."""
-    conn = get_db_connection()
+    conn = get_jobs_connection()
     cursor = conn.execute("SELECT * FROM jobs WHERE id = ?", (job_id,))
     row = cursor.fetchone()
     conn.close()
@@ -131,7 +131,7 @@ def get_job(job_id: str) -> Optional[Dict]:
 def list_jobs(limit: int = 50) -> List[Dict]:
     """List recent jobs."""
     init_jobs_table()
-    conn = get_db_connection()
+    conn = get_jobs_connection()
     cursor = conn.execute("""
         SELECT * FROM jobs
         ORDER BY created_at DESC

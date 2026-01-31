@@ -57,7 +57,23 @@ python -c "import lode_version; print(lode_version.__version__)"
    pip install -r requirements-dev.txt
    ```
 
-3. (Optional but recommended) Snapshot provider API references/specs for offline review (not committed)
+3. (Pro build only) Ensure the offline embedding model is present (bundled in releases)
+
+Vector Search and Chat use an offline ONNX embedder. Pro releases must include it under `vendor/`.
+
+Run this once from the project root:
+
+```powershell
+python tools/export_embedder_onnx.py --model bge-small
+```
+
+Verify these files exist (and will be bundled into the executable):
+- `vendor/embedder_bge_small_v1_5/model.onnx`
+- `vendor/embedder_bge_small_v1_5/tokenizer.json`
+
+**Note:** `vendor/` is gitignored. It is bundled into the Windows build by `tools/build_windows_exe.py` via PyInstaller `--add-data`.
+
+4. (Optional but recommended) Snapshot provider API references/specs for offline review (not committed)
 
 Download official API documentation snapshots for offline verification during release:
 
@@ -171,9 +187,21 @@ The README should include:
 - Data storage locations
 - System requirements
 - Features list
+- API key setup (for Pro / Chat)
 - Support information
 
 **Note:** The README is created manually for each release. Copy the template from a previous release or create it from scratch using the format in `dist/lode-1.0.0/README.txt`.
+
+#### API keys (Pro / Chat)
+
+Lode reads provider keys from environment variables (it does not prompt for them in-app).
+
+- **OpenAI**: set `OPENAI_API_KEY`
+- **Anthropic**: set `ANTHROPIC_API_KEY`
+
+After setting keys, **restart Lode** so it can read the updated environment.
+
+Include a short note telling users where to obtain keys (OpenAI/Anthropic websites) without reproducing provider documentation.
 
 ---
 
@@ -278,6 +306,10 @@ Lode has two build types:
 - **Features**: All core features + VectorDB search + Chat (RAG)
 - **Build Flag**: `LODE_BUILD_TYPE=pro`
 - **Target**: Users who need advanced semantic search and AI chat
+
+**Additional requirements (Pro):**
+- Offline embedding model present under `vendor/embedder_bge_small_v1_5/` (bundled into the build)
+- Provider API key set via environment variables (`OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY`) for Chat
 
 ### Feature Gating
 

@@ -3,9 +3,30 @@ Job runner for executing background jobs.
 """
 import asyncio
 import sys
+import threading
 from pathlib import Path
+from typing import Dict
+
 from backend.jobs import update_job, JobStatus, get_job
 from backend.db import get_db_path
+
+# Registry of job_id -> Event for vectordb index jobs; setting the event stops indexing.
+_vectordb_cancel_events: Dict[str, threading.Event] = {}
+_vectordb_cancel_lock = threading.Lock()
+
+
+def set_vectordb_job_cancelled(job_id: str) -> None:
+    """Signal a running vectordb index job to stop (used by cancel API and on shutdown)."""
+    with _vectordb_cancel_lock:
+        if job_id in _vectordb_cancel_events:
+            _vectordb_cancel_events[job_id].set()
+
+
+def cancel_all_vectordb_jobs() -> None:
+    """Signal all running vectordb index jobs to stop (call on app shutdown)."""
+    with _vectordb_cancel_lock:
+        for event in _vectordb_cancel_events.values():
+            event.set()
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -222,39 +243,64 @@ async def run_vectordb_index_job(job_id: str, metadata: dict):
         # Get conversation IDs to index (if specified)
         conversation_ids = metadata.get('conversation_ids')  # None = all
         
-        # Progress callback - update_job creates its own connection so it's safe from executor thread
+        # Progress callback - jobs use a separate DB (jobs.db) so no lock contention
+        # with the indexer's reads from conversations.db.
         def progress_cb(progress: int, message: str):
             try:
                 update_job(job_id, progress=progress, message=message)
             except Exception as e:
-                # Log but don't fail indexing if progress update fails
                 print(f"Progress update error: {e}")
         
-        # Run indexing in executor (it's CPU-bound)
-        import concurrent.futures
-        loop = asyncio.get_event_loop()
+        # Cancellation: indexer checks this each conversation; cancel API and shutdown set it
+        cancel_event = threading.Event()
+        with _vectordb_cancel_lock:
+            _vectordb_cancel_events[job_id] = cancel_event
         
-        def do_index():
-            from backend.vectordb.indexer import index_conversations
-            return index_conversations(
-                str(db_path),
-                str(vectordb_path),
-                conversation_ids=conversation_ids,
-                progress_callback=progress_cb,
-            )
+        def cancellation_check() -> bool:
+            return cancel_event.is_set()
         
-        result = await loop.run_in_executor(None, do_index)
-        
-        update_job(
-            job_id,
-            status=JobStatus.COMPLETED.value,
-            progress=100,
-            message=(
-                f"Indexing completed: {result['total_conversations']} conversations, "
-                f"{result['total_chunks']} chunks, {result['total_vectors']} vectors"
-            ),
-            result=result,
-        )
+        try:
+            # Run indexing in executor (it's CPU-bound)
+            import concurrent.futures
+            loop = asyncio.get_event_loop()
+            
+            def do_index():
+                from backend.vectordb.indexer import index_conversations
+                return index_conversations(
+                    str(db_path),
+                    str(vectordb_path),
+                    conversation_ids=conversation_ids,
+                    progress_callback=progress_cb,
+                    cancellation_check=cancellation_check,
+                )
+            
+            result = await loop.run_in_executor(None, do_index)
+            
+            if result.get("cancelled"):
+                update_job(
+                    job_id,
+                    status=JobStatus.CANCELLED.value,
+                    progress=result.get("indexed_conversations", 0) * 100 // max(1, result["total_conversations"]) if result.get("total_conversations") else 0,
+                    message=(
+                        f"Indexing cancelled: {result.get('indexed_conversations', 0)}/{result['total_conversations']} conversations, "
+                        f"{result['total_chunks']} chunks, {result['total_vectors']} vectors"
+                    ),
+                    result=result,
+                )
+            else:
+                update_job(
+                    job_id,
+                    status=JobStatus.COMPLETED.value,
+                    progress=100,
+                    message=(
+                        f"Indexing completed: {result['total_conversations']} conversations, "
+                        f"{result['total_chunks']} chunks, {result['total_vectors']} vectors"
+                    ),
+                    result=result,
+                )
+        finally:
+            with _vectordb_cancel_lock:
+                _vectordb_cancel_events.pop(job_id, None)
     
     except Exception as e:
         import traceback

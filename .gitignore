@@ -64,6 +64,8 @@ frontend/
 # - Keep docs tracked by default
 # - Put local / me-only notes under docs/ignored (gitignored)
 docs/ignored/
+# Local-only icons/screenshots (bundled into builds if present)
+docs/images/
 
 # ONNX model files (large, should be downloaded separately)
 vendor/

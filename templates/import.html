@@ -75,6 +75,9 @@
             <button type="button" onclick="startVectordbIndexing()" class="btn btn-secondary" id="vectordb-index-btn">
                 Index Conversations for Vector Search
             </button>
+            <button type="button" onclick="cancelVectordbIndexing()" class="btn btn-secondary" id="vectordb-cancel-btn" style="display: none; margin-left: 8px;">
+                Cancel indexing
+            </button>
             <div id="vectordb-index-status" style="margin-top: 10px;"></div>
         </div>
         
@@ -244,7 +247,9 @@ async function startVectordbIndexing() {
         }
         
         const result = await response.json();
-        statusDiv.innerHTML = `<div class="success">Indexing job created! Job ID: ${result.job_id}</div>`;
+        statusDiv.innerHTML = `<div class="loading">Indexing started...</div>`;
+        const cancelBtn = document.getElementById('vectordb-cancel-btn');
+        if (cancelBtn) cancelBtn.style.display = 'inline-block';
         
         // Load jobs list
         loadJobs();
@@ -255,47 +260,92 @@ async function startVectordbIndexing() {
         statusDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
         btn.disabled = false;
         btn.textContent = 'Index Conversations for Vector Search';
+        const cancelBtn = document.getElementById('vectordb-cancel-btn');
+        if (cancelBtn) cancelBtn.style.display = 'none';
+    }
+}
+
+async function cancelVectordbIndexing() {
+    if (!_vectordbCurrentJobId) return;
+    try {
+        const response = await fetch(`/api/jobs/${_vectordbCurrentJobId}/cancel`, { method: 'POST' });
+        if (response.ok) {
+            document.getElementById('vectordb-index-status').innerHTML = '<div class="loading">Cancelling...</div>';
+        }
+    } catch (e) {
+        console.error('Cancel failed:', e);
+    }
+}
+
+let _vectordbPollIntervalId = null;
+let _vectordbCurrentJobId = null;
+
+function applyVectordbJobToUI(job, statusDiv, btn) {
+    const cancelBtn = document.getElementById('vectordb-cancel-btn');
+    if (job.status === 'completed') {
+        statusDiv.innerHTML = `<div class="success">${job.message || 'Indexing completed successfully!'}</div>`;
+        if (_vectordbPollIntervalId) clearInterval(_vectordbPollIntervalId);
+        _vectordbPollIntervalId = null;
+        _vectordbCurrentJobId = null;
+        btn.disabled = false;
+        btn.textContent = 'Index Conversations for Vector Search';
+        if (cancelBtn) cancelBtn.style.display = 'none';
+        loadJobs();
+    } else if (job.status === 'failed') {
+        statusDiv.innerHTML = `<div class="error">Indexing failed: ${job.error || 'Unknown error'}</div>`;
+        if (_vectordbPollIntervalId) clearInterval(_vectordbPollIntervalId);
+        _vectordbPollIntervalId = null;
+        _vectordbCurrentJobId = null;
+        btn.disabled = false;
+        btn.textContent = 'Index Conversations for Vector Search';
+        if (cancelBtn) cancelBtn.style.display = 'none';
+        loadJobs();
+    } else if (job.status === 'cancelled') {
+        statusDiv.innerHTML = `<div class="error">Indexing cancelled. ${job.message || ''}</div>`;
+        if (_vectordbPollIntervalId) clearInterval(_vectordbPollIntervalId);
+        _vectordbPollIntervalId = null;
+        _vectordbCurrentJobId = null;
+        btn.disabled = false;
+        btn.textContent = 'Index Conversations for Vector Search';
+        if (cancelBtn) cancelBtn.style.display = 'none';
+        loadJobs();
+    } else {
+        statusDiv.innerHTML = `<div class="loading">${job.message || 'Processing...'} (${job.progress || 0}%)</div>`;
+        if (cancelBtn) cancelBtn.style.display = 'inline-block';
     }
 }
 
 async function pollVectordbJobStatus(jobId) {
-    const maxAttempts = 300;  // 5 minutes max
+    // NOTE: Do not hard-stop polling based on time/attempts.
+    // Large corpuses can take longer than 10 minutes and the UI would appear "stuck"
+    // at the last-seen percentage even though indexing continues/completes.
     let attempts = 0;
+    _vectordbCurrentJobId = jobId;
+    const statusDiv = document.getElementById('vectordb-index-status');
+    const btn = document.getElementById('vectordb-index-btn');
     
-    const interval = setInterval(async () => {
+    async function fetchAndUpdate() {
         attempts++;
-        if (attempts > maxAttempts) {
-            clearInterval(interval);
-            return;
-        }
-        
         try {
             const response = await fetch(`/api/jobs/${jobId}`);
             const job = await response.json();
-            
-            const statusDiv = document.getElementById('vectordb-index-status');
-            const btn = document.getElementById('vectordb-index-btn');
-            
-            if (job.status === 'completed') {
-                const msg = job.message || 'Indexing completed successfully!';
-                statusDiv.innerHTML = `<div class="success">${msg}</div>`;
-                clearInterval(interval);
-                btn.disabled = false;
-                btn.textContent = 'Index Conversations for Vector Search';
-                loadJobs();
-            } else if (job.status === 'failed') {
-                statusDiv.innerHTML = `<div class="error">Indexing failed: ${job.error || 'Unknown error'}</div>`;
-                clearInterval(interval);
-                btn.disabled = false;
-                btn.textContent = 'Index Conversations for Vector Search';
-                loadJobs();
-            } else {
-                statusDiv.innerHTML = `<div class="loading">${job.message || 'Processing...'} (${job.progress || 0}%)</div>`;
-            }
+            applyVectordbJobToUI(job, statusDiv, btn);
         } catch (error) {
             console.error('Error polling vectordb job status:', error);
         }
-    }, 1000);
+    }
+    await fetchAndUpdate();
+    _vectordbPollIntervalId = setInterval(fetchAndUpdate, 1000);
 }
+// When tab becomes visible, refetch current job so progress isn't stale (browsers throttle setInterval in background)
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible' && _vectordbCurrentJobId) {
+        fetch(`/api/jobs/${_vectordbCurrentJobId}`).then(r => r.json()).then(function(job) {
+            const statusDiv = document.getElementById('vectordb-index-status');
+            const btn = document.getElementById('vectordb-index-btn');
+            if (statusDiv && btn) applyVectordbJobToUI(job, statusDiv, btn);
+        }).catch(function() {});
+    }
+});
 </script>
 {% endblock %}

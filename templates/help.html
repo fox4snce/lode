@@ -302,6 +302,19 @@ def search_vector_db(query_summary: str, top_k: int = 5) -> List[Dict[str, Any]]
                         </div>
 
                         <div class="help-block">
+                            <h4>API keys</h4>
+                            <ul>
+                                <li><strong>OpenAI</strong>: set environment variable <code>OPENAI_API_KEY</code></li>
+                                <li><strong>Anthropic</strong>: set environment variable <code>ANTHROPIC_API_KEY</code></li>
+                                <li>After setting keys, <strong>restart Lode</strong> so it can read the updated environment.</li>
+                                <li>To obtain a key, use the provider’s website/documentation; Lode only needs the key set locally.</li>
+                            </ul>
+                            <div style="margin-top: 8px; font-size: 12px; color: #666;">
+                                Windows tip: set a User environment variable (System Properties → Environment Variables), or run <code>setx OPENAI_API_KEY "…"</code> / <code>setx ANTHROPIC_API_KEY "…"</code> then restart Lode.
+                            </div>
+                        </div>
+
+                        <div class="help-block">
                             <h4>During chat</h4>
                             <ul>
                                 <li>Responses stream in as they are generated</li>
