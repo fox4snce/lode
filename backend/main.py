@@ -173,7 +173,7 @@ class JobStatusResponse(BaseModel):
     error: Optional[str] = None
 
 class ImportJobRequest(BaseModel):
-    source_type: str  # "openai" or "claude"
+    source_type: str  # "openai", "claude", or "lode"
     file_path: str
     calculate_stats: bool = True
     build_index: bool = True
@@ -856,8 +856,8 @@ async def create_import_upload_job(
     upload: UploadFile = File(...),
 ):
     """Create an import job from an uploaded file (recommended for webview/browser)."""
-    if source_type not in ("openai", "claude"):
-        raise HTTPException(status_code=400, detail="source_type must be 'openai' or 'claude'")
+    if source_type not in ("openai", "claude", "lode"):
+        raise HTTPException(status_code=400, detail="source_type must be 'openai', 'claude', or 'lode'")
 
     # Persist upload to a local file so the existing job runner/importers can consume it.
     # IMPORTANT: when packaged, write to the persistent user data directory (not the temp extraction dir).
@@ -1569,7 +1569,11 @@ async def export_conversation(
             """, (conversation_id,))
             msgs = [dict(row) for row in cursor.fetchall()]
             conn.close()
-            data = {"conversation": dict(conv), "messages": [dict(m) for m in msgs]}
+            data = {
+                "lode_export_format_version": "1.0",
+                "conversation": dict(conv),
+                "messages": [dict(m) for m in msgs]
+            }
             content = json.dumps(data, indent=2, ensure_ascii=False)
         else:  # CSV
             extension = ".csv"

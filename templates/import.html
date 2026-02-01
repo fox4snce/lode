@@ -34,13 +34,14 @@
                     <option value="">Select source...</option>
                     <option value="openai">OpenAI</option>
                     <option value="claude">Claude</option>
+                    <option value="lode">Lode</option>
                 </select>
             </div>
             
             <div class="form-group">
-                <label for="file-path">File Path</label>
+                <label for="file-path">File or folder path</label>
                 <input type="text" id="file-path" name="file_path" required 
-                       placeholder="Enter full path to conversation file">
+                       placeholder="Enter path to file or folder (Lode: .json file or folder of exports)">
                 <button type="button" onclick="document.getElementById('file-input').click()" class="btn btn-secondary" style="margin-top: 8px;">
                     Browse Files
                 </button>

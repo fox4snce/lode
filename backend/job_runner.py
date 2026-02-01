@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Dict
 
 from backend.jobs import update_job, JobStatus, get_job
-from backend.db import get_db_path
+from backend.db import get_db_path, get_data_dir
 
 # Registry of job_id -> Event for vectordb index jobs; setting the event stops indexing.
 _vectordb_cancel_events: Dict[str, threading.Event] = {}
@@ -46,8 +46,9 @@ async def run_import_job(job_id: str, metadata: dict):
     try:
         update_job(job_id, status=JobStatus.RUNNING.value, progress=0, message="Starting import...")
 
-        # Resolve file path - allow bare filenames and common data/ locations
+        # Resolve file/directory path - allow bare filenames and common data/ locations
         project_root = Path(__file__).parent.parent
+        data_dir = get_data_dir()
         input_path = Path(file_path)
         candidate_paths = []
 
@@ -58,14 +59,20 @@ async def run_import_job(job_id: str, metadata: dict):
                 project_root / file_path,
                 project_root / "data" / file_path,
                 project_root / "data" / "example_corpus" / file_path,
+                data_dir / "exports" / file_path,
+                data_dir / file_path,
             ])
 
         resolved_path = None
         for p in candidate_paths:
             try:
-                if p.exists() and p.is_file():
-                    resolved_path = p
-                    break
+                if p.exists():
+                    if p.is_file():
+                        resolved_path = p
+                        break
+                    elif source_type == 'lode' and p.is_dir():
+                        resolved_path = p
+                        break
             except OSError:
                 continue
 
@@ -75,7 +82,7 @@ async def run_import_job(job_id: str, metadata: dict):
                 job_id,
                 status=JobStatus.FAILED.value,
                 error=(
-                    "File not found for import.\n"
+                    "File or folder not found for import.\n"
                     f"Provided: {file_path}\n"
                     "Tried:\n"
                     f"{tried}\n"
@@ -84,71 +91,141 @@ async def run_import_job(job_id: str, metadata: dict):
             )
             return
 
-        file_path = str(resolved_path.resolve())
+        resolved_path = resolved_path.resolve()
+        is_directory = resolved_path.is_dir()
         
         # Import based on source type
-        if source_type == 'openai':
-            import importers.import_openai_conversations as importer
-        elif source_type == 'claude':
-            import importers.import_claude_conversations as importer
-        else:
-            update_job(job_id, status=JobStatus.FAILED.value, error=f"Unknown source type: {source_type}")
-            return
-        
-        # TODO: Integrate with import_report.py for tracking
-        # For now, just run the import
         db_path = get_db_path()
-        
-        # Run import (this is synchronous, so we run in executor)
         import concurrent.futures
         loop = asyncio.get_event_loop()
-        
-        def do_import():
-            try:
-                # Check conversation count before import
-                import sqlite3
-                conn_before = sqlite3.connect(str(db_path))
-                cursor_before = conn_before.cursor()
-                cursor_before.execute('SELECT COUNT(*) FROM conversations')
-                count_before = cursor_before.fetchone()[0]
-                cursor_before.execute('SELECT COUNT(*) FROM messages')
-                msg_count_before = cursor_before.fetchone()[0]
-                conn_before.close()
-                
-                if source_type == 'openai':
-                    importer.import_openai_conversations(file_path, str(db_path))
-                else:
-                    importer.import_claude_conversations(file_path, str(db_path))
-                
-                # Check conversation count after import
-                conn_after = sqlite3.connect(str(db_path))
-                cursor_after = conn_after.cursor()
-                cursor_after.execute('SELECT COUNT(*) FROM conversations')
-                count_after = cursor_after.fetchone()[0]
-                cursor_after.execute('SELECT COUNT(*) FROM messages')
-                msg_count_after = cursor_after.fetchone()[0]
-                conn_after.close()
-                
-                imported_count = count_after - count_before
-                imported_messages = msg_count_after - msg_count_before
-                if imported_count == 0 and imported_messages == 0:
-                    raise Exception(
-                        "No new conversations/messages were imported. "
-                        "The file may be empty, already imported, or in an invalid format."
+
+        if source_type == 'lode':
+            import importers.import_lode_conversations as lode_importer
+
+            if is_directory:
+                # Discover Lode JSON files in directory (top-level only)
+                json_files = list(resolved_path.glob("*.json"))
+                verified = [f for f in json_files if lode_importer.is_lode_export(str(f))]
+
+                if not verified:
+                    update_job(
+                        job_id,
+                        status=JobStatus.FAILED.value,
+                        error="No Lode export files found in directory. "
+                        "Files must contain 'lode_export_format_version' identifier.",
                     )
-                
-                return {
-                    "imported_conversations": imported_count,
+                    return
+
+                total = len(verified)
+                imported_conversations = 0
+                imported_messages = 0
+                failed_files = []
+
+                for i, fpath in enumerate(verified):
+                    update_job(
+                        job_id,
+                        progress=int((i + 1) / total * 50),  # 0-50% for import phase
+                        message=f"Importing {i + 1} / {total}…",
+                    )
+                    try:
+                        convs, msgs = await loop.run_in_executor(
+                            None, lode_importer.import_lode_conversations, str(fpath), str(db_path)
+                        )
+                        imported_conversations += convs
+                        imported_messages += msgs
+                    except Exception as e:
+                        failed_files.append((fpath.name, str(e)))
+
+                if failed_files and imported_conversations == 0 and imported_messages == 0:
+                    update_job(
+                        job_id,
+                        status=JobStatus.FAILED.value,
+                        error="All files failed. First error: " + failed_files[0][1],
+                    )
+                    return
+
+                import_result = {
+                    "imported_conversations": imported_conversations,
                     "imported_messages": imported_messages,
                     "db_path": str(db_path),
-                    "import_file": file_path,
+                    "import_file": str(resolved_path),
+                    "files_processed": total,
                 }
-            except FileNotFoundError as e:
-                raise Exception(f"File not found: {file_path}. {str(e)}")
-            except Exception as e:
-                raise Exception(f"Import failed: {str(e)}")
-        
-        import_result = await loop.run_in_executor(None, do_import)
+                if failed_files:
+                    import_result["failed_files"] = failed_files
+            else:
+                # Single file
+                def do_lode_import():
+                    convs, msgs = lode_importer.import_lode_conversations(
+                        str(resolved_path), str(db_path)
+                    )
+                    if convs == 0 and msgs == 0:
+                        raise Exception(
+                            "No new conversations/messages were imported. "
+                            "The file may be empty, already imported, or in an invalid format."
+                        )
+                    return {
+                        "imported_conversations": convs,
+                        "imported_messages": msgs,
+                        "db_path": str(db_path),
+                        "import_file": str(resolved_path),
+                    }
+
+                import_result = await loop.run_in_executor(None, do_lode_import)
+        else:
+            # OpenAI or Claude
+            file_path = str(resolved_path)
+            if source_type == 'openai':
+                import importers.import_openai_conversations as importer
+            elif source_type == 'claude':
+                import importers.import_claude_conversations as importer
+            else:
+                update_job(job_id, status=JobStatus.FAILED.value, error=f"Unknown source type: {source_type}")
+                return
+
+            def do_import():
+                try:
+                    import sqlite3
+                    conn_before = sqlite3.connect(str(db_path))
+                    cursor_before = conn_before.cursor()
+                    cursor_before.execute('SELECT COUNT(*) FROM conversations')
+                    count_before = cursor_before.fetchone()[0]
+                    cursor_before.execute('SELECT COUNT(*) FROM messages')
+                    msg_count_before = cursor_before.fetchone()[0]
+                    conn_before.close()
+
+                    if source_type == 'openai':
+                        importer.import_openai_conversations(file_path, str(db_path))
+                    else:
+                        importer.import_claude_conversations(file_path, str(db_path))
+
+                    conn_after = sqlite3.connect(str(db_path))
+                    cursor_after = conn_after.cursor()
+                    cursor_after.execute('SELECT COUNT(*) FROM conversations')
+                    count_after = cursor_after.fetchone()[0]
+                    cursor_after.execute('SELECT COUNT(*) FROM messages')
+                    msg_count_after = cursor_after.fetchone()[0]
+                    conn_after.close()
+
+                    imported_count = count_after - count_before
+                    imported_messages = msg_count_after - msg_count_before
+                    if imported_count == 0 and imported_messages == 0:
+                        raise Exception(
+                            "No new conversations/messages were imported. "
+                            "The file may be empty, already imported, or in an invalid format."
+                        )
+                    return {
+                        "imported_conversations": imported_count,
+                        "imported_messages": imported_messages,
+                        "db_path": str(db_path),
+                        "import_file": file_path,
+                    }
+                except FileNotFoundError as e:
+                    raise Exception(f"File not found: {file_path}. {str(e)}")
+                except Exception as e:
+                    raise Exception(f"Import failed: {str(e)}")
+
+            import_result = await loop.run_in_executor(None, do_import)
         
         update_job(
             job_id,
