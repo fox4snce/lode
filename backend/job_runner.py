@@ -159,16 +159,12 @@ async def run_import_job(job_id: str, metadata: dict):
                     convs, msgs = lode_importer.import_lode_conversations(
                         str(resolved_path), str(db_path)
                     )
-                    if convs == 0 and msgs == 0:
-                        raise Exception(
-                            "No new conversations/messages were imported. "
-                            "The file may be empty, already imported, or in an invalid format."
-                        )
                     return {
                         "imported_conversations": convs,
                         "imported_messages": msgs,
                         "db_path": str(db_path),
                         "import_file": str(resolved_path),
+                        "skipped_duplicate": convs == 0 and msgs == 0,
                     }
 
                 import_result = await loop.run_in_executor(None, do_lode_import)
@@ -227,16 +223,15 @@ async def run_import_job(job_id: str, metadata: dict):
 
             import_result = await loop.run_in_executor(None, do_import)
         
-        update_job(
-            job_id,
-            progress=50,
-            message=(
+        if import_result.get("skipped_duplicate"):
+            progress_msg = "No new conversations (already in database), calculating statistics..."
+        else:
+            progress_msg = (
                 f"Import completed ({import_result['imported_conversations']} conversations, "
                 f"{import_result['imported_messages']} messages), calculating statistics..."
-            ),
-            result=import_result,
-        )
-        
+            )
+        update_job(job_id, progress=50, message=progress_msg, result=import_result)
+
         # Calculate stats if requested
         if calculate_stats:
             import calculate_conversation_stats
@@ -258,15 +253,19 @@ async def run_import_job(job_id: str, metadata: dict):
             # TODO: Implement FTS5 population
             # For now, just mark as done
         
+        if import_result.get("skipped_duplicate"):
+            final_msg = "Import completed: no new conversations (already in database)."
+        else:
+            final_msg = (
+                "Import completed successfully: "
+                f"{import_result['imported_conversations']} conversations, "
+                f"{import_result['imported_messages']} messages"
+            )
         update_job(
             job_id,
             status=JobStatus.COMPLETED.value,
             progress=100,
-            message=(
-                "Import completed successfully: "
-                f"{import_result['imported_conversations']} conversations, "
-                f"{import_result['imported_messages']} messages"
-            ),
+            message=final_msg,
             result=import_result,
         )
     

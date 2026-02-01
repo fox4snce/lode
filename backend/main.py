@@ -895,6 +895,56 @@ async def create_import_upload_job(
 
     return JobResponse(job_id=job_id)
 
+
+@app.post("/api/jobs/import-lode-folder", response_model=JobResponse)
+async def create_import_lode_folder_job(
+    calculate_stats: bool = Form(True),
+    build_index: bool = Form(True),
+    files: List[UploadFile] = File(...),
+):
+    """Create an import job from multiple Lode JSON files (e.g. from Browse folder)."""
+    if not files:
+        raise HTTPException(status_code=400, detail="No files uploaded")
+
+    uploads_dir = get_data_dir() / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    batch_id = uuid.uuid4().hex
+    batch_dir = uploads_dir / f"lode_batch_{batch_id}"
+    batch_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        for f in files:
+            name = f.filename or "export.json"
+            safe_name = name.replace("\\", "_").replace("/", "_").strip()
+            if not safe_name.lower().endswith(".json"):
+                continue
+            path = batch_dir / safe_name
+            contents = await f.read()
+            path.write_bytes(contents)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save uploads: {e}")
+
+    json_count = len(list(batch_dir.glob("*.json")))
+    if json_count == 0:
+        raise HTTPException(status_code=400, detail="No .json files in upload")
+
+    job_id = create_job(JobType.IMPORT.value, metadata={
+        "source_type": "lode",
+        "file_path": str(batch_dir),
+        "calculate_stats": calculate_stats,
+        "build_index": build_index,
+    })
+    import asyncio
+    from backend.job_runner import run_import_job
+    asyncio.create_task(run_import_job(job_id, {
+        "source_type": "lode",
+        "file_path": str(batch_dir),
+        "calculate_stats": calculate_stats,
+        "build_index": build_index,
+    }))
+    return JobResponse(job_id=job_id)
+
+
 @app.post("/api/jobs/reindex", response_model=JobResponse)
 async def create_reindex_job():
     """Create a reindex job."""

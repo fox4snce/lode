@@ -501,12 +501,11 @@ async function exportConversationFromSidebar(conversationId) {
         const filePath = data.path || data.absolute_path || '';
         const absolutePath = data.absolute_path || '';
         
-        // Show success message with file path and open folder button
-        const openFolderBtn = absolutePath ? 
-            `<button onclick="openExportsFolder('${absolutePath.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" 
-                     style="margin-top: 8px; padding: 4px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+        // Show success message with file path and open folder button (same as Export page: call API)
+        const openFolderBtn = `
+            <button type="button" onclick="openExportsFolder()" style="margin-top: 8px; padding: 4px 12px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
                 Open Exports Folder
-            </button>` : '';
+            </button>`;
         
         statusDiv.innerHTML = `
             <span style="color: #27ae60;">✓ Exported successfully!</span><br>
@@ -530,15 +529,16 @@ async function exportConversationFromSidebar(conversationId) {
     }
 }
 
-function openExportsFolder(filePath) {
-    // Extract directory from file path
-    const pathParts = filePath.replace(/\\/g, '/').split('/');
-    pathParts.pop(); // Remove filename
-    const folderPath = pathParts.join('/');
-    
-    // Open folder using file:// URL (works in pywebview)
-    const fileUrl = 'file:///' + folderPath.replace(/\\/g, '/');
-    window.open(fileUrl, '_blank');
+async function openExportsFolder() {
+    try {
+        const response = await fetch('/api/export/open-exports-folder', { method: 'POST' });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            alert('Could not open folder: ' + (err.detail || response.statusText));
+        }
+    } catch (e) {
+        alert('Could not open folder: ' + e.message);
+    }
 }
 
 // Find functionality for conversation messages

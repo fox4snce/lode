@@ -58,7 +58,7 @@
                         <div class="help-block">
                             <h4>Steps</h4>
                             <ol>
-                                <li><strong>Import your conversations</strong>: Go to <strong>Import</strong>, choose OpenAI or Claude, select your export, then start import.</li>
+                                <li><strong>Import your conversations</strong>: Go to <strong>Import</strong>, choose OpenAI, Claude, or Lode, select your export, then start import. (Lode imports only JSON exports.)</li>
                                 <li><strong>Try Vector Search</strong>: Open <strong>Vector Search</strong>, enter a few phrases, and adjust Min Similarity until results look right.{% if not feature_flags.get('vectordb', false) %} (If Vector Search isn’t available, this feature is disabled.){% endif %}</li>
                                 <li><strong>Chat with your data</strong>: Open <strong>Chat</strong>, select a provider/model, then ask questions that reference your imported conversations.{% if not feature_flags.get('chat', false) %} (If Chat isn’t available, this feature is disabled.){% endif %}</li>
                             </ol>
@@ -112,17 +112,27 @@
 
                 <section id="import-help" class="help-section">
                     <h3>📥 Import</h3>
-                    <p class="help-subtitle">Import OpenAI/Claude exports into your local database.</p>
+                    <p class="help-subtitle">Import OpenAI, Claude, or Lode exports into your local database.</p>
 
                     <div class="help-kv">
                         <div class="help-block">
                             <h4>Steps</h4>
                             <ol>
-                                <li><strong>Select Source Type</strong>: OpenAI or Claude</li>
-                                <li><strong>Choose File</strong>: Browse files (preferred) or enter a file path</li>
+                                <li><strong>Select Source Type</strong>: OpenAI, Claude, or Lode</li>
+                                <li><strong>Choose File or Folder</strong>: Browse files (or Browse folder for Lode), or enter a path</li>
                                 <li><strong>Options</strong>: Calculate Statistics + Build Search Index (recommended)</li>
                                 <li><strong>Start Import</strong></li>
                             </ol>
+                        </div>
+
+                        <div class="help-block">
+                            <h4>Lode imports</h4>
+                            <ul>
+                                <li>Only <strong>JSON</strong> exports can be imported back into Lode</li>
+                                <li>Markdown and CSV exports are for reading or sharing only; they cannot be re-imported</li>
+                                <li>Use <strong>Browse Folder</strong> to import multiple Lode JSON files at once from a directory</li>
+                                <li>Or enter the path to a single .json file or a folder containing Lode exports</li>
+                            </ul>
                         </div>
 
                         <div class="help-block help-tip">

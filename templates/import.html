@@ -42,9 +42,17 @@
                 <label for="file-path">File or folder path</label>
                 <input type="text" id="file-path" name="file_path" required 
                        placeholder="Enter path to file or folder (Lode: .json file or folder of exports)">
-                <button type="button" onclick="document.getElementById('file-input').click()" class="btn btn-secondary" style="margin-top: 8px;">
-                    Browse Files
-                </button>
+                <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" onclick="document.getElementById('file-input').click()" class="btn btn-secondary">
+                        Browse Files
+                    </button>
+                    <span id="lode-folder-wrap" style="display: none;">
+                        <button type="button" onclick="document.getElementById('folder-input').click()" class="btn btn-secondary">
+                            Browse Folder
+                        </button>
+                        <input type="file" id="folder-input" style="display: none;" webkitdirectory directory multiple onchange="handleFolderSelect(event)">
+                    </span>
+                </div>
                 <input type="file" id="file-input" style="display: none;" onchange="handleFileSelect(event)">
             </div>
             
@@ -89,14 +97,37 @@
 
 <script>
 let selectedFile = null;
+let selectedFolderFiles = [];
+
+function updateLodeFolderVisibility() {
+    const wrap = document.getElementById('lode-folder-wrap');
+    const isLode = document.getElementById('source-type').value === 'lode';
+    wrap.style.display = isLode ? 'inline' : 'none';
+    if (!isLode) selectedFolderFiles = [];
+}
+document.getElementById('source-type').addEventListener('change', updateLodeFolderVisibility);
+updateLodeFolderVisibility();
 
 function handleFileSelect(event) {
+    selectedFolderFiles = [];
     const file = event.target.files[0];
     if (file) {
         selectedFile = file;
-        // In most webviews/browsers, full paths are not available. Prefer upload flow.
         document.getElementById('file-path').value = file.path || file.name;
     }
+    event.target.value = '';
+}
+
+function handleFolderSelect(event) {
+    selectedFile = null;
+    const files = event.target.files;
+    if (files && files.length) {
+        selectedFolderFiles = Array.from(files).filter(function(f) { return f.name.toLowerCase().endsWith('.json'); });
+        document.getElementById('file-path').value = selectedFolderFiles.length
+            ? selectedFolderFiles.length + ' .json files from folder'
+            : 'No .json files in folder';
+    }
+    event.target.value = '';
 }
 
 async function handleImport(event) {
@@ -117,8 +148,20 @@ async function handleImport(event) {
     try {
         let response;
 
-        // If a file was selected, upload it (more reliable than paths).
-        if (selectedFile) {
+        // Lode + folder selection: upload multiple files to folder-import endpoint
+        if (data.source_type === 'lode' && selectedFolderFiles.length > 0) {
+            const uploadForm = new FormData();
+            uploadForm.append('calculate_stats', String(data.calculate_stats));
+            uploadForm.append('build_index', String(data.build_index));
+            selectedFolderFiles.forEach(function(file) {
+                uploadForm.append('files', file, file.name);
+            });
+            response = await fetch('/api/jobs/import-lode-folder', {
+                method: 'POST',
+                body: uploadForm
+            });
+            selectedFolderFiles = [];
+        } else if (selectedFile) {
             const uploadForm = new FormData();
             uploadForm.append('source_type', data.source_type);
             uploadForm.append('calculate_stats', String(data.calculate_stats));
